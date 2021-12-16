@@ -1,25 +1,30 @@
 from datetime import datetime
+import os
 from pathlib import Path
-import sys
 from typing import Dict, List, Tuple
 
-from astropy.io import fits
-from astropy.io.fits.header import _HeaderCommentaryCards
+from dotenv import load_dotenv
 
 from .dataset_reader import DatasetReader
 
-from ..ingestor import (
-    Attachment,
+from pyscicat.client import (
+    ScicatClient,
+    get_file_mod_time,
+    get_file_size
+)
+from pyscicat.model import (
     Datablock,
     DataFile,
     Dataset,
     DatasetType,
-    Issue,
-    Ownable,
-    ScicatIngestor,
-    encode_thumbnail,
-    get_file_mod_time,
-    get_file_size)
+    Ownable
+  )
+
+load_dotenv('.env')
+
+SCICAT_BASEURL = os.getenv('SCICAT_BASEURL')
+SCICAT_INGEST_USER = os.getenv('SCICAT_INGEST_USER')
+SCICAT_INGEST_PASSWORD = os.getenv('SCICAT_INGEST_PASSWORD')
 
 
 class CCDTheta11012Reader(DatasetReader):
@@ -30,8 +35,6 @@ class CCDTheta11012Reader(DatasetReader):
     headers of each fits file.
     """
     dataset_id: str = None
-    _issues = []
-
 
     def __init__(self, file: Path, ownable: Ownable) -> None:
         self._file = file
@@ -44,14 +47,12 @@ class CCDTheta11012Reader(DatasetReader):
     def create_data_block(self) -> Datablock:
         "Creates a datablock of fits files"
         datafiles = self.create_data_files()
-        
         return Datablock(
-            datasetId = self.dataset_id,
-            size = get_file_size(self._file),
-            dataFileList = datafiles,
+            datasetId=self.dataset_id,
+            size=get_file_size(self._file),
+            dataFileList=datafiles,
             **self._ownable.dict()
         )
-
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
@@ -82,10 +83,10 @@ class CCDTheta11012Reader(DatasetReader):
         pass
 
 
-def ingest(file: Path) -> Tuple[str, List[Issue]]:
+def ingest(file: Path) -> Tuple[str]:
     "Ingest a folder of 11012 CCD Theta scan files"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
-    ownable = Ownable(    
+    ownable = Ownable(
             owner="MWET",
             contactEmail="dmcreynolds@lbl.gov",
             createdBy="dylan",
@@ -95,25 +96,20 @@ def ingest(file: Path) -> Tuple[str, List[Issue]]:
             ownerGroup="MWET",
             accessGroups=["MWET", "ingestor"])
     reader = CCDTheta11012Reader(file, ownable)
-    issues:List[Issue] = []
-    ingestor = ScicatIngestor(issues)
+    client = ScicatClient(base_url=SCICAT_BASEURL, username=SCICAT_INGEST_USER, password=SCICAT_INGEST_PASSWORD)
 
     dataset = reader.create_dataset()
-    dataset_id = ingestor.upload_raw_dataset(dataset)
+    dataset_id = client.upload_raw_dataset(dataset)
     reader.dataset_id = dataset_id
-    return dataset_id, issues
+    return dataset_id
 
 
 if __name__ == "__main__":
-    from pprint import pprint
     folder = Path('/home/dylan/data/beamlines/11012/restructured/ccd_theta')
     for path in folder.iterdir():
         try:
-            dataset_id, issues = ingest(path)
-            print(f"Ingested {path} as {dataset_id}. Issues:")
-            pprint(issues)
+            dataset_id = ingest(path)
+            print(f"Ingested {path} as {dataset_id}.")
         except Exception as e:
             print(f"Error ingesting {path} with {e}")
             raise e
-
-    

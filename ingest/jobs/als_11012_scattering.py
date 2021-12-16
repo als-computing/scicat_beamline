@@ -1,32 +1,44 @@
 from datetime import datetime
 from pathlib import Path
-import sys
-from typing import Dict, List, Tuple
-import numpy as np
-from PIL import Image, ImageOps
+
+import os
+from typing import Dict, List
+
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
+import numpy as np
+from PIL import Image, ImageOps
+
+from dotenv import load_dotenv
 
 from .dataset_reader import DatasetReader
 
-from ..ingestor import (
+from pyscicat.client import (
+    ScicatClient,
+    encode_thumbnail,
+    get_file_mod_time,
+    get_file_size
+)
+from pyscicat.model import (
     Attachment,
     Datablock,
     DataFile,
     Dataset,
     DatasetType,
-    Issue,
-    Ownable,
-    ScicatIngestor,
-    encode_thumbnail,
-    get_file_mod_time,
-    get_file_size)
+    Ownable
+  )
+
+load_dotenv('.env')
+
+SCICAT_BASEURL = os.getenv('SCICAT_BASEURL')
+SCICAT_INGEST_USER = os.getenv('SCICAT_INGEST_USER')
+SCICAT_INGEST_PASSWORD = os.getenv('SCICAT_INGEST_PASSWORD')
 
 
 class Scattering11012Reader(DatasetReader):
     """A DatasetReader for reading 11012 scattering datasets.
-    Reader exepects a folder that contains the labview (AI) text file as
-    well as all fits files and some png files. Png files will be ingested 
+    Reader expects a folder that contains the labview (AI) text file as
+    well as all fits files and some png files. Png files will be ingested
     as attachments/thumbnails. Fits files will be ingested as Datablock.DataFiles.
 
     Scientific Metadata is built as a dictionary where each child is an array build from
@@ -34,7 +46,6 @@ class Scattering11012Reader(DatasetReader):
     """
     dataset_id: str = None
     _issues = []
-
 
     def __init__(self, folder: Path, ownable: Ownable) -> None:
         self._folder = folder
@@ -45,9 +56,9 @@ class Scattering11012Reader(DatasetReader):
         datafiles = []
         for file in self._folder.iterdir():
             datafile = DataFile(
-                path = file.name,
-                size = get_file_size(file),
-                time= get_file_mod_time(file),
+                path=file.name,
+                size=get_file_size(file),
+                time=get_file_mod_time(file),
                 type="RawDatasets"
             )
             datafiles.append(datafile)
@@ -56,14 +67,12 @@ class Scattering11012Reader(DatasetReader):
     def create_data_block(self) -> Datablock:
         "Creates a datablock of fits files"
         datafiles = self.create_data_files()
-        
         return Datablock(
-            datasetId = self.dataset_id,
-            size = get_file_size(self._folder),
-            dataFileList = datafiles,
+            datasetId=self.dataset_id,
+            size=get_file_size(self._folder),
+            dataFileList=datafiles,
             **self._ownable.dict()
         )
-
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
@@ -99,8 +108,8 @@ class Scattering11012Reader(DatasetReader):
     def create_attachment(self, file: Path) -> Attachment:
         "Creates a thumbnail png"
         return Attachment(
-            datasetId = self.dataset_id,
-            thumbnail = encode_thumbnail(file),
+            datasetId=self.dataset_id,
+            thumbnail=encode_thumbnail(file),
             caption="scattering image",
             **self._ownable.dict()
         )
@@ -136,10 +145,10 @@ class Scattering11012Reader(DatasetReader):
         return metadata
 
 
-def ingest(folder: Path) -> Tuple[str, List[Issue]]:
+def ingest(folder: Path) -> str:
     "Ingest a folder of 11012 scattering folders"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
-    ownable = Ownable(    
+    ownable = Ownable(
             owner="MWET",
             contactEmail="dmcreynolds@lbl.gov",
             createdBy="dylan",
@@ -149,8 +158,7 @@ def ingest(folder: Path) -> Tuple[str, List[Issue]]:
             ownerGroup="MWET",
             accessGroups=["MWET", "ingestor"])
     reader = Scattering11012Reader(folder, ownable)
-    issues:List[Issue] = []
-    ingestor = ScicatIngestor(issues)
+    ingestor = ScicatClient()
 
     dataset = reader.create_dataset()
     dataset_id = ingestor.upload_raw_dataset(dataset)
@@ -160,30 +168,27 @@ def ingest(folder: Path) -> Tuple[str, List[Issue]]:
         thumbnail = reader.create_attachment(png_files[0])
         ingestor.upload_attachment(thumbnail)
 
-    data_block = reader.create_data_block()   
+    data_block = reader.create_data_block()
     ingestor.upload_datablock(data_block)
-    return dataset_id, issues
-
-
+    return dataset_id
 
 
 def build_thumbnail(fits_data, name, directory):
-        log_image = fits_data
-        log_image = log_image - np.min(log_image) + 1.001
-        log_image = np.log(log_image)
-        log_image = 205*log_image/(np.max(log_image))
-        auto_contrast_image = Image.fromarray(log_image.astype('uint8'))
-        auto_contrast_image = ImageOps.autocontrast(
-                                auto_contrast_image, cutoff=0.1)
-        dir = Path(directory)
-        filename = name + ".png"
-        # file = io.BytesIO()
-        file = dir / Path(filename)
-        auto_contrast_image.save(file, format='PNG')
-        return file
+    log_image = fits_data
+    log_image = log_image - np.min(log_image) + 1.001
+    log_image = np.log(log_image)
+    log_image = 205*log_image/(np.max(log_image))
+    auto_contrast_image = Image.fromarray(log_image.astype('uint8'))
+    auto_contrast_image = ImageOps.autocontrast(
+                            auto_contrast_image, cutoff=0.1)
+    dir = Path(directory)
+    filename = name + ".png"
+    file = dir / Path(filename)
+    auto_contrast_image.save(file, format='PNG')
+    return file
+
 
 if __name__ == "__main__":
-    from pprint import pprint
     folder = Path('/home/j/programming/work/Oct_2021_scattering/CCD')
     for path in folder.iterdir():
         print(path)
@@ -196,14 +201,12 @@ if __name__ == "__main__":
                 fits_filename = fits_filenames[len(fits_filenames)//2]
                 image_data = fits.getdata(fits_filename, ext=2)
                 build_thumbnail(image_data, fits_filename.name[:-5], path)
-            
-            dataset_id, issues = ingest(path)
-            print(f"Ingested {path} as {dataset_id}. Issues:")
-            pprint(issues)
+
+            dataset_id = ingest(path)
+            print(f"Ingested {path} as {dataset_id}.")
+
         except Exception as e:
             print('ERROR:')
             print(e)
             print(f"Error ingesting {path} with {e}")
             raise e
-
-    

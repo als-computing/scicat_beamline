@@ -1,15 +1,13 @@
 from pathlib import Path
 from typing import Dict, List
 
-
-
-from ..ingestor import (
+from pyscicat.model import (
     Attachment,
     Datablock,
     DataFile,
     Dataset,
-    Issue,
     Ownable)
+
 
 class DatasetReader():
     def __init__(self, folder) -> None:
