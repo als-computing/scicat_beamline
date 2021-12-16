@@ -1,0 +1,1 @@
+This repository stores scripts used to communicate with Scicat used at beamlines.
