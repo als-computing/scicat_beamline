@@ -2,7 +2,8 @@ from datetime import datetime
 from pathlib import Path
 import sys
 from typing import Dict, List, Tuple
-
+import numpy as np
+from PIL import Image, ImageOps
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
 
@@ -68,6 +69,12 @@ class Scattering11012Reader(DatasetReader):
         "Creates a dataset object"
         folder_size = get_file_size(self._folder)
         sample_name = self._folder.name
+
+        ai_file_name = next(self._folder.glob("*.txt")).name[:-7]
+
+        description = ai_file_name.replace("_", " ")
+        description = description.replace('-', ' ')
+        appended_keywords = description.split()
         dataset = Dataset(
             owner="test",
             contactEmail="cbabay1993@gmail.com",
@@ -77,14 +84,14 @@ class Scattering11012Reader(DatasetReader):
             instrumentId="11012",
             proposalId="unknown",
             dataFormat="BCS",
-            principalInvestigator="Lynne Katz",
+            principalInvestigator="Lynn Katz",
             sourceFolder=self._folder.as_posix(),
             size=folder_size,
             scientificMetadata=self.create_scientific_metadata(),
             sampleId=sample_name,
             isPublished=False,
-            description="",
-            keywords=["scattering", "rsoxs", "11.0.1.2", "ccd"],
+            description=description,
+            keywords=["scattering", "rsoxs", "11.0.1.2", "ccd"] + appended_keywords,
             creationTime=get_file_mod_time(self._folder),
             **self._ownable.dict())
         return dataset
@@ -108,6 +115,14 @@ class Scattering11012Reader(DatasetReader):
         """
         fits_files = self._folder.glob("*.fits")
         metadata = {}
+        # Headers from AI file
+        ai_file_name = next(self._folder.glob("*.txt"))
+        with open(ai_file_name) as ai_file:
+            metadata['headers'] = []
+            for line in ai_file:
+                if line.startswith('Time'):
+                    break
+                metadata["headers"].append(line.rstrip())
         for fits_file in fits_files:
             with fits.open(fits_file) as hdulist:
                 metadata_header = hdulist[0].header
@@ -150,17 +165,44 @@ def ingest(folder: Path) -> Tuple[str, List[Issue]]:
     return dataset_id, issues
 
 
+
+
+def build_thumbnail(fits_data, name, directory):
+        log_image = fits_data
+        log_image = log_image - np.min(log_image) + 1.001
+        log_image = np.log(log_image)
+        log_image = 205*log_image/(np.max(log_image))
+        auto_contrast_image = Image.fromarray(log_image.astype('uint8'))
+        auto_contrast_image = ImageOps.autocontrast(
+                                auto_contrast_image, cutoff=0.1)
+        dir = Path(directory)
+        filename = name + ".png"
+        # file = io.BytesIO()
+        file = dir / Path(filename)
+        auto_contrast_image.save(file, format='PNG')
+        return file
+
 if __name__ == "__main__":
     from pprint import pprint
-    folder = Path('/home/dylan/data/beamlines/11012/restructured/scattering')
+    folder = Path('/home/j/programming/work/Oct_2021_scattering/CCD')
     for path in folder.iterdir():
+        print(path)
         if not path.is_dir():
             continue
         try:
+            png_files = list(path.glob('*.png'))
+            if len(png_files) == 0:
+                fits_filenames = sorted(path.glob('*.fits'))
+                fits_filename = fits_filenames[len(fits_filenames)//2]
+                image_data = fits.getdata(fits_filename, ext=2)
+                build_thumbnail(image_data, fits_filename.name[:-5], path)
+            
             dataset_id, issues = ingest(path)
             print(f"Ingested {path} as {dataset_id}. Issues:")
             pprint(issues)
         except Exception as e:
+            print('ERROR:')
+            print(e)
             print(f"Error ingesting {path} with {e}")
             raise e
 

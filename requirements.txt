@@ -1,0 +1,8 @@
+astropy
+h5py
+pydantic
+python-dotenv
+requests
+numpy
+Pillow
+pandas
