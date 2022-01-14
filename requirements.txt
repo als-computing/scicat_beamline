@@ -6,3 +6,4 @@ requests
 numpy
 Pillow
 pandas
+pyscicat[base]

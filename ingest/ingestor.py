@@ -22,11 +22,11 @@ import requests  # for HTTP requests
 from dotenv import load_dotenv
 from requests.models import Response
 
-load_dotenv('.env')
+load_dotenv(".env")
 
-SCICAT_BASEURL=os.getenv('SCICAT_BASEURL')
-SCICAT_INGEST_USER=os.getenv('SCICAT_INGEST_USER')
-SCICAT_INGEST_PASSWORD=os.getenv('SCICAT_INGEST_PASSWORD')
+SCICAT_BASEURL = os.getenv("SCICAT_BASEURL")
+SCICAT_INGEST_USER = os.getenv("SCICAT_INGEST_USER")
+SCICAT_INGEST_PASSWORD = os.getenv("SCICAT_INGEST_PASSWORD")
 
 logger = logging.getLogger("splash_ingest")
 can_debug = logger.isEnabledFor(logging.DEBUG)
@@ -41,8 +41,9 @@ class Severity(str, enum.Enum):
     warning = "warning"
     fatal = "fatal"
 
-@dataclass  
-class Issue():
+
+@dataclass
+class Issue:
     severity: Severity
     stage: str
     msg: str
@@ -51,30 +52,35 @@ class Issue():
     class Config:
         arbitrary_types_allowed = True
 
+
 class DatasetType(str, enum.Enum):
     raw = "raw"
 
+
 class Ownable(BaseModel):
-    """ Many objects in SciCat are ownable
-    """
+    """Many objects in SciCat are ownable"""
+
     ownerGroup: str
     accessGroups: List[str]
 
+
 class MongoQueryable(BaseModel):
-    """ Many objects in SciCat are mongo queryable
-    """
+    """Many objects in SciCat are mongo queryable"""
+
     createdBy: Optional[str]
     updatedBy: Optional[str]
     updatedAt: Optional[str]
     createdAt: Optional[str]
 
+
 class Dataset(Ownable, MongoQueryable):
     """
-        A dataset in SciCat
+    A dataset in SciCat
     """
+
     pid: Optional[str]
     owner: str
-    ownerEmail: Optional[str]   
+    ownerEmail: Optional[str]
     orcidOfOwner: Optional[str]
     contactEmail: str
     creationLocation: str
@@ -96,12 +102,13 @@ class Dataset(Ownable, MongoQueryable):
     isPublished: str
     description: Optional[str]
     validationStatus: Optional[str]
-    keywords: Optional[List[str]]   
+    keywords: Optional[List[str]]
     datasetName: Optional[str]
     classification: Optional[str]
     license: Optional[str]
     version: Optional[str]
     isPublished: Optional[bool] = False
+
 
 class DataFile(MongoQueryable):
     """
@@ -109,19 +116,20 @@ class DataFile(MongoQueryable):
     to the Dataset's sourceFolder parameter
 
     """
+
     path: str
     size: int
     time: Optional[str]
     uid: Optional[str] = None
     gid: Optional[str] = None
     perm: Optional[str] = None
-    
 
 
-class Datablock(Ownable ):
+class Datablock(Ownable):
     """
     A Datablock maps between a Dataset and contains DataFiles
     """
+
     id: Optional[str]
     # archiveId: str = None  listed in catamel model, but comes back invalid?
     size: int
@@ -131,29 +139,30 @@ class Datablock(Ownable ):
     dataFileList: List[DataFile]
     datasetId: str
 
+
 class Attachment(Ownable):
-    """ 
-        Attachments can be any base64 encoded string...thumbnails are attachments
     """
+    Attachments can be any base64 encoded string...thumbnails are attachments
+    """
+
     id: Optional[str]
     thumbnail: str
     caption: Optional[str]
     datasetId: str
 
 
-class ScicatIngestor():
-    """Responsible for communicating with the Scicat Catamel server via http
+class ScicatIngestor:
+    """Responsible for communicating with the Scicat Catamel server via http"""
 
-    """
     baseurl = SCICAT_BASEURL
     # timeouts = (4, 8)  # we are hitting a transmission timeout...
     timeouts = None  # we are hitting a transmission timeout...
     username = SCICAT_INGEST_USER  # default username
-    password = SCICAT_INGEST_PASSWORD     # default password
+    password = SCICAT_INGEST_PASSWORD  # default password
     delete_existing = False
     # You should see a nice, but abbreviated table here with the logbook contents.
     token = None  # store token here
-    settables = ['baseurl', 'timeouts', 'username', 'password', 'token', "job_id"]
+    settables = ["baseurl", "timeouts", "username", "password", "token", "job_id"]
     pid = 0  # gets set if you search for something
     entries = None  # gets set if you search for something
     datasetType = "RawDatasets"
@@ -191,10 +200,14 @@ class ScicatIngestor():
             verify=True,
         )
         if not response.ok:
-            logger.error(f'{self.job_id} ** Error received: {response}')
+            logger.error(f"{self.job_id} ** Error received: {response}")
             err = response.json()["error"]
-            logger.error(f'{self.job_id} {err["name"]}, {err["statusCode"]}: {err["message"]}')
-            self.add_error(f'error getting token {err["name"]}, {err["statusCode"]}: {err["message"]}')
+            logger.error(
+                f'{self.job_id} {err["name"]}, {err["statusCode"]}: {err["message"]}'
+            )
+            self.add_error(
+                f'error getting token {err["name"]}, {err["statusCode"]}: {err["message"]}'
+            )
             return None
 
         data = response.json()
@@ -205,7 +218,7 @@ class ScicatIngestor():
         return token
 
     def _send_to_scicat(self, url, dataDict=None, cmd="post"):
-        """ sends a command to the SciCat API server using url and token, returns the response JSON
+        """sends a command to the SciCat API server using url and token, returns the response JSON
         Get token with the getToken method"""
         if cmd == "post":
             response = requests.post(
@@ -218,8 +231,9 @@ class ScicatIngestor():
             )
         elif cmd == "delete":
             response = requests.delete(
-                url, params={"access_token": self.token}, 
-                timeout=self.timeouts, 
+                url,
+                params={"access_token": self.token},
+                timeout=self.timeouts,
                 stream=False,
                 verify=self.sslVerify,
             )
@@ -243,12 +257,11 @@ class ScicatIngestor():
             )
         return response
 
-
     def upload_sample(self, projected_start_doc, access_groups, owner_group):
         sample = {
-            "sampleId": projected_start_doc.get('sample_id'),
-            "owner": projected_start_doc.get('pi_name'),
-            "description": projected_start_doc.get('sample_name'),
+            "sampleId": projected_start_doc.get("sample_id"),
+            "owner": projected_start_doc.get("pi_name"),
+            "description": projected_start_doc.get("sample_name"),
             "createdAt": datetime.isoformat(datetime.utcnow()) + "Z",
             "sampleCharacteristics": {},
             "isPublished": False,
@@ -256,12 +269,14 @@ class ScicatIngestor():
             "accessGroups": access_groups,
             "createdBy": self.username,
             "updatedBy": self.username,
-            "updatedAt": datetime.isoformat(datetime.utcnow()) + "Z"
+            "updatedAt": datetime.isoformat(datetime.utcnow()) + "Z",
         }
-        sample_url = f'{self.baseurl}Samples'
+        sample_url = f"{self.baseurl}Samples"
 
         resp = self._send_to_scicat(sample_url, sample)
-        if not resp.ok:  # can happen if sample id is a duplicate, but we can't tell that from the response
+        if (
+            not resp.ok
+        ):  # can happen if sample id is a duplicate, but we can't tell that from the response
             err = resp.json()["error"]
             raise ScicatCommError(f"Error creating Sample {err}")
 
@@ -270,50 +285,60 @@ class ScicatIngestor():
         if projected_dict.get(field_name):
             return projected_dict.get(field_name)
         else:
-            self.add_warning(f"missing field {field_name} defaulting to {str(default_val)}")
+            self.add_warning(
+                f"missing field {field_name} defaulting to {str(default_val)}"
+            )
             return default_val
 
     def upload_raw_dataset(self, dataset: Dataset):
-        # create dataset 
+        # create dataset
         raw_dataset_url = self.baseurl + "RawDataSets/replaceOrCreate"
         resp = self._send_to_scicat(raw_dataset_url, dataset.dict(exclude_none=True))
         if not resp.ok:
             err = resp.json()["error"]
             raise ScicatCommError(f"Error creating raw dataset {err}")
-        new_pid = resp.json().get('pid')
+        new_pid = resp.json().get("pid")
         logger.info(f"{self.job_id} new dataset created {new_pid}")
         return new_pid
-        
+
     def upload_datablock(self, datablock: Datablock):
         datasetType = "RawDatasets"
-    
-        url = self.baseurl + f"{datasetType}/{urllib.parse.quote_plus(datablock.datasetId)}/origdatablocks"
+
+        url = (
+            self.baseurl
+            + f"{datasetType}/{urllib.parse.quote_plus(datablock.datasetId)}/origdatablocks"
+        )
         # logger.info(f"{self.job_id} sending to {url} accessGroups: {access_groups}, ownerGroup: {owner_group}")
         # logger.info(f"datablock: {json.dumps(dataBlock)}")
         resp = self._send_to_scicat(url, datablock.dict(exclude_none=True))
         if not resp.ok:
             err = resp.json()["error"]
-            raise ScicatCommError(f"Error creating datablock. {err}") 
+            raise ScicatCommError(f"Error creating datablock. {err}")
         # logger.info(f"{self.job_id} origdatablock sent for {new_pid}")
 
-
     def upload_attachment(self, attachment: Attachment, datasetType="RawDatasets"):
-        url = self.baseurl + f"{datasetType}/{urllib.parse.quote_plus(attachment.datasetId)}/attachments"
+        url = (
+            self.baseurl
+            + f"{datasetType}/{urllib.parse.quote_plus(attachment.datasetId)}/attachments"
+        )
         logging.debug(url)
         resp = requests.post(
-                    url,
-                    params={"access_token": self.token},
-                    timeout=self.timeouts,
-                    stream=False,
-                    json=attachment.dict(exclude_none=True),
-                    verify=True)
+            url,
+            params={"access_token": self.token},
+            timeout=self.timeouts,
+            stream=False,
+            json=attachment.dict(exclude_none=True),
+            verify=True,
+        )
         if not resp.ok:
             err = resp.json()["error"]
-            raise ScicatCommError(f"Error  uploading thumbnail. {err}") 
+            raise ScicatCommError(f"Error  uploading thumbnail. {err}")
+
 
 def get_file_size(pathobj):
     filesize = pathobj.lstat().st_size
     return filesize
+
 
 def get_checksum(pathobj):
     with open(pathobj) as file_to_check:
@@ -321,13 +346,13 @@ def get_checksum(pathobj):
         return hashlib.md5(file_to_check.read()).hexdigest()
 
 
-def encode_thumbnail(filename, imType='jpg'):
+def encode_thumbnail(filename, imType="jpg"):
     logging.info(f"Creating thumbnail for dataset: {filename}")
     header = "data:image/{imType};base64,".format(imType=imType)
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         data = f.read()
     dataBytes = base64.b64encode(data)
-    dataStr = dataBytes.decode('UTF-8')
+    dataStr = dataBytes.decode("UTF-8")
     return header + dataStr
 
 
@@ -341,67 +366,76 @@ class NPArrayEncoder(json.JSONEncoder):
 # def get_content_type(response: Response):
 #     response.headers.
 
+
 def get_file_mod_time(pathobj):
     # may only work on WindowsPath objects...
     # timestamp = pathobj.lstat().st_mtime
     return str(datetime.fromtimestamp(pathobj.lstat().st_mtime))
+
 
 def calculate_access_controls(username, projected_start_doc):
     # make an access grop list that includes the name of the proposal and the name of the beamline
     access_groups = []
     # set owner_group to username so that at least someone has access in case no proposal number is found
     owner_group = username
-    if projected_start_doc.get('beamline'):  
-        access_groups.append(projected_start_doc.get('beamline'))
+    if projected_start_doc.get("beamline"):
+        access_groups.append(projected_start_doc.get("beamline"))
         # username lets the user see the Dataset in order to ingest objects after the Dataset
         access_groups.append(username)
         # temporary mapping while beamline controls process request to match beamline name with what comes
         # from ALSHub
-        if projected_start_doc.get('beamline') =="bl832":
-             access_groups.append("8.3.2")
+        if projected_start_doc.get("beamline") == "bl832":
+            access_groups.append("8.3.2")
 
-    if projected_start_doc.get('proposal') and projected_start_doc.get('proposal') != 'None':
-        owner_group = projected_start_doc.get('proposal')
-    
+    if (
+        projected_start_doc.get("proposal")
+        and projected_start_doc.get("proposal") != "None"
+    ):
+        owner_group = projected_start_doc.get("proposal")
+
     # this is a bit of a kludge. Add 8.3.2 into the access groups so that staff will be able to see it
 
+    return {"owner_group": owner_group, "access_groups": access_groups}
 
-    return {"owner_group": owner_group,
-            "access_groups": access_groups}
 
 def project_start_doc(start_doc, intent):
     found_projection = None
     projection = {}
-    for projection in start_doc.get('projections'):
-        configuration = projection.get('configuration')
+    for projection in start_doc.get("projections"):
+        configuration = projection.get("configuration")
         if configuration is None:
             continue
-        if configuration.get('intent') == intent:
+        if configuration.get("intent") == intent:
             if found_projection:
-                raise Exception(f"Found more than one projection matching intent: {intent}")
+                raise Exception(
+                    f"Found more than one projection matching intent: {intent}"
+                )
             found_projection = projection
     if not found_projection:
         raise Exception(f"Could not find a projection matching intent: {intent}")
     projected_doc = {}
-    for field, value in found_projection['projection'].items():
-        if value['location'] == "start":
-            projected_doc[field] = start_doc.get(value['field'])
+    for field, value in found_projection["projection"].items():
+        if value["location"] == "start":
+            projected_doc[field] = start_doc.get(value["field"])
     return projected_doc
 
 
 def build_search_terms(projected_start):
-    ''' exctract search terms from sample name to provide something pleasing to search on '''
-    terms = re.split('[^a-zA-Z0-9]', projected_start.get('sample_name'))
+    """exctract search terms from sample name to provide something pleasing to search on"""
+    terms = re.split("[^a-zA-Z0-9]", projected_start.get("sample_name"))
     description = [term.lower() for term in terms if len(term) > 0]
-    return ' '.join(description)
+    return " ".join(description)
 
     # return "  ".join(re.sub(r'[^A-Za-z0-9 ]+', ' ', projected_start.get('sample_name')).split());
+
 
 if __name__ == "__main__":
     ch = logging.StreamHandler()
     # ch.setLevel(logging.INFO)
     # root_logger.addHandler(ch)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     logger.setLevel(logging.DEBUG)
@@ -409,4 +443,8 @@ if __name__ == "__main__":
     can_info = logger.isEnabledFor(logging.INFO)
     issues = []
     scm = ScicatIngestor(password="23ljlkw", issues=issues)
-    gen_ev_docs(scm, '/home/dylan/data/beamlines/als832/20210421_091523_test3.h5', './mappings/832Mapping.json')
+    gen_ev_docs(
+        scm,
+        "/home/dylan/data/beamlines/als832/20210421_091523_test3.h5",
+        "./mappings/832Mapping.json",
+    )

@@ -19,7 +19,8 @@ from ..ingestor import (
     ScicatIngestor,
     encode_thumbnail,
     get_file_mod_time,
-    get_file_size)
+    get_file_size,
+)
 
 
 class CCDTheta11012Reader(DatasetReader):
@@ -29,9 +30,9 @@ class CCDTheta11012Reader(DatasetReader):
     Scientific Metadata is built as a dictionary where each child is an array build from
     headers of each fits file.
     """
+
     dataset_id: str = None
     _issues = []
-
 
     def __init__(self, file: Path, ownable: Ownable) -> None:
         self._file = file
@@ -44,14 +45,13 @@ class CCDTheta11012Reader(DatasetReader):
     def create_data_block(self) -> Datablock:
         "Creates a datablock of fits files"
         datafiles = self.create_data_files()
-        
-        return Datablock(
-            datasetId = self.dataset_id,
-            size = get_file_size(self._file),
-            dataFileList = datafiles,
-            **self._ownable.dict()
-        )
 
+        return Datablock(
+            datasetId=self.dataset_id,
+            size=get_file_size(self._file),
+            dataFileList=datafiles,
+            **self._ownable.dict(),
+        )
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
@@ -75,7 +75,8 @@ class CCDTheta11012Reader(DatasetReader):
             description="",
             keywords=["ccd", "theta", "rsoxs", "11.0.1.2"],
             creationTime=get_file_mod_time(self._file),
-            **self._ownable.dict())
+            **self._ownable.dict(),
+        )
         return dataset
 
     def create_scientific_metadata(self) -> Dict:
@@ -85,17 +86,18 @@ class CCDTheta11012Reader(DatasetReader):
 def ingest(file: Path) -> Tuple[str, List[Issue]]:
     "Ingest a folder of 11012 CCD Theta scan files"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
-    ownable = Ownable(    
-            owner="MWET",
-            contactEmail="dmcreynolds@lbl.gov",
-            createdBy="dylan",
-            updatedBy="dylan",
-            updatedAt=now_str,
-            createdAt=now_str,
-            ownerGroup="MWET",
-            accessGroups=["MWET", "ingestor"])
+    ownable = Ownable(
+        owner="MWET",
+        contactEmail="dmcreynolds@lbl.gov",
+        createdBy="dylan",
+        updatedBy="dylan",
+        updatedAt=now_str,
+        createdAt=now_str,
+        ownerGroup="MWET",
+        accessGroups=["MWET", "ingestor"],
+    )
     reader = CCDTheta11012Reader(file, ownable)
-    issues:List[Issue] = []
+    issues: List[Issue] = []
     ingestor = ScicatIngestor(issues)
 
     dataset = reader.create_dataset()
@@ -106,7 +108,8 @@ def ingest(file: Path) -> Tuple[str, List[Issue]]:
 
 if __name__ == "__main__":
     from pprint import pprint
-    folder = Path('/home/dylan/data/beamlines/11012/restructured/ccd_theta')
+
+    folder = Path("/home/dylan/data/beamlines/11012/restructured/ccd_theta")
     for path in folder.iterdir():
         try:
             dataset_id, issues = ingest(path)
@@ -115,5 +118,3 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error ingesting {path} with {e}")
             raise e
-
-    

@@ -2,16 +2,10 @@ from pathlib import Path
 from typing import Dict, List
 
 
+from ..ingestor import Attachment, Datablock, DataFile, Dataset, Issue, Ownable
 
-from ..ingestor import (
-    Attachment,
-    Datablock,
-    DataFile,
-    Dataset,
-    Issue,
-    Ownable)
 
-class DatasetReader():
+class DatasetReader:
     def __init__(self, folder) -> None:
         self._folder = folder
 

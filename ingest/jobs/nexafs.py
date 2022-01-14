@@ -3,32 +3,41 @@ from pathlib import Path
 from typing import List, Tuple
 import pandas
 
-from ..ingestor import DataFile, Datablock, Dataset, DatasetType, Issue, Ownable, ScicatIngestor, get_file_mod_time, get_file_size
+from ..ingestor import (
+    DataFile,
+    Datablock,
+    Dataset,
+    DatasetType,
+    Issue,
+    Ownable,
+    ScicatIngestor,
+    get_file_mod_time,
+    get_file_size,
+)
 
 
 def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:
     "Ingest a folder of 11012 scattering folders"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
-    ownable = Ownable(    
-            owner="MWET",
-            contactEmail="dmcreynolds@lbl.gov",
-            createdBy="dylan",
-            updatedBy="dylan",
-            updatedAt=now_str,
-            createdAt=now_str,
-            ownerGroup="MWET",
-            accessGroups=["MWET", "ingestor"])
+    ownable = Ownable(
+        owner="MWET",
+        contactEmail="dmcreynolds@lbl.gov",
+        createdBy="dylan",
+        updatedBy="dylan",
+        updatedAt=now_str,
+        createdAt=now_str,
+        ownerGroup="MWET",
+        accessGroups=["MWET", "ingestor"],
+    )
 
-
-    issues:List[Issue] = []
+    issues: List[Issue] = []
     ingestor = ScicatIngestor(issues)
-    
 
     headers = []
     lines_to_skip = 0
     with open(nexafs_file_path) as nexafs_file:
-        for line_num, line in enumerate(nexafs_file,1):
-            if line.startswith('Time of'):
+        for line_num, line in enumerate(nexafs_file, 1):
+            if line.startswith("Time of"):
                 lines_to_skip = line_num - 1
                 break
             headers.append(line.rstrip())
@@ -36,8 +45,7 @@ def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:
     table = pandas.read_table(nexafs_file_path, skiprows=lines_to_skip)
     scientific_metadata = {}
     scientific_metadata["headers"] = headers
-    scientific_metadata.update(table.to_dict(orient='list'))
-
+    scientific_metadata.update(table.to_dict(orient="list"))
 
     folder_size = get_file_size(nexafs_file_path)
     sample_name = nexafs_file_path.name
@@ -62,22 +70,25 @@ def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:
         description=description,
         keywords=["scattering", "rsoxs", "11.0.1.2", "ccd"] + appended_keywords,
         creationTime=get_file_mod_time(nexafs_file_path),
-        **ownable.dict())
+        **ownable.dict(),
+    )
 
     dataset_id = ingestor.upload_raw_dataset(dataset)
 
-    datafiles = [ DataFile(
-                path = nexafs_file_path.name,
-                size = get_file_size(nexafs_file_path),
-                time= get_file_mod_time(nexafs_file_path),
-                type="RawDatasets"
-            )]
-        
+    datafiles = [
+        DataFile(
+            path=nexafs_file_path.name,
+            size=get_file_size(nexafs_file_path),
+            time=get_file_mod_time(nexafs_file_path),
+            type="RawDatasets",
+        )
+    ]
+
     data_block = Datablock(
-        datasetId = dataset_id,
-        size = get_file_size(nexafs_file_path),
-        dataFileList = datafiles,
-        **ownable.dict()
+        datasetId=dataset_id,
+        size=get_file_size(nexafs_file_path),
+        dataFileList=datafiles,
+        **ownable.dict(),
     )
     ingestor.upload_datablock(data_block)
     return dataset_id, issues
@@ -85,7 +96,8 @@ def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:
 
 if __name__ == "__main__":
     from pprint import pprint
-    folder = Path('/home/j/programming/work/Oct_2021_scattering/Nexafs')
+
+    folder = Path("/home/j/programming/work/Oct_2021_scattering/Nexafs")
     for path in folder.iterdir():
         print(path)
         if not path.is_file():
@@ -95,7 +107,7 @@ if __name__ == "__main__":
             print(f"Ingested {path} as {dataset_id}. Issues:")
             pprint(issues)
         except Exception as e:
-            print('ERROR:')
+            print("ERROR:")
             print(e)
             print(f"Error ingesting {path} with {e}")
             raise e
