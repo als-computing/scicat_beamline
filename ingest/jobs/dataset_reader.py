@@ -3,7 +3,7 @@ from typing import Dict, List
 
 
 
-from ..ingestor import (
+from ingestor import (
     Attachment,
     Datablock,
     DataFile,

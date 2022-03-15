@@ -1,20 +1,23 @@
+from curses.ascii import isspace
 from datetime import datetime
 from pathlib import Path
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, OrderedDict, Tuple
 import numpy as np
 from PIL import Image, ImageOps
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
+import pandas
 
-from .dataset_reader import DatasetReader
+from jobs.dataset_reader import DatasetReader
 
-from ..ingestor import (
+from ingestor import (
     Attachment,
     Datablock,
     DataFile,
     Dataset,
     DatasetType,
+    DerivedDataset,
     Issue,
     Ownable,
     ScicatIngestor,
@@ -44,6 +47,9 @@ class Scattering11012Reader(DatasetReader):
         "Collects all fits files"
         datafiles = []
         for file in self._folder.iterdir():
+            # We exclude directories within this, directories within will probably be folders of corresponding dat files.
+            if file.name == 'dat':
+                continue
             datafile = DataFile(
                 path = file.name,
                 size = get_file_size(file),
@@ -67,7 +73,8 @@ class Scattering11012Reader(DatasetReader):
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
-        folder_size = get_file_size(self._folder)
+        #Excludes size of dat folder
+        folder_size = get_file_size(self._folder) - get_file_size(Path(f"{self._folder}/dat"))
         sample_name = self._folder.name
 
         ai_file_name = next(self._folder.glob("*.txt")).name[:-7]
@@ -165,8 +172,6 @@ def ingest(folder: Path) -> Tuple[str, List[Issue]]:
     return dataset_id, issues
 
 
-
-
 def build_thumbnail(fits_data, name, directory):
         log_image = fits_data
         log_image = log_image - np.min(log_image) + 1.001
@@ -184,7 +189,7 @@ def build_thumbnail(fits_data, name, directory):
 
 if __name__ == "__main__":
     from pprint import pprint
-    folder = Path('/home/j/programming/work/Oct_2021_scattering/CCD')
+    folder = Path('/home/dylan/data/beamlines/11012/restructured/scattering')
     for path in folder.iterdir():
         print(path)
         if not path.is_dir():

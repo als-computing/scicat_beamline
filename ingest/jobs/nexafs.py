@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Tuple
 import pandas
 
-from ..ingestor import DataFile, Datablock, Dataset, DatasetType, Issue, Ownable, ScicatIngestor, get_file_mod_time, get_file_size
+from ingestor import DataFile, Datablock, Dataset, DatasetType, Issue, Ownable, ScicatIngestor, get_file_mod_time, get_file_size
 
 
 def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:

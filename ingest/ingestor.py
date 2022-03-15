@@ -53,6 +53,8 @@ class Issue():
 
 class DatasetType(str, enum.Enum):
     raw = "raw"
+    derived = "derived"
+    base = "base"
 
 class Ownable(BaseModel):
     """ Many objects in SciCat are ownable
@@ -77,14 +79,13 @@ class Dataset(Ownable, MongoQueryable):
     ownerEmail: Optional[str]   
     orcidOfOwner: Optional[str]
     contactEmail: str
-    creationLocation: str
-    creationTime: str
+    creationTime: str = Field(description="Time when dataset became fully available on disk, i.e. ll containing files have been written. Format according to chapter 5.6 internet date/time format in RFC 3339. Local times without timezone/offset info are automatically transformed to UTC using the timezone of the API server.")
+    creationLocation: Optional[str]
+    principalInvestigator: Optional[str]
     datasetName: Optional[str]
     type: DatasetType
     instrumentId: str
-    proposalId: str
-    dataFormat: str
-    principalInvestigator: str
+    orcidOfOwner: Optional[str]
     sourceFolder: str
     sourceFolderHost: Optional[str]
     size: Optional[int]
@@ -92,7 +93,6 @@ class Dataset(Ownable, MongoQueryable):
     numberOfFiles: Optional[int]
     numberOfFilesArchived: Optional[int]
     scientificMetadata: Dict
-    sampleId: str
     isPublished: str
     description: Optional[str]
     validationStatus: Optional[str]
@@ -103,6 +103,25 @@ class Dataset(Ownable, MongoQueryable):
     version: Optional[str]
     isPublished: Optional[bool] = False
 
+class RawDataset(Dataset):
+    type = DatasetType.raw
+    principalInvestigator: str
+    sampleId: str
+    proposalId: str
+    creationLocation: str
+    dataFormat: str
+
+class DerivedDataset(Dataset):
+    """ Model for a derived dataset """
+    investigator: str
+    inputDatasets: List[str]
+    usedSoftware: List[str]
+    jobParameters: Optional[Dict]
+    jobLogData: Optional[str]
+    ownerEmail: Optional[str]
+    type: str = DatasetType.derived
+    
+    
 class DataFile(MongoQueryable):
     """
     A reference to a file in SciCat. Path is relative
@@ -161,7 +180,7 @@ class ScicatIngestor():
     job_id = "0"
     test = False
 
-    def __init__(self, issues: List[Issue], **kwargs):
+    def __init__(self, issues: List[Issue] = [], **kwargs):
         self.stage = "scicat"
         self._issues = issues
         # nothing to do
@@ -172,7 +191,9 @@ class ScicatIngestor():
         if self.baseurl[-1] != "/":
             self.baseurl = self.baseurl + "/"
             logger.info(f"Baseurl corrected to: {self.baseurl}")
-        self._get_token()
+        print(self.token)
+        if not self.token:
+            self._get_token()
 
     def _get_token(self, username=None, password=None):
         if username is None:
@@ -221,7 +242,7 @@ class ScicatIngestor():
                 url, params={"access_token": self.token}, 
                 timeout=self.timeouts, 
                 stream=False,
-                verify=self.sslVerify,
+                verify=True,
             )
         elif cmd == "get":
             response = requests.get(
@@ -230,7 +251,7 @@ class ScicatIngestor():
                 json=dataDict,
                 timeout=self.timeouts,
                 stream=False,
-                verify=self.sslVerify,
+                verify=True,
             )
         elif cmd == "patch":
             response = requests.patch(
@@ -239,11 +260,65 @@ class ScicatIngestor():
                 json=dataDict,
                 timeout=self.timeouts,
                 stream=False,
-                verify=self.sslVerify,
+                verify=True,
             )
         return response
+    
+    def get_datasets(self, filter_fields=None) -> List[Dataset]:
+        """Gets datasets using the simple fiter mechanism. This
+        is appropriate when you do not require paging or text search, but
+        want to be able to limit results based on items in the Dataset object.
+        For example, a search for Datasets of a given proposalId would have
+        ```python
+        filterField = {"proposalId": "1234"}
+        ```
+        A search for Datasets  with no proposalId would be:
+        ```python
+        filterField = {"proposalId": ""}
+        ```
+        Parameters
+        ----------
+        filter_fields : dict
+            Dictionary of filtering fields. Must be json serializable.
+        """
+        if not filter_fields:
+            filter_fields = {}
 
+        filter_fields = json.dumps(filter_fields)
+        url = f'{self.baseurl}/Datasets/?filter={{"where":{filter_fields}}}'
+        response = self._send_to_scicat(url, cmd="get")
+        if not response.ok:
+            err = response.json()["error"]
+            logger.error(f'{err["name"]}, {err["statusCode"]}: {err["message"]}')
+            return None
+        return response.json()
 
+    def get_my_raw_datasets(self):
+        fields = 'fields={"mode"%3A{}}&limits={"skip"%3A0%2C"limit"%3A25%2C"order"%3A"creationTime%3Adesc"}'
+        url = f"{self.baseurl}/RawDatasets/fullquery?{fields}"
+        response = self._send_to_scicat(url, cmd="get")
+        if not response.ok:
+            logger.error(f'{self.job_id} ** Error received: {response}')
+            err = response.json()["error"]
+            logger.error(f'{self.job_id} {err["name"]}, {err["statusCode"]}: {err["message"]}')
+            # self.add_error(f'error getting token {err["name"]}, {err["statusCode"]}: {err["message"]}')
+            return None
+        return response.json()
+    
+    
+    def get_dataset_files(self, pid):
+        pid = urllib.parse.quote_plus(pid)
+        url = f"{self.baseurl}OrigDatablocks/findOne?filter=%7B%22where%22%3A%20%7B%22rawDatasetId%22%3A%20%22{pid}%22%7D%7D"
+        print(url)
+        response = self._send_to_scicat(url, cmd="get")
+        if not response.ok:
+            logger.error(f'{self.job_id} ** Error received: {response}')
+            err = response.json()["error"]
+            logger.error(f'{self.job_id} {err["name"]}, {err["statusCode"]}: {err["message"]}')
+            # self.add_error(f'error getting token {err["name"]}, {err["statusCode"]}: {err["message"]}')
+            return None
+        return response.json()
+    
     def upload_sample(self, projected_start_doc, access_groups, owner_group):
         sample = {
             "sampleId": projected_start_doc.get('sample_id'),
@@ -273,7 +348,7 @@ class ScicatIngestor():
             self.add_warning(f"missing field {field_name} defaulting to {str(default_val)}")
             return default_val
 
-    def upload_raw_dataset(self, dataset: Dataset):
+    def upload_raw_dataset(self, dataset: RawDataset):
         # create dataset 
         raw_dataset_url = self.baseurl + "RawDataSets/replaceOrCreate"
         resp = self._send_to_scicat(raw_dataset_url, dataset.dict(exclude_none=True))
@@ -284,8 +359,18 @@ class ScicatIngestor():
         logger.info(f"{self.job_id} new dataset created {new_pid}")
         return new_pid
         
-    def upload_datablock(self, datablock: Datablock):
-        datasetType = "RawDatasets"
+    def upload_derived_dataset(self, dataset: DerivedDataset):
+        # create dataset 
+        raw_dataset_url = self.baseurl + "DerivedDataSets/replaceOrCreate"
+        resp = self._send_to_scicat(raw_dataset_url, dataset.dict(exclude_none=True))
+        if not resp.ok:
+            err = resp.json()["error"]
+            raise ScicatCommError(f"Error creating raw dataset {err}")
+        new_pid = resp.json().get('pid')
+        logger.info(f"{self.job_id} new dataset created {new_pid}")
+        return new_pid
+        
+    def upload_datablock(self, datablock: Datablock, datasetType = "RawDatasets"):
     
         url = self.baseurl + f"{datasetType}/{urllib.parse.quote_plus(datablock.datasetId)}/origdatablocks"
         # logger.info(f"{self.job_id} sending to {url} accessGroups: {access_groups}, ownerGroup: {owner_group}")
@@ -395,18 +480,4 @@ def build_search_terms(projected_start):
     description = [term.lower() for term in terms if len(term) > 0]
     return ' '.join(description)
 
-    # return "  ".join(re.sub(r'[^A-Za-z0-9 ]+', ' ', projected_start.get('sample_name')).split());
 
-if __name__ == "__main__":
-    ch = logging.StreamHandler()
-    # ch.setLevel(logging.INFO)
-    # root_logger.addHandler(ch)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
-    logger.setLevel(logging.DEBUG)
-    can_debug = logger.isEnabledFor(logging.DEBUG)
-    can_info = logger.isEnabledFor(logging.INFO)
-    issues = []
-    scm = ScicatIngestor(password="23ljlkw", issues=issues)
-    gen_ev_docs(scm, '/home/dylan/data/beamlines/als832/20210421_091523_test3.h5', './mappings/832Mapping.json')
