@@ -9,7 +9,6 @@ from astropy.io.fits.header import _HeaderCommentaryCards
 
 from pyscicat.client import (
     ScicatClient,
-    encode_thumbnail,
     get_file_mod_time,
     get_file_size,
 )

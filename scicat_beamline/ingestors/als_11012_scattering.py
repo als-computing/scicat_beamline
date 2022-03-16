@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import numpy as np
 from PIL import Image, ImageOps
 from astropy.io import fits
@@ -46,6 +46,9 @@ class Scattering11012Reader():
         "Collects all fits files"
         datafiles = []
         for file in self._folder.iterdir():
+            # We exclude directories within this, directories within will probably be folders of corresponding dat files.
+            if file.name == 'dat':
+                continue
             datafile = DataFile(
                 path=file.name,
                 size=get_file_size(file),
@@ -68,7 +71,8 @@ class Scattering11012Reader():
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
-        folder_size = get_file_size(self._folder)
+        #Excludes size of dat folder
+        folder_size = get_file_size(self._folder) - get_file_size(Path(f"{self._folder}/dat"))
         sample_name = self._folder.name
 
         ai_file_name = next(self._folder.glob("*.txt")).name[:-7]
