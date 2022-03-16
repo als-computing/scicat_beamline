@@ -1,4 +1,5 @@
 astropy
+fabio
 h5py
 pydantic
 python-dotenv
@@ -6,3 +7,5 @@ requests
 numpy
 Pillow
 pandas
+pyscicat[base]
+typer
