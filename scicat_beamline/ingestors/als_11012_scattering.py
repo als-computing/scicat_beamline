@@ -138,7 +138,14 @@ class Scattering11012Reader():
         return metadata
 
 
-def ingest(folder: Path) -> Tuple[str, List[Issue]]:
+# def ingest(folder: Path) -> Tuple[str, List[Issue]]:
+def ingest(
+    scicat_client: ScicatClient,
+    username: str,
+    file_path: str,
+    thumbnail_dir: Path,
+    issues: List[Issue],
+) -> str:
     "Ingest a folder of 11012 scattering folders"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
@@ -153,18 +160,17 @@ def ingest(folder: Path) -> Tuple[str, List[Issue]]:
     )
     reader = Scattering11012Reader(folder, ownable)
     issues: List[Issue] = []
-    ingestor = ScicatIngestor(issues)
 
     dataset = reader.create_dataset()
-    dataset_id = ingestor.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.upload_raw_dataset(dataset)
     reader.dataset_id = dataset_id
     png_files = list(folder.glob("*.png"))
     if len(list(png_files)) > 0:
         thumbnail = reader.create_attachment(png_files[0])
-        ingestor.upload_attachment(thumbnail)
+        scicat_client.upload_attachment(thumbnail)
 
     data_block = reader.create_data_block()
-    ingestor.upload_datablock(data_block)
+    scicat_client.upload_datablock(data_block)
     return dataset_id, issues
 
 
