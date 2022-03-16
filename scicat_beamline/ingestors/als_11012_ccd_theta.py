@@ -6,9 +6,15 @@ from typing import Dict, List, Tuple
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
 
-from .dataset_reader import DatasetReader
 
-from ..ingestor import (
+from pyscicat.client import (
+    ScicatClient,
+    encode_thumbnail,
+    get_file_mod_time,
+    get_file_size,
+)
+
+from pyscicat.model import (
     Attachment,
     Datablock,
     DataFile,
@@ -16,14 +22,10 @@ from ..ingestor import (
     DatasetType,
     Issue,
     Ownable,
-    ScicatIngestor,
-    encode_thumbnail,
-    get_file_mod_time,
-    get_file_size,
 )
 
 
-class CCDTheta11012Reader(DatasetReader):
+class CCDTheta11012Reader():
     """A DatasetReader for reading 11012 theta scan datasets
     Reader exepects a single file that contains theta scan data
 
@@ -97,8 +99,7 @@ def ingest(file: Path) -> Tuple[str, List[Issue]]:
         accessGroups=["MWET", "ingestor"],
     )
     reader = CCDTheta11012Reader(file, ownable)
-    issues: List[Issue] = []
-    ingestor = ScicatIngestor(issues)
+    ingestor = ScicatClient()
 
     dataset = reader.create_dataset()
     dataset_id = ingestor.upload_raw_dataset(dataset)
