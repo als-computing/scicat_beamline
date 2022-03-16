@@ -3,20 +3,29 @@ from pathlib import Path
 from typing import List, Tuple
 import pandas
 
-from ..ingestor import (
-    DataFile,
-    Datablock,
-    Dataset,
-    DatasetType,
-    Issue,
-    Ownable,
-    ScicatIngestor,
+from pyscicat.client import (
+    ScicatClient,
     get_file_mod_time,
     get_file_size,
 )
 
+from pyscicat.model import (
+    Datablock,
+    DataFile,
+    Dataset,
+    DatasetType,
+    Issue,
+    Ownable,
+)
 
-def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:
+
+def ingest(
+    scicat_client: ScicatClient,
+    username: str,
+    file_path: str,
+    thumbnail_dir: Path,
+    issues: List[Issue],
+) -> str:
     "Ingest a folder of 11012 scattering folders"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
@@ -31,24 +40,24 @@ def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:
     )
 
     issues: List[Issue] = []
-    ingestor = ScicatIngestor(issues)
+    ingestor = scicat_client(issues)
 
     headers = []
     lines_to_skip = 0
-    with open(nexafs_file_path) as nexafs_file:
+    with open(file_path) as nexafs_file:
         for line_num, line in enumerate(nexafs_file, 1):
             if line.startswith("Time of"):
                 lines_to_skip = line_num - 1
                 break
             headers.append(line.rstrip())
 
-    table = pandas.read_table(nexafs_file_path, skiprows=lines_to_skip)
+    table = pandas.read_table(file_path, skiprows=lines_to_skip)
     scientific_metadata = {}
     scientific_metadata["headers"] = headers
     scientific_metadata.update(table.to_dict(orient="list"))
 
-    folder_size = get_file_size(nexafs_file_path)
-    sample_name = nexafs_file_path.name
+    folder_size = get_file_size(file_path)
+    sample_name = file_path.name
 
     description = sample_name[:-4].replace("_", " ")
     appended_keywords = description.split()
@@ -62,14 +71,14 @@ def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:
         proposalId="unknown",
         dataFormat="BCS",
         principalInvestigator="Lynn Katz",
-        sourceFolder=nexafs_file_path.as_posix(),
+        sourceFolder=file_path.as_posix(),
         size=folder_size,
         scientificMetadata=scientific_metadata,
         sampleId=sample_name,
         isPublished=False,
         description=description,
         keywords=["scattering", "rsoxs", "11.0.1.2", "ccd"] + appended_keywords,
-        creationTime=get_file_mod_time(nexafs_file_path),
+        creationTime=get_file_mod_time(file_path),
         **ownable.dict(),
     )
 
@@ -77,16 +86,16 @@ def ingest(nexafs_file_path: Path) -> Tuple[str, List[Issue]]:
 
     datafiles = [
         DataFile(
-            path=nexafs_file_path.name,
-            size=get_file_size(nexafs_file_path),
-            time=get_file_mod_time(nexafs_file_path),
+            path=file_path.name,
+            size=get_file_size(file_path),
+            time=get_file_mod_time(file_path),
             type="RawDatasets",
         )
     ]
 
     data_block = Datablock(
         datasetId=dataset_id,
-        size=get_file_size(nexafs_file_path),
+        size=get_file_size(file_path),
         dataFileList=datafiles,
         **ownable.dict(),
     )
