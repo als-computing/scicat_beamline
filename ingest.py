@@ -64,6 +64,8 @@ def ingest(
         issues = List[Issue]
         with tempfile.TemporaryDirectory() as thumbs_dir:
             ingestor_module.ingest(client, ingest_user, dataset_path, thumbs_dir, issues)
+            if len(issues) > 0:
+                logger.info(f"Issues found {issues})
     except Exception:
         logger.exception(f" Error loading {ingestor_module}")
 
