@@ -22,11 +22,6 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 app = typer.Typer()
 
-        # base_url: str = None,
-        # token: str = False,
-        # username: str = None,
-        # password: str = None,
-
 
 def ingest(
     ingestor_module: Path = typer.Argument(..., help='Spec to ingest'),
@@ -61,11 +56,11 @@ def ingest(
             typer.echo("Must provide either token or username and password")
             return
 
-        issues = List[Issue]
+        issues = []
         with tempfile.TemporaryDirectory() as thumbs_dir:
             ingestor_module.ingest(client, ingest_user, dataset_path, thumbs_dir, issues)
             if len(issues) > 0:
-                logger.info(f"Issues found {issues}")
+                logger.info(f"Issues found {[str(issue) for issue in issues]}")
     except Exception:
         logger.exception(f" Error loading {ingestor_module}")
 
