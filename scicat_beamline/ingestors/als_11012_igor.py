@@ -33,7 +33,7 @@ from scicat_beamline.scicat_utils import (
 
 from scicat_beamline.utils import Issue
 
-ingest_spec = "als_11012_igor.py"
+ingest_spec = "als_11012_igor"
 
 """A DatasetReader for Igor generated dat files
 Reader exepects a folder that contains dat files as
