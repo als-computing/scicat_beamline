@@ -19,11 +19,14 @@ from pyscicat.model import (
     Datablock,
     DataFile,
     Dataset,
+    RawDataset,
     DatasetType,
-    Issue,
     Ownable,
 )
 
+from scicat_beamline.utils import Issue
+
+ingest_spec = "als11012_scattering"
 
 class Scattering11012Reader():
     """A DatasetReader for reading 11012 scattering datasets.
@@ -80,7 +83,7 @@ class Scattering11012Reader():
         description = ai_file_name.replace("_", " ")
         description = description.replace("-", " ")
         appended_keywords = description.split()
-        dataset = Dataset(
+        dataset = RawDataset(
             owner="test",
             contactEmail="cbabay1993@gmail.com",
             creationLocation="ALS11021",
@@ -162,13 +165,13 @@ def ingest(
         ownerGroup="MWET",
         accessGroups=["MWET", "ingestor"],
     )
-    reader = Scattering11012Reader(folder, ownable)
+    reader = Scattering11012Reader(file_path, ownable)
     issues: List[Issue] = []
 
     dataset = reader.create_dataset()
     dataset_id = scicat_client.upload_raw_dataset(dataset)
     reader.dataset_id = dataset_id
-    png_files = list(folder.glob("*.png"))
+    png_files = list(file_path.glob("*.png"))
     if len(list(png_files)) > 0:
         thumbnail = reader.create_attachment(png_files[0])
         scicat_client.upload_attachment(thumbnail)
@@ -193,27 +196,27 @@ def build_thumbnail(fits_data, name, directory):
     return file
 
 
-if __name__ == "__main__":
-    from pprint import pprint
+# if __name__ == "__main__":
+#     from pprint import pprint
 
-    folder = Path("/home/j/programming/work/Oct_2021_scattering/CCD")
-    for path in folder.iterdir():
-        print(path)
-        if not path.is_dir():
-            continue
-        try:
-            png_files = list(path.glob("*.png"))
-            if len(png_files) == 0:
-                fits_filenames = sorted(path.glob("*.fits"))
-                fits_filename = fits_filenames[len(fits_filenames) // 2]
-                image_data = fits.getdata(fits_filename, ext=2)
-                build_thumbnail(image_data, fits_filename.name[:-5], path)
+#     folder = Path("/home/j/programming/work/Oct_2021_scattering/CCD")
+#     for path in folder.iterdir():
+#         print(path)
+#         if not path.is_dir():
+#             continue
+#         try:
+#             png_files = list(path.glob("*.png"))
+#             if len(png_files) == 0:
+#                 fits_filenames = sorted(path.glob("*.fits"))
+#                 fits_filename = fits_filenames[len(fits_filenames) // 2]
+#                 image_data = fits.getdata(fits_filename, ext=2)
+#                 build_thumbnail(image_data, fits_filename.name[:-5], path)
 
-            dataset_id, issues = ingest(path)
-            print(f"Ingested {path} as {dataset_id}. Issues:")
-            pprint(issues)
-        except Exception as e:
-            print("ERROR:")
-            print(e)
-            print(f"Error ingesting {path} with {e}")
-            raise e
+#             dataset_id, issues = ingest(path)
+#             print(f"Ingested {path} as {dataset_id}. Issues:")
+#             pprint(issues)
+#         except Exception as e:
+#             print("ERROR:")
+#             print(e)
+#             print(f"Error ingesting {path} with {e}")
+#             raise e

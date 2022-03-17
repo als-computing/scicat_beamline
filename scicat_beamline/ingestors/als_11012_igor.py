@@ -33,15 +33,16 @@ from scicat_beamline.scicat_utils import (
 
 from scicat_beamline.utils import Issue
 
+ingest_spec = "als_11012_igor.py"
 
-    """A DatasetReader for Igor generated dat files
-    Reader exepects a folder that contains dat files as
-    well as a jpeg files of graphs. Jpeg files will be ingested 
-    as attachments/thumbnails.
+"""A DatasetReader for Igor generated dat files
+Reader exepects a folder that contains dat files as
+well as a jpeg files of graphs. Jpeg files will be ingested 
+as attachments/thumbnails.
 
-    Scientific Metadata is built as a dictionary of energy value keys each with a dict of the
-    associated dat headers
-    """
+Scientific Metadata is built as a dictionary of energy value keys each with a dict of the
+associated dat headers
+"""
 
 def create_data_files(folder: Path) -> List[DataFile]:
     "Collects all files"
@@ -56,15 +57,15 @@ def create_data_files(folder: Path) -> List[DataFile]:
         datafiles.append(datafile)
     return datafiles
 
-def create_data_block(self) -> Datablock:
+def create_data_block(folder, dataset_id, ownable: Ownable) -> Datablock:
     "Creates a datablock of all files"
-    datafiles = self.create_data_files()
+    datafiles = create_data_files(folder)
     
     return Datablock(
-        datasetId = self.dataset_id,
-        size = get_file_size(self._folder),
+        datasetId = dataset_id,
+        size = get_file_size(folder),
         dataFileList = datafiles,
-        **self._ownable.dict()
+        **ownable.dict()
     )
 
 
@@ -94,7 +95,7 @@ def create_dataset(scicat_client: ScicatClient, folder: Path, ownable: Ownable) 
         # principalInvestigator="Lynn Katz",
         sourceFolder=folder.as_posix(),
         size=folder_size,
-        scientificMetadata=create_scientific_metadata(),
+        scientificMetadata=create_scientific_metadata(folder),
         sampleId=datasetName,
         isPublished=False,
         description=description,
@@ -103,13 +104,13 @@ def create_dataset(scicat_client: ScicatClient, folder: Path, ownable: Ownable) 
         **ownable.dict())
     return dataset
 
-def create_attachment(self, file: Path) -> Attachment:
+def create_attachment(file: Path, dataset_id: str, ownable: Ownable) -> Attachment:
     "Creates a thumbnail jpg"
     return Attachment(
-        datasetId = self.dataset_id,
+        datasetId = dataset_id,
         thumbnail = encode_thumbnail(file),
         caption="scattering image",
-        **self._ownable.dict()
+        **ownable.dict()
     )
 
 def create_scientific_metadata(folder: Path) -> Dict:
@@ -133,7 +134,7 @@ def create_scientific_metadata(folder: Path) -> Dict:
                     break
                 counter+=1
             dat_file.seek(0)
-            headers = pandas.read_csv(dat_file, index_col=[0], squeeze=True, sep='=', nrows=counter, header=None, converters=column_converters, skip_blank_lines=True).dropna()
+            headers = pandas.read_csv(dat_file, index_col=[0], sep='=', nrows=counter, header=None, converters=column_converters, skip_blank_lines=True).squeeze("columns").dropna()
 
         # Re order headers in a new dict
         ordered_headers_dict = OrderedDict()
@@ -189,16 +190,16 @@ def ingest(
 
     issues:List[Issue] = []
 
-    dataset = create_dataset()
+    dataset = create_dataset(scicat_client, file_path, ownable)
     dataset_id = scicat_client.upload_derived_dataset(dataset)
     #TODO: ensure that all jpg files are uploaded as attachments
     # And maybe pngs
-    jpg_files = list(folder.glob("*.jpg"))
+    jpg_files = list(file_path.glob("*.jpg"))
     if len(list(jpg_files)) > 0:
-        thumbnail = create_attachment(jpg_files[0])
-        ingestor.upload_attachment(thumbnail, datasetType="DerivedDatasets")
+        thumbnail = create_attachment(jpg_files[0], dataset_id, ownable )
+        scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
 
-    data_block = create_data_block()   
+    data_block = create_data_block(file_path, dataset_id, ownable)   
     scicat_client.upload_datablock(data_block, datasetType="DerivedDatasets")
     return dataset_id, issues
 
