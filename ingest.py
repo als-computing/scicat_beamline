@@ -61,8 +61,7 @@ def ingest(
             ingestor_module.ingest(client, ingest_user, dataset_path, thumbs_dir, issues)
             if len(issues) > 0:
                 logger.info(f"Issues found {[str(issue) for issue in issues]}")
-    except Exception as e:
-        print(e)
+    except Exception:
         logger.exception(f" Error loading {ingestor_module}")
 
 
