@@ -12,11 +12,14 @@ from pyscicat.client import (
 from pyscicat.model import (
     Datablock,
     DataFile,
-    Dataset,
+    RawDataset,
     DatasetType,
-    Issue,
     Ownable,
 )
+
+from scicat_beamline.utils import Issue
+
+ingest_spec = 'nexafs'
 
 
 def ingest(
@@ -40,7 +43,6 @@ def ingest(
     )
 
     issues: List[Issue] = []
-    ingestor = scicat_client(issues)
 
     headers = []
     lines_to_skip = 0
@@ -61,7 +63,7 @@ def ingest(
 
     description = sample_name[:-4].replace("_", " ")
     appended_keywords = description.split()
-    dataset = Dataset(
+    dataset = RawDataset(
         owner="test",
         contactEmail="cbabay1993@gmail.com",
         creationLocation="ALS11021",
@@ -82,7 +84,7 @@ def ingest(
         **ownable.dict(),
     )
 
-    dataset_id = ingestor.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.upload_raw_dataset(dataset)
 
     datafiles = [
         DataFile(
@@ -99,24 +101,24 @@ def ingest(
         dataFileList=datafiles,
         **ownable.dict(),
     )
-    ingestor.upload_datablock(data_block)
+    scicat_client.upload_datablock(data_block)
     return dataset_id, issues
 
 
-if __name__ == "__main__":
-    from pprint import pprint
+# if __name__ == "__main__":
+#     from pprint import pprint
 
-    folder = Path("/home/j/programming/work/Oct_2021_scattering/Nexafs")
-    for path in folder.iterdir():
-        print(path)
-        if not path.is_file():
-            continue
-        try:
-            dataset_id, issues = ingest(path)
-            print(f"Ingested {path} as {dataset_id}. Issues:")
-            pprint(issues)
-        except Exception as e:
-            print("ERROR:")
-            print(e)
-            print(f"Error ingesting {path} with {e}")
-            raise e
+#     folder = Path("/home/j/programming/work/Oct_2021_scattering/Nexafs")
+#     for path in folder.iterdir():
+#         print(path)
+#         if not path.is_file():
+#             continue
+#         try:
+#             dataset_id, issues = ingest(path)
+#             print(f"Ingested {path} as {dataset_id}. Issues:")
+#             pprint(issues)
+#         except Exception as e:
+#             print("ERROR:")
+#             print(e)
+#             print(f"Error ingesting {path} with {e}")
+#             raise e
