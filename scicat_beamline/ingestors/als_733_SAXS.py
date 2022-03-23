@@ -37,6 +37,11 @@ def ingest(
 ) -> str:
 
     scientific_metadata = {}
+    edf_file = edf_from_txt(file_path)
+    if edf_file:
+        with fabio.open(edf_file) as fabio_obj:
+            image_data = fabio_obj.data
+            scientific_metadata = scientific_metadata | {"edf headers": fabio_obj.header}
     unknown_cnt = 0
     with open(file_path) as txt_file:
         for line in txt_file.read().splitlines():
@@ -54,7 +59,7 @@ def ingest(
     scicat_metadata = {
         "owner": "UNKNOWN",
         "email": "UNKNOWN",
-        "instrument_name": "UNKNOWN",
+        "instrument_name": "als733",
         "proposal": "UNKNOWN",
         "pi": "UNKNOWN",
         "owner": "UNKNOWN",
@@ -62,8 +67,8 @@ def ingest(
 
     # temporary access controls setup
     ownable = Ownable(
-        ownerGroup="ingestor",
-        accessGroups=["access_groups", "beamline"],
+        ownerGroup="als733",
+        accessGroups=["ingestor", "7.3.3"],
     )
 
     dataset_id = upload_raw_dataset(
@@ -74,12 +79,8 @@ def ingest(
         ownable,
     )
     upload_data_block(scicat_client, file_path, dataset_id, ownable)
-
-    edf_file = edf_from_txt(file_path)
     if edf_file:
-        fabio_obj = fabio.open(edf_file)
-        data = fabio_obj.data
-        thumbnail_file = build_thumbnail(data, thumbnail_dir)
+        thumbnail_file = build_thumbnail(image_data, thumbnail_dir)
         encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
         upload_attachment(scicat_client, encoded_thumbnail, dataset_id, ownable)
 
