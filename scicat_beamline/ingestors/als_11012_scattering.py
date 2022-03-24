@@ -26,7 +26,7 @@ from pyscicat.model import (
 
 from scicat_beamline.utils import Issue
 
-ingest_spec = "als11012_scattering"
+ingest_spec = "als_11012_scattering"
 
 class Scattering11012Reader():
     """A DatasetReader for reading 11012 scattering datasets.
@@ -74,8 +74,12 @@ class Scattering11012Reader():
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
+        
+        folder_size = get_file_size(self._folder) 
         #Excludes size of dat folder
-        folder_size = get_file_size(self._folder) - get_file_size(Path(f"{self._folder}/dat"))
+        if Path(f"{self._folder}/dat").exists():
+            folder_size -= get_file_size(Path(f"{self._folder}/dat"))
+        
         sample_name = self._folder.name
 
         ai_file_name = next(self._folder.glob("*.txt")).name[:-7]

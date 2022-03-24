@@ -19,7 +19,7 @@ from pyscicat.model import (
 
 from scicat_beamline.utils import Issue
 
-ingest_spec = 'nexafs'
+ingest_spec = 'als_11012_nexafs'
 
 
 def ingest(
