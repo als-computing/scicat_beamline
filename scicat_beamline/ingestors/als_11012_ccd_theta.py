@@ -23,6 +23,7 @@ from pyscicat.model import (
     Ownable,
 )
 
+ingest_spec = "als_11012_ccd_theta"
 
 def create_data_files(self) -> List[DataFile]:
     "Collects the one AI  txt file"
