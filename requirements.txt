@@ -2,6 +2,7 @@ astropy
 fabio
 h5py
 pydantic
+pymongo
 python-dotenv
 requests
 numpy
