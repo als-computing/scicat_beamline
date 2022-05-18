@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 from typing import List
+import numpy
 import pandas
 
 from pyscicat.client import (
@@ -54,6 +55,8 @@ def ingest(
             headers.append(line.rstrip())
 
     table = pandas.read_table(file_path, skiprows=lines_to_skip)
+    # https://stackoverflow.com/a/54403705/
+    table = table.replace({numpy.nan: None})
     scientific_metadata = {}
     scientific_metadata["headers"] = headers
     scientific_metadata.update(table.to_dict(orient="list"))
