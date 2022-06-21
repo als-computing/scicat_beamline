@@ -35,10 +35,10 @@ assert type(INGEST_SPEC) == str and len(INGEST_SPEC) != 0
 pattern = None
 ingestor_location = None
 if INGEST_SPEC == "als_11012_igor":
-    pattern = f"{ROOT_FOLDER}/*/dat/"
+    pattern = f"{ROOT_FOLDER}/CCD/*/dat/"
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/als_11012_igor.py")
 elif INGEST_SPEC == "als_11012_scattering":
-    pattern = f"{ROOT_FOLDER}/*/"
+    pattern = f"{ROOT_FOLDER}/CCD/*/"
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/als_11012_scattering.py")
 elif INGEST_SPEC == f"als_11012_nexafs":
     pattern = f"{ROOT_FOLDER}/Nexafs/*"

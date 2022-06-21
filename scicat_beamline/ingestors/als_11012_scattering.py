@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image, ImageOps
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
-
+import os
 
 from pyscicat.client import (
     ScicatClient,
@@ -176,9 +176,14 @@ def ingest(
     dataset_id = scicat_client.upload_raw_dataset(dataset)
     reader.dataset_id = dataset_id
     png_files = list(file_path.glob("*.png"))
-    if len(list(png_files)) > 0:
-        thumbnail = reader.create_attachment(png_files[0])
-        scicat_client.upload_attachment(thumbnail)
+    if len(list(png_files)) == 0:
+        fits_filenames = sorted(file_path.glob("*.fits"))
+        fits_filename = fits_filenames[len(fits_filenames) // 2]
+        image_data = fits.getdata(fits_filename, ext=2)
+        build_thumbnail(image_data, fits_filename.name[:-5], file_path)
+    png_files = list(file_path.glob("*.png"))
+    thumbnail = reader.create_attachment(png_files[0])
+    scicat_client.upload_attachment(thumbnail)
 
     data_block = reader.create_data_block()
     scicat_client.upload_datablock(data_block)
