@@ -184,7 +184,7 @@ def upload_raw_dataset(
         sampleId=file.stem,
         isPublished=False,
         description=description,
-        keywords=appended_keywords,
+        keywords=["spot", "8.3.2"],
         creationTime=file_mod_time,
         **ownable.dict(),
     )

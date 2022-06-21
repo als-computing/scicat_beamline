@@ -15,14 +15,14 @@ from pyscicat.model import (
     Ownable,
 )
 
-from splash_ingest.ingestors.scicat_utils import (
+from ..scicat_utils import (
     build_search_terms,
     build_thumbnail,
     calculate_access_controls,
     encode_image_2_thumbnail,
     NPArrayEncoder,
 )
-from splash_ingest.ingestors.utils import Issue, Severity
+from ..utils import Issue, Severity
 
 ingest_spec = "als832_dx_3"
 
@@ -104,7 +104,7 @@ def upload_raw_dataset(
         sampleId=description,
         isPublished=False,
         description=description,
-        keywords=appended_keywords,
+        keywords=["8.3.2",
         creationTime=file_mod_time,
         **ownable.dict(),
     )
