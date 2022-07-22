@@ -26,7 +26,7 @@ ingest_spec = 'als_11012_nexafs'
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
@@ -52,6 +52,8 @@ def ingest(
             if line.startswith("Time of"):
                 lines_to_skip = line_num - 1
                 break
+            if line.isspace():
+                continue
             headers.append(line.rstrip())
 
     table = pandas.read_table(file_path, skiprows=lines_to_skip)
@@ -69,7 +71,7 @@ def ingest(
     dataset = RawDataset(
         owner="test",
         contactEmail="cbabay1993@gmail.com",
-        creationLocation="ALS11021",
+        creationLocation="ALS11012",
         datasetName=sample_name,
         type=DatasetType.raw,
         instrumentId="11012",
@@ -82,7 +84,7 @@ def ingest(
         sampleId=sample_name,
         isPublished=False,
         description=description,
-        keywords=["scattering", "rsoxs", "11.0.1.2", "ccd"] + appended_keywords,
+        keywords=["scattering", "nexafs", "11.0.1.2", "ccd", "als"] + appended_keywords,
         creationTime=get_file_mod_time(file_path),
         **ownable.dict(),
     )

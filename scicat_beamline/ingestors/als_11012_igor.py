@@ -1,11 +1,7 @@
-from curses.ascii import isspace
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, OrderedDict
-from unittest import skip
 import pandas
-import os
-
 
 from pyscicat.client import (
     ScicatClient,
@@ -22,13 +18,6 @@ from pyscicat.model import (
     DerivedDataset,
     Ownable,
 )
-from scicat_beamline.scicat_utils import (
-    build_search_terms,
-    build_thumbnail,
-    calculate_access_controls,
-    encode_image_2_thumbnail,
-    NPArrayEncoder,
-)
 
 
 from scicat_beamline.utils import Issue
@@ -44,32 +33,36 @@ Scientific Metadata is built as a dictionary of energy value keys each with a di
 associated dat headers
 """
 
+
 def create_data_files(folder: Path) -> List[DataFile]:
     "Collects all files"
     datafiles = []
     for file in folder.iterdir():
         datafile = DataFile(
-            path = file.name,
-            size = get_file_size(file),
-            time= get_file_mod_time(file),
-            type="DerivedDatasets"
+            path=file.name,
+            size=get_file_size(file),
+            time=get_file_mod_time(file),
+            type="DerivedDatasets",
         )
         datafiles.append(datafile)
     return datafiles
 
+
 def create_data_block(folder, dataset_id, ownable: Ownable) -> Datablock:
     "Creates a datablock of all files"
     datafiles = create_data_files(folder)
-    
+
     return Datablock(
-        datasetId = dataset_id,
-        size = get_file_size(folder),
-        dataFileList = datafiles,
-        **ownable.dict()
+        datasetId=dataset_id,
+        size=get_file_size(folder),
+        dataFileList=datafiles,
+        **ownable.dict(),
     )
 
 
-def create_dataset(scicat_client: ScicatClient, folder: Path, ownable: Ownable) -> Dataset:
+def create_dataset(
+    scicat_client: ScicatClient, folder: Path, ownable: Ownable
+) -> Dataset:
     "Creates a dataset object"
     folder_size = get_file_size(folder)
     datasetName = folder.parent.name + "_IGOR_ANALYSIS"
@@ -78,11 +71,11 @@ def create_dataset(scicat_client: ScicatClient, folder: Path, ownable: Ownable) 
     ai_file_name = next(folder.parent.glob("*.txt")).name[:-7]
 
     description = ai_file_name.replace("_", " ")
-    description = description.replace('-', ' ')
+    description = description.replace("-", " ")
     appended_keywords = description.split()
     dataset = DerivedDataset(
         investigator="Cameron McKay",
-        inputDatasets=[a[0]['pid']],
+        inputDatasets=[a[0]["pid"]],
         usedSoftware=["Igor", "Irena", "Nika"],
         owner="test",
         contactEmail="cbabay1993@gmail.com",
@@ -99,19 +92,23 @@ def create_dataset(scicat_client: ScicatClient, folder: Path, ownable: Ownable) 
         sampleId=datasetName,
         isPublished=False,
         description=description,
-        keywords=["scattering", "rsoxs", "11.0.1.2", "ccd", "igor", "analysis"] + appended_keywords,
+        keywords=["scattering", "rsoxs", "11.0.1.2", "als", "ccd", "igor", "analysis"]
+        + appended_keywords,
         creationTime=get_file_mod_time(folder),
-        **ownable.dict())
+        **ownable.dict(),
+    )
     return dataset
+
 
 def create_attachment(file: Path, dataset_id: str, ownable: Ownable) -> Attachment:
     "Creates a thumbnail jpg"
     return Attachment(
-        datasetId = dataset_id,
-        thumbnail = encode_thumbnail(file),
+        datasetId=dataset_id,
+        thumbnail=encode_thumbnail(file),
         caption="scattering image",
-        **ownable.dict()
+        **ownable.dict(),
     )
+
 
 def create_scientific_metadata(folder: Path) -> Dict:
 
@@ -123,18 +120,30 @@ def create_scientific_metadata(folder: Path) -> Dict:
     """
     dat_filenames = folder.glob("*.dat")
     sci_metadata = {}
-    column_converters = {0:lambda string : string.strip('#').strip()}
+    column_converters = {0: lambda string: string.strip("#").strip()}
     for dat_filename in dat_filenames:
         headers = None
         counter = 0
         with open(dat_filename) as dat_file:
-            #Count the number of lines we will parse
+            # Count the number of lines we will parse
             for line in dat_file:
-                if ( not line.isspace() and line.strip()[0] != '#'):
+                if not line.isspace() and line.strip()[0] != "#":
                     break
-                counter+=1
+                counter += 1
             dat_file.seek(0)
-            headers = pandas.read_csv(dat_file, index_col=[0], sep='=', nrows=counter, header=None, converters=column_converters, skip_blank_lines=True).squeeze("columns").dropna()
+            headers = (
+                pandas.read_csv(
+                    dat_file,
+                    index_col=[0],
+                    sep="=",
+                    nrows=counter,
+                    header=None,
+                    converters=column_converters,
+                    skip_blank_lines=True,
+                )
+                .squeeze("columns")
+                .dropna()
+            )
 
         # Re order headers in a new dict
         ordered_headers_dict = OrderedDict()
@@ -146,16 +155,16 @@ def create_scientific_metadata(folder: Path) -> Dict:
                 atBottomHeaders = True
             if atBottomHeaders == True:
                 ordered_headers_dict[key] = value
-        
+
         for key, value in headers.items():
             if key == "Processed on":
                 break
             ordered_headers_dict[key] = value
 
-        energy = ordered_headers_dict['Nika_XrayEnergy']
+        energy = ordered_headers_dict["Nika_XrayEnergy"]
 
-        energy = energy.replace('.', "_")
-        
+        energy = energy.replace(".", "_")
+
         if energy not in sci_metadata:
             sci_metadata[energy] = ordered_headers_dict
         else:
@@ -163,7 +172,7 @@ def create_scientific_metadata(folder: Path) -> Dict:
             while True:
                 if f"{energy} ({i})" not in sci_metadata:
                     sci_metadata[f"{energy} ({i})"] = ordered_headers_dict
-                i+=1
+                i += 1
     sci_metadata = OrderedDict(sorted(sci_metadata.items(), key=lambda t: t[0]))
     return sci_metadata
 
@@ -178,30 +187,32 @@ def ingest(
 ) -> str:
     "Ingest a folder of 11012 Igor analysis"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
-    ownable = Ownable(    
-            owner="MWET",
-            contactEmail="dmcreynolds@lbl.gov",
-            createdBy="dylan",
-            updatedBy="dylan",
-            updatedAt=now_str,
-            createdAt=now_str,
-            ownerGroup="MWET",
-            accessGroups=["MWET", "ingestor"])
+    ownable = Ownable(
+        owner="MWET",
+        contactEmail="dmcreynolds@lbl.gov",
+        createdBy="dylan",
+        updatedBy="dylan",
+        updatedAt=now_str,
+        createdAt=now_str,
+        ownerGroup="MWET",
+        accessGroups=["MWET", "ingestor"],
+    )
 
-    issues:List[Issue] = []
+    issues: List[Issue] = []
 
     dataset = create_dataset(scicat_client, file_path, ownable)
     dataset_id = scicat_client.upload_derived_dataset(dataset)
-    #TODO: ensure that all jpg files are uploaded as attachments
+    # TODO: ensure that all jpg files are uploaded as attachments
     # And maybe pngs
     jpg_files = list(file_path.glob("*.jpg"))
     if len(list(jpg_files)) > 0:
-        thumbnail = create_attachment(jpg_files[0], dataset_id, ownable )
+        thumbnail = create_attachment(jpg_files[0], dataset_id, ownable)
         scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
 
-    data_block = create_data_block(file_path, dataset_id, ownable)   
+    data_block = create_data_block(file_path, dataset_id, ownable)
     scicat_client.upload_datablock(data_block, datasetType="DerivedDatasets")
     return dataset_id, issues
+
 
 # if __name__ == "__main__":
 #     from pprint import pprint
@@ -215,5 +226,3 @@ def ingest(
 #             dataset_id, issues = ingest(dat_folder)
 #             print(f"Ingested {path_obj} as {dataset_id}. Issues:")
 #             pprint(issues)
-
-    

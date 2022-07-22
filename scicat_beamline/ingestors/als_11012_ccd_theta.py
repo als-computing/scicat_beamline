@@ -49,7 +49,7 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
     dataset = Dataset(
         owner="test",
         contactEmail="cbabay1993@gmail.com",
-        creationLocation="ALS11021",
+        creationLocation="ALS11012",
         datasetName=sample_name,
         type=DatasetType.raw,
         instrumentId="11012",
@@ -62,7 +62,7 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
         sampleId=sample_name,
         isPublished=False,
         description="",
-        keywords=["ccd", "theta", "rsoxs", "11.0.1.2"],
+        keywords=["ccd", "theta", "rsoxs", "als", "11.0.1.2"],
         creationTime=get_file_mod_time(file),
         **ownable.dict(),
     )
