@@ -1,11 +1,10 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, OrderedDict
 import numpy as np
 from PIL import Image, ImageOps
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
-import os
 
 from pyscicat.client import (
     ScicatClient,
@@ -27,6 +26,7 @@ from pyscicat.model import (
 from scicat_beamline.utils import Issue
 
 ingest_spec = "als_11012_scattering"
+
 
 class Scattering11012Reader():
     """A DatasetReader for reading 11012 scattering datasets.
@@ -83,14 +83,13 @@ class Scattering11012Reader():
         sample_name = self._folder.name
 
         ai_file_name = next(self._folder.glob("*.txt")).name[:-7]
-
         description = ai_file_name.replace("_", " ")
         description = description.replace("-", " ")
         appended_keywords = description.split()
         dataset = RawDataset(
             owner="test",
             contactEmail="cbabay1993@gmail.com",
-            creationLocation="ALS11021",
+            creationLocation="ALS11012",
             datasetName=sample_name,
             type=DatasetType.raw,
             instrumentId="11012",
@@ -103,7 +102,7 @@ class Scattering11012Reader():
             sampleId=sample_name,
             isPublished=False,
             description=description,
-            keywords=["scattering", "rsoxs", "11.0.1.2", "ccd"] + appended_keywords,
+            keywords=["scattering", "rsoxs", "als", "11.0.1.2", "ccd"] + appended_keywords,
             creationTime=get_file_mod_time(self._folder),
             **self._ownable.dict(),
         )
@@ -127,6 +126,7 @@ class Scattering11012Reader():
             folder (Path):  folder in which to scan fits files
         """
         fits_files = self._folder.glob("*.fits")
+        fits_files = sorted(fits_files)
         metadata = {}
         # Headers from AI file
         ai_file_name = next(self._folder.glob("*.txt"))
@@ -141,11 +141,11 @@ class Scattering11012Reader():
                 metadata_header = hdulist[0].header
                 for key in metadata_header.keys():
                     if not metadata.get(key):
-                        metadata[key] = []
+                        metadata[key] = OrderedDict()
                     value = metadata_header[key]
                     if type(value) == _HeaderCommentaryCards:
                         continue
-                    metadata.get(key).append(metadata_header[key])
+                    metadata[key][fits_file.stem] = metadata_header[key]
         return metadata
 
 
