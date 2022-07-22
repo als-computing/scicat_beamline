@@ -41,7 +41,7 @@ def ingest(
     if edf_file:
         with fabio.open(edf_file) as fabio_obj:
             image_data = fabio_obj.data
-            scientific_metadata = scientific_metadata | {"edf headers": fabio_obj.header}
+            scientific_metadata = {"edf headers": fabio_obj.header}
     unknown_cnt = 0
     with open(file_path) as txt_file:
         for line in txt_file.read().splitlines():
