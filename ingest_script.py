@@ -1,5 +1,4 @@
 import glob
-from importlib.resources import path
 from dotenv import load_dotenv
 import os
 from ingest import ingest
