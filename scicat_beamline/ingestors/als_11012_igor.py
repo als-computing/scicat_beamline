@@ -26,7 +26,7 @@ ingest_spec = "als_11012_igor"
 
 """A DatasetReader for Igor generated dat files
 Reader exepects a folder that contains dat files as
-well as a jpeg files of graphs. Jpeg files will be ingested 
+well as a jpeg files of graphs. Jpeg files will be ingested
 as attachments/thumbnails.
 
 Scientific Metadata is built as a dictionary of energy value keys each with a dict of the
@@ -153,7 +153,7 @@ def create_scientific_metadata(folder: Path) -> Dict:
         for key, value in headers.items():
             if key == "Processed on":
                 atBottomHeaders = True
-            if atBottomHeaders == True:
+            if atBottomHeaders is True:
                 ordered_headers_dict[key] = value
 
         for key, value in headers.items():

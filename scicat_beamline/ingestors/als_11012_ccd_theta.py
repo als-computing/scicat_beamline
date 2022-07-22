@@ -1,10 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-import sys
-from typing import Dict, List, Tuple
-
-from astropy.io import fits
-from astropy.io.fits.header import _HeaderCommentaryCards
+from typing import List
 
 
 from pyscicat.client import (
@@ -14,7 +10,6 @@ from pyscicat.client import (
 )
 
 from pyscicat.model import (
-    Attachment,
     Datablock,
     DataFile,
     Dataset,
@@ -24,6 +19,7 @@ from pyscicat.model import (
 )
 
 ingest_spec = "als_11012_ccd_theta"
+
 
 def create_data_files(self) -> List[DataFile]:
     "Collects the one AI  txt file"

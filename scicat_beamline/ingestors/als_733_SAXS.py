@@ -1,7 +1,7 @@
 from datetime import datetime
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import fabio
 from pyscicat.client import ScicatClient
@@ -17,11 +17,9 @@ from pyscicat.model import (
 from scicat_beamline.scicat_utils import (
     build_search_terms,
     build_thumbnail,
-    calculate_access_controls,
     encode_image_2_thumbnail,
-    NPArrayEncoder,
 )
-from scicat_beamline.utils import Issue, Severity
+from scicat_beamline.utils import Issue
 
 ingest_spec = "als733_saxs"
 
@@ -89,8 +87,6 @@ def ingest(
 
 def edf_from_txt(txt_file_path: Path):
     return Path(txt_file_path.parent, txt_file_path.stem + ".edf")
-
-
 
 
 def upload_raw_dataset(
@@ -211,4 +207,3 @@ def _get_dataset_value(data_set):
     except Exception:
         logger.exception("Exception extracting dataset value")
         return None
-
