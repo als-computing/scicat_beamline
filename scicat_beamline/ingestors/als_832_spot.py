@@ -18,7 +18,7 @@ from pyscicat.client import (
 )
 
 from pyscicat.model import (
-    Datablock,
+    OrigDatablock,
     DataFile,
     Dataset,
     DatasetType,
@@ -126,7 +126,7 @@ def upload_data_block(
     fs_doc: Dict,
     dataset_id: str,
     ownable: Ownable
-) -> Datablock:
+) -> OrigDatablock:
     "Creates a datablock of fits files"
     path = Path(fs_doc.get('phyloc')).name
     size = fs_doc.get('size') or 0
@@ -141,7 +141,7 @@ def upload_data_block(
 
     datafiles.append(datafile)
 
-    datablock = Datablock(
+    datablock = OrigDatablock(
         datasetId=dataset_id,
         size=size,
         dataFileList=datafiles,
@@ -158,11 +158,9 @@ def upload_raw_dataset(
 ) -> str:
     "Creates a dataset object"
     file = Path(fs_doc.get("phyloc"))
-    file_size = 0
     file_mod_time = 0
     file_name = file.stem
     if file.exists():
-        file_size = get_file_size(file)
         file_mod_time = get_file_mod_time(file)
 
     description = build_search_terms(file_name)
@@ -179,7 +177,6 @@ def upload_raw_dataset(
         dataFormat="spot",
         principalInvestigator=fs_doc.get("/measurement/sample/experiment/pi") or "unkown",
         sourceFolder=str(file.parent),
-        size=file_size,
         scientificMetadata=scientific_metadata,
         sampleId=file.stem,
         isPublished=False,

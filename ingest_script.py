@@ -22,14 +22,14 @@ INGEST_USER = os.getenv("INGEST_USER")
 PASSWORD = os.getenv("PASSWORD")
 INGEST_SPEC = os.getenv("INGEST_SPEC")
 
-
-
 assert type(ROOT_FOLDER) == str and len(ROOT_FOLDER) != 0 
 assert type(SCICAT_URL) == str and len(SCICAT_URL) != 0 
 assert type(USERNAME) == str and len(USERNAME) != 0 
 assert type(PASSWORD) == str and len(PASSWORD) != 0 
 assert type(INGEST_USER) == str and len(INGEST_USER) != 0 
 assert type(INGEST_SPEC) == str and len(INGEST_SPEC) != 0 
+
+ROOT_FOLDER = pathlib.Path(ROOT_FOLDER)
 
 pattern = None
 ingestor_location = None
@@ -44,8 +44,8 @@ elif INGEST_SPEC == "als_11012_scattering":
 elif INGEST_SPEC == "als_11012_nexafs":
     pattern = f"{ROOT_FOLDER}/Nexafs/*"
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/nexafs.py")
-elif INGEST_SPEC == "nsls2_rsoxs":
-    pattern = f"{ROOT_FOLDER}/*"
+elif INGEST_SPEC == "nsls2_rsoxs_sst1":
+    pattern = f"{ROOT_FOLDER}/*/"
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/nsls2_RSoXS.py")
 elif INGEST_SPEC == "nsls2_nexafs_sst1":
     override_iterator = True
@@ -61,6 +61,9 @@ elif INGEST_SPEC == "nsls2_nexafs_sst1":
 elif INGEST_SPEC == "als733_saxs":
     pattern = f"{ROOT_FOLDER}/*.txt"
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/als_733_SAXS.py")
+elif INGEST_SPEC == "nsls2_trexs_smi":
+    pattern = f"{ROOT_FOLDER}/*/"
+    ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/nsls2_TREXS_smi.py")
 
 else:
     raise Exception("Environment variable 'INGEST_SPEC' is invalid.")

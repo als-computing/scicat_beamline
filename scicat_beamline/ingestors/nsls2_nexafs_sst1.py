@@ -13,12 +13,13 @@ from pyscicat.client import (
 )
 
 from pyscicat.model import (
-    Datablock,
+    OrigDatablock,
     DataFile,
     RawDataset,
     DatasetType,
     Ownable,
 )
+from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers
 
 from scicat_beamline.utils import Issue
 
@@ -47,16 +48,13 @@ def ingest(
 
     issues: List[Issue] = []
 
-    headers = []
+
     lines_to_skip = 0
     with open(file_path) as nexafs_file:
         for line_num, line in enumerate(nexafs_file, 1):
             if line.startswith("----"):
                 lines_to_skip = line_num
                 break
-            if line.isspace():
-                continue
-            headers.append(line.rstrip())
 
     table = pandas.read_table(file_path, skiprows=lines_to_skip, delim_whitespace=True)
     metadata_table_filename = glob.glob(str(file_path.parent) + "/*.csv")[0]
@@ -73,7 +71,7 @@ def ingest(
     # https://stackoverflow.com/a/54403705/
     table = table.replace({numpy.nan: None})
     scientific_metadata = {}
-    scientific_metadata["headers"] = headers
+    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path, when_to_stop=lambda line: line.startswith("----"))
     scientific_metadata.update(table.to_dict(orient="list"))
     appended_keywords = []
     if metadata_row is not None:
@@ -86,12 +84,12 @@ def ingest(
     parent_folder = file_path.parent.absolute()
     log_file_path_strings = glob.glob(str(parent_folder) + '/*.log')
 
-    file_size = 0
+    files_size = 0
 
     for log_path_string in log_file_path_strings:
-        file_size += get_file_size(Path(log_path_string))
+        files_size += get_file_size(Path(log_path_string))
 
-    file_size += get_file_size(file_path)
+    files_size += get_file_size(file_path)
     file_name = file_path.name
 
     # description = file_name.replace("_", " ")'
@@ -100,20 +98,19 @@ def ingest(
         dataset = RawDataset(
             owner=metadata_row["sample_owner"],
             contactEmail=metadata_row["owner_email"],
-            creationLocation="nsls-ii SST-1 NEXAFS",
+            creationLocation="NSLS-II SST-1 NEXAFS",
             datasetName=file_name,  # + "_" + metadata_row["element_edge"],
             type=DatasetType.raw,
             instrumentId="SST-1 NEXAFS",
             proposalId=metadata_row["proposal_id"],
-            dataFormat="",
+            dataFormat="NSLS-II",
             principalInvestigator=metadata_row["PI"],
             sourceFolder=file_path.as_posix(),
-            size=file_size,
             scientificMetadata=scientific_metadata,
             sampleId=metadata_row["sample_id"],
             isPublished=False,
             description=metadata_row["sample_description"] + ". " + metadata_row["sample_description.1"],
-            keywords=["nexafs", "nsls-ii", "ccd", "SST-1"] + appended_keywords,
+            keywords=["nexafs", "nsls-ii", "SST-1", "absorption", "SST-1 NEXAFS"] + appended_keywords,
             creationTime=get_file_mod_time(file_path),
             **ownable.dict(),
         )
@@ -126,15 +123,14 @@ def ingest(
             type=DatasetType.raw,
             instrumentId="SST-1 NEXAFS",
             proposalId="GU-309898",
-            dataFormat="",
-            principalInvestigator="Greg Su",
+            dataFormat="NSLS-II",
+            principalInvestigator="Lynn Katz",
             sourceFolder=file_path.as_posix(),
-            size=file_size,
             scientificMetadata=scientific_metadata,
             sampleId="",
             isPublished=False,
             description=file_name.replace("_", " "),
-            keywords=["nexafs", "nsls-ii", "ccd", "SST-1"] + appended_keywords,
+            keywords=["nexafs", "nsls-ii", "SST-1"] + appended_keywords,
             creationTime=get_file_mod_time(file_path),
             **ownable.dict(),
         )
@@ -163,9 +159,9 @@ def ingest(
         *log_datafiles
     ]
 
-    data_block = Datablock(
+    data_block = OrigDatablock(
         datasetId=dataset_id,
-        size=get_file_size(file_path),
+        size=files_size,
         dataFileList=datafiles,
         **ownable.dict(),
     )

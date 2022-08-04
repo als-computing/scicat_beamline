@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image, ImageOps
 import os
 import json
+import zipfile
 
 
 from pyscicat.client import (
@@ -27,17 +28,13 @@ from scicat_beamline.ingestors.common_ingestor_code import create_data_files_lis
 
 from scicat_beamline.utils import Issue, glob_non_hidden_in_folder
 
-ingest_spec = "nsls2_rsoxs_sst1"
+ingest_spec = "nsls2_trexs_smi"
 
 
-class ScatteringNsls2Sst1Reader():
-    """A DatasetReader for reading nsls2 rsoxs datasets.
-    Reader expects a folder that contains the jsonl file as
-    well as all tiff files and some png files. Png files will be ingested
-    as attachments/thumbnails. Tiff files will be ingested as DataFiles.
-
-    Scientific Metadata is a dictionary that copies the jsonl file
-    """
+class TREXSNsls2SMIReader():
+    """A DatasetReader for reading nsls2 TREXS datasets.
+    Reader expects a folder that contains multiple child folders
+    with tiff files."""
 
     dataset_id: str = None
     _issues = []
@@ -50,11 +47,7 @@ class ScatteringNsls2Sst1Reader():
     #     "Collects all files"
     #     datafiles = []
     #     size = 0
-    #     for file in self._folder.iterdir():
-    #         # We exclude directories within this, directories within will probably be folders of corresponding dat
-    #         # files.
-    #         if file.name == 'dat':
-    #             continue
+    #     for file in self._folder.iglob():
     #         datafile = DataFile(
     #             path=file.name,
     #             size=get_file_size(file),
@@ -75,35 +68,28 @@ class ScatteringNsls2Sst1Reader():
             **self._ownable.dict(),
         )
 
-    def create_dataset(self) -> Dataset:
+    def create_dataset(self, creationTime) -> Dataset:
         "Creates a dataset object"
-        jsonl_file_path = next(glob_non_hidden_in_folder(self._folder, "*.jsonl"))
-
-        metadata_dict = {}
-        with open(jsonl_file_path) as file:
-            metadata_dict = json.load(file)[1]
-
-        jsonl_file_name = jsonl_file_path.name[:-6]
-        appended_keywords = jsonl_file_name.replace("_", " ").replace("-", " ").split()
-        appended_keywords += [metadata_dict["beamline_id"], metadata_dict["project_name"]]
+        proposalId = self._folder.name.split('_')[0] # TODO: change to make more general
+        print(self._folder)
 
         dataset = RawDataset(
             owner="Matt Landsman",  # owner=metadata_dict["user_name"]
             contactEmail="mrlandsman@lbl.gov",  # contactEmail=metadata_dict["user_email"]
-            creationLocation="NSLS-II" + " " + metadata_dict["beamline_id"],
-            datasetName=jsonl_file_name,
+            creationLocation="NSLS-II SMI TREXS",
+            datasetName=self._folder.name, # TODO: change to make more general
             type=DatasetType.raw,
-            instrumentId=metadata_dict["beamline_id"],
-            proposalId=metadata_dict["proposal_id"],
+            instrumentId="SMI TREXS",
+            proposalId=proposalId, # TODO: change to make more general
             dataFormat="NSLS-II",
-            principalInvestigator="Lynn Katz",
+            principalInvestigator="Lynn Katz", 
             sourceFolder=self._folder.as_posix(),
-            scientificMetadata=metadata_dict,
-            sampleId=metadata_dict["sample_id"],
+            # scientificMetadata=metadata_dict,
+            sampleId="",
             isPublished=False,
-            description=metadata_dict["sample_desc"],
-            keywords=["scattering", "rsoxs", "nsls-ii"] + appended_keywords,
-            creationTime=str(datetime.fromtimestamp(metadata_dict["time"])),
+            description=self._folder.name,
+            keywords=["TREXS", "nsls-ii", "SMI", "scattering", proposalId, "SMI TREXS"],
+            creationTime=creationTime,
             **self._ownable.dict(),
         )
         return dataset
@@ -122,11 +108,11 @@ class ScatteringNsls2Sst1Reader():
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
-    "Ingest a folder of 11012 scattering folders"
+) -> Tuple[str, List[Issue]]:
+    "Ingest a TREXS folder"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         owner="MWET",
@@ -138,23 +124,26 @@ def ingest(
         ownerGroup="MWET",
         accessGroups=["MWET", "ingestor"],
     )
-    reader = ScatteringNsls2Sst1Reader(file_path, ownable)
+    reader = TREXSNsls2SMIReader(file_path, ownable)
     issues: List[Issue] = []
 
-    png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
+    png_files = list(glob_non_hidden_in_folder(file_path, "*/**.png"))
     if len(list(png_files)) == 0:
-        tiff_filenames = sorted(glob_non_hidden_in_folder(file_path, "*.tiff"))
-        tiff_filenames.extend(glob_non_hidden_in_folder(file_path, "*.tif"))
+        # collect all tiff and tif files in sub folders of the root folder, but no further subfolders
+        tiff_filenames = sorted(glob_non_hidden_in_folder(file_path, "*/**.tiff"))
+        tiff_filenames.extend(sorted(glob_non_hidden_in_folder(file_path, "*/**.tif")))
         tiff_filename = tiff_filenames[len(tiff_filenames) // 2]
         image_data = Image.open(tiff_filename)
         image_data = np.array(image_data)
-        build_thumbnail(image_data, tiff_filename.name[:-5], file_path)
-    png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
+        build_thumbnail(image_data, tiff_filename.name[:-5], tiff_filename.absolute().parent)
+        png_files = list(glob_non_hidden_in_folder(file_path, "*/**.png"))
 
-    datafiles, size = create_data_files_list(file_path, excludeCheck=lambda x: x.name == 'dat')
-    dataset = reader.create_dataset()
+    datafiles, size = create_data_files_list(file_path, recursive=True)
+    creationTime = get_file_mod_time(Path(str(file_path) + "/" + datafiles[0].path))
+    dataset = reader.create_dataset(creationTime)
     dataset_id = scicat_client.upload_raw_dataset(dataset)
     reader.dataset_id = dataset_id
+
     thumbnail = reader.create_attachment(png_files[0])
     scicat_client.upload_attachment(thumbnail)
 

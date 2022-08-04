@@ -10,7 +10,7 @@ from pyscicat.client import (
 )
 
 from pyscicat.model import (
-    Datablock,
+    OrigDatablock,
     DataFile,
     Dataset,
     DatasetType,
@@ -26,11 +26,11 @@ def create_data_files(self) -> List[DataFile]:
     return [self._file]
 
 
-def create_data_block(dataset_id: str, file: Path, ownable: Ownable) -> Datablock:
+def create_data_block(dataset_id: str, file: Path, ownable: Ownable) -> OrigDatablock:
     "Creates a datablock of fits files"
     datafiles = create_data_files([str(file)])
 
-    return Datablock(
+    return OrigDatablock(
         datasetId=dataset_id,
         size=get_file_size(file),
         dataFileList=datafiles,
@@ -40,20 +40,18 @@ def create_data_block(dataset_id: str, file: Path, ownable: Ownable) -> Databloc
 
 def create_dataset(file, ownable: Ownable) -> Dataset:
     "Creates a dataset object"
-    folder_size = get_file_size(file)
     sample_name = file.name
     dataset = Dataset(
         owner="test",
         contactEmail="cbabay1993@gmail.com",
-        creationLocation="ALS11012",
+        creationLocation="ALS 11.0.1.2",
         datasetName=sample_name,
         type=DatasetType.raw,
-        instrumentId="11012",
+        instrumentId="11.0.1.2",
         proposalId="unknown",
         dataFormat="BCS",
         principalInvestigator="Lynne Katz",
         sourceFolder=file.as_posix(),
-        size=folder_size,
         scientificMetadata={},
         sampleId=sample_name,
         isPublished=False,

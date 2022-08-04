@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, OrderedDict
+from typing import Dict, List, OrderedDict, Tuple
 import pandas
 
 from pyscicat.client import (
@@ -11,16 +11,17 @@ from pyscicat.client import (
 )
 from pyscicat.model import (
     Attachment,
-    Datablock,
+    OrigDatablock,
     DataFile,
     Dataset,
     DatasetType,
     DerivedDataset,
     Ownable,
 )
+from scicat_beamline.ingestors.common_ingestor_code import create_data_files_list
 
 
-from scicat_beamline.utils import Issue
+from scicat_beamline.utils import Issue, glob_non_hidden_in_folder
 
 ingest_spec = "als_11012_igor"
 
@@ -34,27 +35,28 @@ associated dat headers
 """
 
 
-def create_data_files(folder: Path) -> List[DataFile]:
-    "Collects all files"
-    datafiles = []
-    for file in folder.iterdir():
-        datafile = DataFile(
-            path=file.name,
-            size=get_file_size(file),
-            time=get_file_mod_time(file),
-            type="DerivedDatasets",
-        )
-        datafiles.append(datafile)
-    return datafiles
+# def create_data_files(folder: Path) -> Tuple[List[DataFile], int]:
+#     "Collects all files"
+#     datafiles = []
+#     size = 0
+#     for file in folder.iterdir():
+#         datafile = DataFile(
+#             path=file.name,
+#             size=get_file_size(file),
+#             time=get_file_mod_time(file),
+#             type="DerivedDatasets",
+#         )
+#         datafiles.append(datafile)
+#         size += get_file_size(file)
+#     return datafiles, size
 
 
-def create_data_block(folder, dataset_id, ownable: Ownable) -> Datablock:
+def create_data_block(datafiles, dataset_id, ownable: Ownable, size) -> OrigDatablock:
     "Creates a datablock of all files"
-    datafiles = create_data_files(folder)
 
-    return Datablock(
+    return OrigDatablock(
         datasetId=dataset_id,
-        size=get_file_size(folder),
+        size=size,
         dataFileList=datafiles,
         **ownable.dict(),
     )
@@ -64,11 +66,13 @@ def create_dataset(
     scicat_client: ScicatClient, folder: Path, ownable: Ownable
 ) -> Dataset:
     "Creates a dataset object"
-    folder_size = get_file_size(folder)
     datasetName = folder.parent.name + "_IGOR_ANALYSIS"
     inputDatasetName = folder.parent.name
     a = scicat_client.get_datasets({"datasetName": inputDatasetName})
-    ai_file_name = next(folder.parent.glob("*.txt")).name[:-7]
+    ai_file_name = next(glob_non_hidden_in_folder(folder.parent, '*.txt')).name[:-7]
+
+    sci_md = create_scientific_metadata(folder)
+    creationTime = list(sci_md.values())[0]["Processed on"]
 
     description = ai_file_name.replace("_", " ")
     description = description.replace("-", " ")
@@ -77,24 +81,22 @@ def create_dataset(
         investigator="Cameron McKay",
         inputDatasets=[a[0]["pid"]],
         usedSoftware=["Igor", "Irena", "Nika"],
-        owner="test",
+        owner="Cameron McKay",
         contactEmail="cbabay1993@gmail.com",
-        # creationLocation="ALS11012",
         datasetName=datasetName,
         type=DatasetType.derived,
-        instrumentId="11012",
+        instrumentId="11.0.1.2",
         proposalId="unknown",
         dataFormat="dat",
         # principalInvestigator="Lynn Katz",
         sourceFolder=folder.as_posix(),
-        size=folder_size,
-        scientificMetadata=create_scientific_metadata(folder),
+        scientificMetadata=sci_md,
         sampleId=datasetName,
         isPublished=False,
         description=description,
-        keywords=["scattering", "rsoxs", "11.0.1.2", "als", "ccd", "igor", "analysis"]
+        keywords=["scattering", "rsoxs", "11.0.1.2", "als", "igor", "analysis", "Irena", "Nika"]
         + appended_keywords,
-        creationTime=get_file_mod_time(folder),
+        creationTime=creationTime,
         **ownable.dict(),
     )
     return dataset
@@ -113,12 +115,12 @@ def create_attachment(file: Path, dataset_id: str, ownable: Ownable) -> Attachme
 def create_scientific_metadata(folder: Path) -> Dict:
 
     """Generate a json dict of scientific metadata
-    by reading each fits file header
+    by reading each dat file header
 
     Args:
         folder (Path):  folder in which to scan fits files
     """
-    dat_filenames = folder.glob("*.dat")
+    dat_filenames = glob_non_hidden_in_folder(folder, "*.dat")
     sci_metadata = {}
     column_converters = {0: lambda string: string.strip("#").strip()}
     for dat_filename in dat_filenames:
@@ -199,17 +201,17 @@ def ingest(
     )
 
     issues: List[Issue] = []
-
+    datafiles, size = create_data_files_list(file_path)
     dataset = create_dataset(scicat_client, file_path, ownable)
     dataset_id = scicat_client.upload_derived_dataset(dataset)
     # TODO: ensure that all jpg files are uploaded as attachments
     # And maybe pngs
-    jpg_files = list(file_path.glob("*.jpg"))
+    jpg_files = list(glob_non_hidden_in_folder(file_path, "*.jpg"))
     if len(list(jpg_files)) > 0:
         thumbnail = create_attachment(jpg_files[0], dataset_id, ownable)
         scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
 
-    data_block = create_data_block(file_path, dataset_id, ownable)
+    data_block = create_data_block(datafiles, dataset_id, ownable, size)
     scicat_client.upload_datablock(data_block, datasetType="DerivedDatasets")
     return dataset_id, issues
 
