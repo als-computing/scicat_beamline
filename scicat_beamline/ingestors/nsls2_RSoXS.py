@@ -1,10 +1,11 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, OrderedDict, Tuple
+from typing import List, Tuple
 import numpy as np
 from PIL import Image, ImageOps
-from astropy.io import fits
-from astropy.io.fits.header import _HeaderCommentaryCards
+import os
+import json
+
 
 from pyscicat.client import (
     ScicatClient,
@@ -22,21 +23,20 @@ from pyscicat.model import (
     DatasetType,
     Ownable,
 )
-from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers, create_data_files_list
+from scicat_beamline.ingestors.common_ingestor_code import create_data_files_list
 
 from scicat_beamline.utils import Issue, glob_non_hidden_in_folder
 
-ingest_spec = "als_11012_scattering"
+ingest_spec = "nsls2_rsoxs_sst1"
 
 
-class Scattering11012Reader():
-    """A DatasetReader for reading 11012 scattering datasets.
-    Reader exepects a folder that contains the labview (AI) text file as
-    well as all fits files and some png files. Png files will be ingested
-    as attachments/thumbnails. Fits files will be ingested as DataFiles.
+class ScatteringNsls2Sst1Reader():
+    """A DatasetReader for reading nsls2 rsoxs datasets.
+    Reader expects a folder that contains the jsonl file as
+    well as all tiff files and some png files. Png files will be ingested
+    as attachments/thumbnails. Tiff files will be ingested as DataFiles.
 
-    Scientific Metadata is built as a dictionary where each child is an array build from
-    headers of each fits file.
+    Scientific Metadata is a dictionary that copies the jsonl file
     """
 
     dataset_id: str = None
@@ -47,7 +47,7 @@ class Scattering11012Reader():
         self._ownable = ownable
 
     # def create_data_files(self) -> Tuple[List[DataFile], int]:
-    #     "Collects all fits files"
+    #     "Collects all files"
     #     datafiles = []
     #     size = 0
     #     for file in self._folder.iterdir():
@@ -65,8 +65,8 @@ class Scattering11012Reader():
     #         size += get_file_size(file)
     #     return datafiles, size
 
-    def create_data_block(self, datafiles, size) -> OrigDatablock:
-        "Creates a datablock of fits files"
+    def create_data_block(self, datafiles, size: int) -> OrigDatablock:
+        "Creates a datablock of all files"
 
         return OrigDatablock(
             datasetId=self.dataset_id,
@@ -78,31 +78,33 @@ class Scattering11012Reader():
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
-        sample_name = self._folder.name
+        jsonl_file_path = next(glob_non_hidden_in_folder(self._folder, "*.jsonl"))
 
-        ai_file_path = next(glob_non_hidden_in_folder(self._folder, '*.txt'))
-        creationTime = get_file_mod_time(ai_file_path)
-        ai_file_name = ai_file_path.name[:-7]
-        description = ai_file_name.replace("_", " ")
-        description = description.replace("-", " ")
-        appended_keywords = description.split()
+        metadata_dict = {}
+        with open(jsonl_file_path) as file:
+            metadata_dict = json.load(file)[1]
+
+        jsonl_file_name = jsonl_file_path.name[:-6]
+        appended_keywords = jsonl_file_name.replace("_", " ").replace("-", " ").split()
+        appended_keywords += [metadata_dict["beamline_id"], metadata_dict["project_name"]]
+
         dataset = RawDataset(
-            owner="Cameron McKay",
-            contactEmail="cbabay1993@gmail.com",
-            creationLocation="ALS 11.0.1.2",
-            datasetName=sample_name,
+            owner="Matt Landsman",  # owner=metadata_dict["user_name"]
+            contactEmail="mrlandsman@lbl.gov",  # contactEmail=metadata_dict["user_email"]
+            creationLocation="NSLS-II" + " " + metadata_dict["beamline_id"],
+            datasetName=jsonl_file_name,
             type=DatasetType.raw,
-            instrumentId="11.0.1.2",
-            proposalId="unknown",
-            dataFormat="ALS BCS",
+            instrumentId=metadata_dict["beamline_id"],
+            proposalId=metadata_dict["proposal_id"],
+            dataFormat="NSLS-II",
             principalInvestigator="Lynn Katz",
             sourceFolder=self._folder.as_posix(),
-            scientificMetadata=self.create_scientific_metadata(),
-            sampleId=sample_name,
+            scientificMetadata=metadata_dict,
+            sampleId=metadata_dict["sample_id"],
             isPublished=False,
-            description=description,
-            keywords=["scattering", "rsoxs", "als", "11.0.1.2", "11.0.1.2 RSOXS"] + appended_keywords,
-            creationTime=creationTime,
+            description=metadata_dict["sample_desc"],
+            keywords=["scattering", "rsoxs", "nsls-ii"] + appended_keywords,
+            creationTime=str(datetime.fromtimestamp(metadata_dict["time"])),
             **self._ownable.dict(),
         )
         return dataset
@@ -115,32 +117,6 @@ class Scattering11012Reader():
             caption="scattering image",
             **self._ownable.dict(),
         )
-
-    def create_scientific_metadata(self) -> Dict:
-
-        """Generate a json dict of scientific metadata
-        by reading each fits file header
-
-        Args:
-            folder (Path):  folder in which to scan fits files
-        """
-        fits_files = glob_non_hidden_in_folder(self._folder, "*.fits")
-        fits_files = sorted(fits_files)
-        metadata = {}
-        # Headers from AI file
-        ai_file_name = next(glob_non_hidden_in_folder(self._folder, "*.txt"))
-        add_to_sci_metadata_from_bad_headers(metadata, ai_file_name, when_to_stop=lambda line: line.startswith("Time"))
-        for fits_file in fits_files:
-            with fits.open(fits_file) as hdulist:
-                metadata_header = hdulist[0].header
-                for key in metadata_header.keys():
-                    value = metadata_header[key]
-                    if type(value) == _HeaderCommentaryCards:
-                        continue
-                    if not metadata.get(key):
-                        metadata[key] = OrderedDict()
-                    metadata[key][fits_file.stem] = metadata_header[key]
-        return metadata
 
 
 # def ingest(folder: Path) -> Tuple[str, List[Issue]]:
@@ -163,27 +139,27 @@ def ingest(
         ownerGroup="MWET",
         accessGroups=["MWET", "ingestor"],
     )
-    reader = Scattering11012Reader(file_path, ownable)
+    reader = ScatteringNsls2Sst1Reader(file_path, ownable)
     issues: List[Issue] = []
 
     png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
     if len(list(png_files)) == 0:
-        fits_filenames = sorted(glob_non_hidden_in_folder(file_path, "*.fits"))
-        fits_filename = fits_filenames[len(fits_filenames) // 2]
-        image_data = fits.getdata(fits_filename, ext=2)
-        build_thumbnail(image_data, fits_filename.name[:-5], file_path)
+        tiff_filenames = sorted(glob_non_hidden_in_folder(file_path, "*.tiff"))
+        tiff_filenames.extend(glob_non_hidden_in_folder(file_path, "*.tif"))
+        tiff_filename = tiff_filenames[len(tiff_filenames) // 2]
+        image_data = Image.open(tiff_filename)
+        image_data = np.array(image_data)
+        build_thumbnail(image_data, tiff_filename.name[:-5], file_path)
     png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
 
-    datafile_array, size = create_data_files_list(file_path, lambda x: x.name == 'dat')
-
+    datafiles, size = create_data_files_list(file_path, excludeCheck=lambda x: x.name == 'dat')
     dataset = reader.create_dataset()
     dataset_id = scicat_client.upload_raw_dataset(dataset)
     reader.dataset_id = dataset_id
-
     thumbnail = reader.create_attachment(png_files[0])
     scicat_client.upload_attachment(thumbnail)
 
-    data_block = reader.create_data_block(datafile_array, size)
+    data_block = reader.create_data_block(datafiles, size)
     scicat_client.upload_datablock(data_block)
     return dataset_id, issues
 

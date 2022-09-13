@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -11,12 +12,12 @@ from pyscicat.client import (
 )
 
 from pyscicat.model import (
-    Datablock,
-    DataFile,
+    OrigDatablock,
     RawDataset,
     DatasetType,
     Ownable,
 )
+from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers, create_data_file
 
 from scicat_beamline.utils import Issue
 
@@ -26,11 +27,11 @@ ingest_spec = 'als_11012_nexafs'
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
-    "Ingest a folder of 11012 scattering folders"
+    "Ingest a nexafs folder"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         owner="MWET",
@@ -45,44 +46,43 @@ def ingest(
 
     issues: List[Issue] = []
 
-    headers = []
+    scientific_metadata = OrderedDict()
+
     lines_to_skip = 0
     with open(file_path) as nexafs_file:
         for line_num, line in enumerate(nexafs_file, 1):
             if line.startswith("Time of"):
                 lines_to_skip = line_num - 1
                 break
-            headers.append(line.rstrip())
+
+    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path, when_to_stop=lambda line: line.startswith("Time of"))
 
     table = pandas.read_table(file_path, skiprows=lines_to_skip)
     # https://stackoverflow.com/a/54403705/
     table = table.replace({numpy.nan: None})
-    scientific_metadata = {}
-    scientific_metadata["headers"] = headers
+
     scientific_metadata.update(table.to_dict(orient="list"))
 
-    folder_size = get_file_size(file_path)
     sample_name = file_path.name
 
     description = sample_name[:-4].replace("_", " ")
     appended_keywords = description.split()
     dataset = RawDataset(
-        owner="test",
+        owner="Cameron McKay",
         contactEmail="cbabay1993@gmail.com",
-        creationLocation="ALS11021",
+        creationLocation="ALS 11.0.1.2",
         datasetName=sample_name,
         type=DatasetType.raw,
-        instrumentId="11012",
+        instrumentId="11.0.1.2",
         proposalId="unknown",
-        dataFormat="BCS",
+        dataFormat="ALS BCS",
         principalInvestigator="Lynn Katz",
-        sourceFolder=file_path.as_posix(),
-        size=folder_size,
+        sourceFolder=file_path.parent.as_posix(),
         scientificMetadata=scientific_metadata,
         sampleId=sample_name,
         isPublished=False,
         description=description,
-        keywords=["scattering", "rsoxs", "11.0.1.2", "ccd"] + appended_keywords,
+        keywords=["nexafs", "11.0.1.2", "als", "absorption", "11.0.1.2 NEXAFS"] + appended_keywords,
         creationTime=get_file_mod_time(file_path),
         **ownable.dict(),
     )
@@ -90,16 +90,12 @@ def ingest(
     dataset_id = scicat_client.upload_raw_dataset(dataset)
 
     datafiles = [
-        DataFile(
-            path=file_path.name,
-            size=get_file_size(file_path),
-            time=get_file_mod_time(file_path),
-            type="RawDatasets",
-        )
+        create_data_file(file_path)[0]
     ]
 
-    data_block = Datablock(
+    data_block = OrigDatablock(
         datasetId=dataset_id,
+        instrumentGroup="instrument-default",
         size=get_file_size(file_path),
         dataFileList=datafiles,
         **ownable.dict(),

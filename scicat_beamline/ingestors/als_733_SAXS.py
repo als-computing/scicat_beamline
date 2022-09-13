@@ -1,27 +1,27 @@
 from datetime import datetime
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
+from collections import OrderedDict
 
 import fabio
 from pyscicat.client import ScicatClient
 from pyscicat.model import (
     Attachment,
-    Datablock,
+    OrigDatablock,
     DataFile,
     RawDataset,
     DatasetType,
     Ownable,
 )
+from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers
 
 from scicat_beamline.scicat_utils import (
     build_search_terms,
     build_thumbnail,
-    calculate_access_controls,
     encode_image_2_thumbnail,
-    NPArrayEncoder,
 )
-from scicat_beamline.utils import Issue, Severity
+from scicat_beamline.utils import Issue
 
 ingest_spec = "als733_saxs"
 
@@ -36,39 +36,26 @@ def ingest(
     issues: List[Issue],
 ) -> str:
 
-    scientific_metadata = {}
+    scientific_metadata = OrderedDict()
     edf_file = edf_from_txt(file_path)
     if edf_file:
         with fabio.open(edf_file) as fabio_obj:
             image_data = fabio_obj.data
-            scientific_metadata = scientific_metadata | {"edf headers": fabio_obj.header}
-    unknown_cnt = 0
-    with open(file_path) as txt_file:
-        for line in txt_file.read().splitlines():
-            parts = line.split(":")
-            if len(parts) == 2:
-                scientific_metadata[parts[0]] = parts[1]
-                continue
-            parts = line.split("=")
-            if len(parts) == 2:
-                scientific_metadata[parts[0]] = parts[1]
-                continue
-            scientific_metadata[f"unknown_field{unknown_cnt}"] = line
-            unknown_cnt += 1
+            scientific_metadata["edf headers"] = fabio_obj.header
+    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
 
     scicat_metadata = {
-        "owner": "UNKNOWN",
-        "email": "UNKNOWN",
-        "instrument_name": "als733",
+        "owner": "Matt Landsman",
+        "email": "mrlandsman@lbl.gov",
+        "instrument_name": "ALS 7.3.3",
         "proposal": "UNKNOWN",
-        "pi": "UNKNOWN",
-        "owner": "UNKNOWN",
+        "pi": "Greg Su",
     }
 
     # temporary access controls setup
     ownable = Ownable(
-        ownerGroup="als733",
-        accessGroups=["ingestor", "7.3.3"],
+        ownerGroup="MWET",
+        accessGroups=["ingestor", "MWET"],
     )
 
     dataset_id = upload_raw_dataset(
@@ -91,8 +78,6 @@ def edf_from_txt(txt_file_path: Path):
     return Path(txt_file_path.parent, txt_file_path.stem + ".edf")
 
 
-
-
 def upload_raw_dataset(
     scicat_client: ScicatClient,
     file_path: Path,
@@ -101,10 +86,9 @@ def upload_raw_dataset(
     ownable: Ownable,
 ) -> str:
     "Creates a dataset object"
-    file_size = get_file_size(file_path)
     file_mod_time = get_file_mod_time(file_path)
     file_name = file_path.stem
-    description = build_search_terms(file_name)
+    description = build_search_terms(file_path.parent.name + "_" + file_name)
     appended_keywords = description.split()
     dataset = RawDataset(
         owner=scicat_metadata.get("owner"),
@@ -117,12 +101,11 @@ def upload_raw_dataset(
         dataFormat="733",
         principalInvestigator=scicat_metadata.get("pi"),
         sourceFolder=str(file_path.parent),
-        size=file_size,
         scientificMetadata=scientific_metadata,
         sampleId=description,
         isPublished=False,
         description=description,
-        keywords=appended_keywords,
+        keywords=appended_keywords + ["WAXS", "ALS", "7.3.3", "scattering", "7.3.3 WAXS"],  # TODO: change according to whether it is waxs or saxs,
         creationTime=file_mod_time,
         **ownable.dict(),
     )
@@ -154,12 +137,13 @@ def create_data_files(txt_file_path: Path) -> Tuple[int, List[DataFile]]:
 
 def upload_data_block(
     scicat_client: ScicatClient, txt_file_path: Path, dataset_id: str, ownable: Ownable
-) -> Datablock:
-    "Creates a datablock of files, txt file plus fits files"
+) -> OrigDatablock:
+    "Creates a OrigDatablock of files, txt file plus fits files"
     total_size, datafiles = create_data_files(txt_file_path)
 
-    datablock = Datablock(
+    datablock = OrigDatablock(
         datasetId=dataset_id,
+        instrumentGroup="instrument-default",
         size=total_size,
         dataFileList=datafiles,
         **ownable.dict(),
@@ -211,4 +195,3 @@ def _get_dataset_value(data_set):
     except Exception:
         logger.exception("Exception extracting dataset value")
         return None
-

@@ -8,7 +8,7 @@ import h5py
 from pyscicat.client import ScicatClient
 from pyscicat.model import (
     Attachment,
-    Datablock,
+    OrigDatablock,
     DataFile,
     RawDataset,
     DatasetType,
@@ -82,7 +82,6 @@ def upload_raw_dataset(
     ownable: Ownable,
 ) -> str:
     "Creates a dataset object"
-    file_size = get_file_size(file_path)
     file_mod_time = get_file_mod_time(file_path)
     file_name = scicat_metadata.get("/measurement/sample/file_name")
     description = build_search_terms(file_name)
@@ -99,7 +98,6 @@ def upload_raw_dataset(
         dataFormat="DX",
         principalInvestigator=scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
         sourceFolder=str(file_path.parent),
-        size=file_size,
         scientificMetadata=scientific_metadata,
         sampleId=description,
         isPublished=False,
@@ -127,12 +125,13 @@ def create_data_files(file_path: Path) -> List[DataFile]:
 
 def upload_data_block(
     scicat_client: ScicatClient, file_path: Path, dataset_id: str, ownable: Ownable
-) -> Datablock:
+) -> OrigDatablock:
     "Creates a datablock of fits files"
     datafiles = create_data_files(file_path)
 
-    datablock = Datablock(
+    datablock = OrigDatablock(
         datasetId=dataset_id,
+        instrumentGroup="instrument-default",
         size=get_file_size(file_path),
         dataFileList=datafiles,
         **ownable.dict(),
