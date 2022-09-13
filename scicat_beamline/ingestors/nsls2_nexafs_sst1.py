@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import List
 import numpy
 import pandas
-import os
 
 from pyscicat.client import (
     ScicatClient,
@@ -105,7 +104,7 @@ def ingest(
             proposalId=metadata_row["proposal_id"],
             dataFormat="NSLS-II",
             principalInvestigator=metadata_row["PI"],
-            sourceFolder=file_path.as_posix(),
+            sourceFolder=file_path.parent.as_posix(),
             scientificMetadata=scientific_metadata,
             sampleId=metadata_row["sample_id"],
             isPublished=False,
@@ -118,14 +117,14 @@ def ingest(
         dataset = RawDataset(
             owner="Matt Landsman",
             contactEmail="mrlandsman@lbl.gov",
-            creationLocation="nsls-ii SST-1 NEXAFS",
+            creationLocation="NSLS-II SST-1 NEXAFS",
             datasetName=file_name,
             type=DatasetType.raw,
             instrumentId="SST-1 NEXAFS",
             proposalId="GU-309898",
             dataFormat="NSLS-II",
             principalInvestigator="Lynn Katz",
-            sourceFolder=file_path.as_posix(),
+            sourceFolder=file_path.parent.as_posix(),
             scientificMetadata=scientific_metadata,
             sampleId="",
             isPublished=False,
@@ -161,6 +160,7 @@ def ingest(
 
     data_block = OrigDatablock(
         datasetId=dataset_id,
+        instrumentGroup="instrument-default",
         size=files_size,
         dataFileList=datafiles,
         **ownable.dict(),

@@ -143,6 +143,7 @@ def upload_data_block(
 
     datablock = OrigDatablock(
         datasetId=dataset_id,
+        instrumentGroup="instrument-default",
         size=size,
         dataFileList=datafiles,
         **ownable.dict(),

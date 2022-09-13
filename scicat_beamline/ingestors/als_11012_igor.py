@@ -56,6 +56,7 @@ def create_data_block(datafiles, dataset_id, ownable: Ownable, size) -> OrigData
 
     return OrigDatablock(
         datasetId=dataset_id,
+        instrumentGroup="instrument-default",
         size=size,
         dataFileList=datafiles,
         **ownable.dict(),

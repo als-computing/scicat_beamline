@@ -60,7 +60,7 @@ def ingest(
     table = pandas.read_table(file_path, skiprows=lines_to_skip)
     # https://stackoverflow.com/a/54403705/
     table = table.replace({numpy.nan: None})
-    
+
     scientific_metadata.update(table.to_dict(orient="list"))
 
     sample_name = file_path.name
@@ -77,7 +77,7 @@ def ingest(
         proposalId="unknown",
         dataFormat="ALS BCS",
         principalInvestigator="Lynn Katz",
-        sourceFolder=file_path.as_posix(),
+        sourceFolder=file_path.parent.as_posix(),
         scientificMetadata=scientific_metadata,
         sampleId=sample_name,
         isPublished=False,
@@ -95,6 +95,7 @@ def ingest(
 
     data_block = OrigDatablock(
         datasetId=dataset_id,
+        instrumentGroup="instrument-default",
         size=get_file_size(file_path),
         dataFileList=datafiles,
         **ownable.dict(),

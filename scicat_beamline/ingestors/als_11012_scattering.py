@@ -70,6 +70,7 @@ class Scattering11012Reader():
 
         return OrigDatablock(
             datasetId=self.dataset_id,
+            instrumentGroup="instrument-default",
             size=size,
             dataFileList=datafiles,
             **self._ownable.dict(),

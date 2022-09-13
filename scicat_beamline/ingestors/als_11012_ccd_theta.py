@@ -32,6 +32,7 @@ def create_data_block(dataset_id: str, file: Path, ownable: Ownable) -> OrigData
 
     return OrigDatablock(
         datasetId=dataset_id,
+        instrumentGroup="instrument-default",
         size=get_file_size(file),
         dataFileList=datafiles,
         **ownable.dict(),
@@ -51,7 +52,7 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
         proposalId="unknown",
         dataFormat="BCS",
         principalInvestigator="Lynne Katz",
-        sourceFolder=file.as_posix(),
+        sourceFolder=file.parent.as_posix(),
         scientificMetadata={},
         sampleId=sample_name,
         isPublished=False,
