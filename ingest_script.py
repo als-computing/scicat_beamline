@@ -53,13 +53,22 @@ elif INGEST_SPEC == "nsls2_nexafs_sst1":
     ingest_files_iter = glob.iglob(pattern)
     ingest_files_arr = []
     for file_str in ingest_files_iter:
-        if file_str.endswith(".log") or file_str.endswith(".csv"):
+        if file_str.endswith(".log") or file_str.endswith(".csv") or file_str.endswith(".txt"):
             continue
         ingest_files_arr.append(file_str)
     ingest_files_iter = ingest_files_arr
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/nsls2_nexafs_sst1.py")
 elif INGEST_SPEC == "als733_saxs":
     pattern = f"{ROOT_FOLDER}/*.txt"
+    override_iterator = True
+    ingest_files_iter = glob.iglob(pattern)
+    ingest_files_arr = []
+    for file_str in ingest_files_iter:
+        # Matt Landsman said not to include these in ingestion
+        if "autoexpose" in file_str or "beamstop_test" in file_str:
+            continue
+        ingest_files_arr.append(file_str)
+    ingest_files_iter = ingest_files_arr
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/als_733_SAXS.py")
 elif INGEST_SPEC == "nsls2_trexs_smi":
     pattern = f"{ROOT_FOLDER}/*/"

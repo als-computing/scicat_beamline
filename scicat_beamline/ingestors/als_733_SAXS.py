@@ -44,6 +44,20 @@ def ingest(
             scientific_metadata["edf headers"] = fabio_obj.header
     add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
 
+    #TODO: change this before ingestion depending on how the institution is marked. Sometimes it's in the name and sometimes it's not.
+    if ("cal" in file_path.name):
+        scientific_metadata["institution"] = "lbnl"
+    else:
+        scientific_metadata["institution"] = "texas"
+
+    #TODO: change based on project name before ingestion
+    scientific_metadata["project_name"] = "SNIPS membranes"
+
+    #TODO: change to transmission or grazing before ingestion
+    # scientific_metadata["geometry"] = "transmission"
+    raise Exception("MUST SPECIFY GEOMETRY")
+ 
+    #TODO: change PI before ingestion
     scicat_metadata = {
         "owner": "Matt Landsman",
         "email": "mrlandsman@lbl.gov",
@@ -89,7 +103,6 @@ def upload_raw_dataset(
     file_mod_time = get_file_mod_time(file_path)
     file_name = file_path.stem
     description = build_search_terms(file_path.parent.name + "_" + file_name)
-    appended_keywords = description.split()
     dataset = RawDataset(
         owner=scicat_metadata.get("owner"),
         contactEmail=scicat_metadata.get("email"),
@@ -105,7 +118,7 @@ def upload_raw_dataset(
         sampleId=description,
         isPublished=False,
         description=description,
-        keywords=appended_keywords + ["WAXS", "ALS", "7.3.3", "scattering", "7.3.3 WAXS"],  # TODO: change according to whether it is waxs or saxs,
+        keywords=["SAXS", "ALS", "7.3.3", "scattering", "7.3.3 SAXS", "SNIPS membranes", scientific_metadata["institution"], scientific_metadata["geometry"]],  # TODO: change before ingestion according to whether it is waxs or saxs,
         creationTime=file_mod_time,
         **ownable.dict(),
     )

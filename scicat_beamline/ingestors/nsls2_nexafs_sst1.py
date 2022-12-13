@@ -60,8 +60,9 @@ def ingest(
     metadata_table = pandas.read_csv(metadata_table_filename)
     metadata_row = None
 
+    metadata_table = metadata_table.replace({numpy.nan: None})
     for idx, entry in enumerate(metadata_table["file_name"]):
-        entry = entry.split(",")
+        entry = str(entry).split(",")
         for nexafs_file_name in entry:
             nexafs_file_name = nexafs_file_name.strip()
             if nexafs_file_name == file_path.name:
@@ -69,16 +70,38 @@ def ingest(
 
     # https://stackoverflow.com/a/54403705/
     table = table.replace({numpy.nan: None})
+    
     scientific_metadata = {}
     add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path, when_to_stop=lambda line: line.startswith("----"))
     scientific_metadata.update(table.to_dict(orient="list"))
     appended_keywords = []
     if metadata_row is not None:
+        #TODO: before ingestion change the keys used for the keywords depending on how they are labelled in the csv file
         scientific_metadata["incident_angle"] = str(metadata_row["incident_angle"])
         scientific_metadata["saf_id"] = str(metadata_row["saf_id"])
         scientific_metadata["measurement"] = metadata_row["measurement"]
         scientific_metadata["project_name"] = metadata_row["project_name"]
-        appended_keywords = [str(metadata_row[key]) for key in ["measurement", "element_edge", "sample_id", "proposal_id", "saf_id", "institution", "project_name", "sample_description"]] + [file_path.name]
+
+        scientific_metadata["element_edge"] = metadata_row["element_edge"]
+
+        scientific_metadata["institution"] = metadata_row["sample_source"]
+        scientific_metadata["scan_id"] = metadata_row["scan_id"]
+
+        scientific_metadata["notes"] = metadata_row["notes"]
+        scientific_metadata["x_coordinate"] = metadata_row["x_coordinate"]
+        scientific_metadata["bar_location"] = metadata_row["bar_location"]
+        scientific_metadata["z_coordinate"] = metadata_row["z_coordinate"]
+
+        # Remove empty values that we got from the spreadsheet
+        empty_keys =[]
+        for key, value in scientific_metadata.items():
+            if str(value).strip() == '' or value == None:
+                empty_keys.append(key)
+        for key in empty_keys:
+            scientific_metadata.pop(key)
+        #TODO: before ingestion change the keys used for the keywords depending on how they are labelled in the csv file
+        appended_keywords = [str(metadata_row[key]) for key in ["measurement", "element_edge", "sample_id", "proposal_id", "saf_id", "sample_source", "project_name"] if metadata_row[key] is not None and str(metadata_row[key]).strip() != '']
+        # Previous appended keywords: appended_keywords = [str(metadata_row[key]) for key in ["measurement", "element_edge", "sample_id", "proposal_id", "saf_id", "institution", "project_name", "sample_description"]] + [file_path.name]
 
     parent_folder = file_path.parent.absolute()
     log_file_path_strings = glob.glob(str(parent_folder) + '/*.log')
@@ -108,31 +131,13 @@ def ingest(
             scientificMetadata=scientific_metadata,
             sampleId=metadata_row["sample_id"],
             isPublished=False,
-            description=metadata_row["sample_description"] + ". " + metadata_row["sample_description.1"],
-            keywords=["nexafs", "nsls-ii", "SST-1", "absorption", "SST-1 NEXAFS"] + appended_keywords,
+            description=metadata_row["sample_description"], #+ ". " + metadata_row["sample_description.1"],
+            keywords=["nexafs", "nsls-ii", "SST-1", "SST-1 NEXAFS"] + appended_keywords,
             creationTime=get_file_mod_time(file_path),
             **ownable.dict(),
         )
     else:
-        dataset = RawDataset(
-            owner="Matt Landsman",
-            contactEmail="mrlandsman@lbl.gov",
-            creationLocation="NSLS-II SST-1 NEXAFS",
-            datasetName=file_name,
-            type=DatasetType.raw,
-            instrumentId="SST-1 NEXAFS",
-            proposalId="GU-309898",
-            dataFormat="NSLS-II",
-            principalInvestigator="Lynn Katz",
-            sourceFolder=file_path.parent.as_posix(),
-            scientificMetadata=scientific_metadata,
-            sampleId="",
-            isPublished=False,
-            description=file_name.replace("_", " "),
-            keywords=["nexafs", "nsls-ii", "SST-1"] + appended_keywords,
-            creationTime=get_file_mod_time(file_path),
-            **ownable.dict(),
-        )
+        raise Exception("No metadata_row")
 
     dataset_id = scicat_client.upload_raw_dataset(dataset)
 
