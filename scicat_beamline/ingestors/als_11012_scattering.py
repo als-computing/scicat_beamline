@@ -85,7 +85,8 @@ class Scattering11012Reader():
         ai_file_name = ai_file_path.name[:-7]
         description = ai_file_name.replace("_", " ")
         description = description.replace("-", " ")
-        appended_keywords = description.split()
+        sample_name = sample_name.replace("_", " ").replace("-", " ")
+        description = sample_name + " " + description
         dataset = RawDataset(
             owner="Cameron McKay",
             contactEmail="cbabay1993@gmail.com",
@@ -101,7 +102,7 @@ class Scattering11012Reader():
             sampleId=sample_name,
             isPublished=False,
             description=description,
-            keywords=["scattering", "rsoxs", "als", "11.0.1.2", "11.0.1.2 RSOXS"] + appended_keywords,
+            keywords=["scattering", "RSoXS", "ALS", "11.0.1.2", "11.0.1.2 RSoXS"],
             creationTime=creationTime,
             **self._ownable.dict(),
         )
