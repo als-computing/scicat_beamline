@@ -77,7 +77,7 @@ def create_dataset(
 
     description = ai_file_name.replace("_", " ")
     description = description.replace("-", " ")
-    appended_keywords = description.split()
+    description = inputDatasetName.replace("_", " ").replace("-", " ") + " " + description + " igor analysis"
     dataset = DerivedDataset(
         investigator="Cameron McKay",
         inputDatasets=[a[0]["pid"]],
@@ -95,8 +95,7 @@ def create_dataset(
         sampleId=datasetName,
         isPublished=False,
         description=description,
-        keywords=["scattering", "rsoxs", "11.0.1.2", "als", "igor", "analysis", "Irena", "Nika"]
-        + appended_keywords,
+        keywords=["scattering", "RSoXS", "11.0.1.2 RSoXS" "11.0.1.2", "ALS", "igor", "analysis", "Irena", "Nika"],
         creationTime=creationTime,
         **ownable.dict(),
     )

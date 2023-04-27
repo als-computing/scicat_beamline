@@ -66,7 +66,6 @@ def ingest(
     sample_name = file_path.name
 
     description = sample_name[:-4].replace("_", " ")
-    appended_keywords = description.split()
     dataset = RawDataset(
         owner="Cameron McKay",
         contactEmail="cbabay1993@gmail.com",
@@ -82,7 +81,7 @@ def ingest(
         sampleId=sample_name,
         isPublished=False,
         description=description,
-        keywords=["nexafs", "11.0.1.2", "als", "absorption", "11.0.1.2 NEXAFS"] + appended_keywords,
+        keywords=["NEXAFS", "11.0.1.2", "ALS", "absorption", "11.0.1.2 NEXAFS"],
         creationTime=get_file_mod_time(file_path),
         **ownable.dict(),
     )
