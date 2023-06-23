@@ -76,6 +76,9 @@ elif INGEST_SPEC == "nsls2_trexs_smi":
 elif INGEST_SPEC == "polyfts_dscft":
     pattern = f"{ROOT_FOLDER}/*/"
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/phip_sim.py")
+elif INGEST_SPEC == "als_632_nexafs":
+    pattern = f"{ROOT_FOLDER}/*"
+    ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/als_632_nexafs.py")
 
 else:
     raise Exception("Environment variable 'INGEST_SPEC' is invalid.")
