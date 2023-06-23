@@ -23,13 +23,15 @@ from scicat_beamline.scicat_utils import (
     encode_image_2_thumbnail,
 )
 from scicat_beamline.utils import Issue
+from dateutil import parser
 
 ingest_spec = "als733_saxs"
 
 logger = logging.getLogger("scicat_ingest.733_SAXS")
 
+# TODO: before ingestion change according to whether it is SAXS or WAXS
+global_keywords = ["SAXS", "ALS", "7.3.3", "scattering", "7.3.3 SAXS"]  
 
-global_keywords = ["SAXS", "ALS", "7.3.3", "scattering", "7.3.3 SAXS"] #TODO: before ingestion change according to SAXS/WAXS
 
 def ingest(
     scicat_client: ScicatClient,
@@ -47,23 +49,25 @@ def ingest(
             scientific_metadata["edf headers"] = fabio_obj.header
     add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
 
-    #TODO: change this before ingestion depending on how the institution is marked. Sometimes it's in the name and sometimes it's not.
     basic_scientific_md = OrderedDict()
-    if ("cal" in file_path.name):
+
+    # TODO: change based on project name before ingestion
+    basic_scientific_md["project_name"] = get_project_name_mar17_2023(file_path.name)
+
+    # TODO: change this before ingestion depending on how the institution is marked.
+    if (basic_scientific_md["project_name"] == "calibration"):
         basic_scientific_md["institution"] = "lbnl"
     else:
         basic_scientific_md["institution"] = "texas"
 
-    #TODO: change based on project name before ingestion
-    basic_scientific_md["project_name"] = "SNIPS membranes"
-
-    #TODO: change to transmission or grazing before ingestion
+    # TODO: change to transmission or grazing before ingestion
     basic_scientific_md["geometry"] = "transmission"
-    #raise Exception("MUST SPECIFY GEOMETRY")
+    # raise Exception("MUST SPECIFY GEOMETRY")
 
-    scientific_metadata.update(basic_scientific_md)
- 
-    #TODO: change PI before ingestion
+    basic_scientific_md.update(scientific_metadata)
+    scientific_metadata = basic_scientific_md
+
+    # TODO: change PI before ingestion
     scicat_metadata = {
         "owner": "Matt Landsman",
         "email": "mrlandsman@lbl.gov",
@@ -102,7 +106,8 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
     # TODO: change job parameters depending on the parameters given to the script which creates the derived data
     jobParams = {
         "method": "pyFAI integrate1d",
-        "npt": 2000
+        "npt": 2000,
+        "azimuth_range": [-180, 180]
     }
 
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
@@ -116,14 +121,8 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         ownerGroup="MWET",
         accessGroups=["MWET", "ingestor"],
     )
-    # TODO: before ingestion change how the derived_name is generated, could be different depending on the script 
-    # for generating the derived data
 
-    raw_fname = raw_file_path.name
-    derived_name = raw_fname[:raw_fname.find('_2m')]
-    derived_name = derived_name[derived_name.find('texas_') + 6:]
-    if 'disp' in derived_name:
-        derived_name = derived_name[derived_name.find('disp'):]
+    derived_name = get_analysis_dataset_name_mar17_2023(raw_file_path.name)
 
     derived_parent_folder = raw_file_path.parent/"analysis"
 
@@ -140,7 +139,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
     sci_md_keywords = [x for x in sci_md_keywords if x is not None]
     basic_scientific_md["analysis"] = ANALYSIS
 
-    sample_keywords = find_sample_keywords_oct_2022(derived_name)
+    sample_keywords = find_sample_keywords_mar17_2023(derived_name)
 
     dataset = DerivedDataset(
         investigator=scicat_metadata.get("pi"),
@@ -156,7 +155,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         jobParameters=jobParams,
         isPublished=False,
         description=description,
-        keywords=global_keywords+sci_md_keywords+sample_keywords+["analysis", "reduced", ANALYSIS],  # TODO: before ingestion change keywords depending on type of analysis
+        keywords=list(set(global_keywords+sci_md_keywords+sample_keywords+["analysis", "reduced", ANALYSIS])),  # TODO: before ingestion change keywords depending on type of analysis
         creationTime=creationTime,
         **ownable.dict(),
     )
@@ -204,13 +203,13 @@ def upload_raw_dataset(
     sci_md_keywords = [scientific_metadata["project_name"], scientific_metadata["institution"], scientific_metadata["geometry"]]
     sci_md_keywords = [x for x in sci_md_keywords if x is not None]
 
-    file_mod_time = get_file_mod_time(file_path)
+    creationTime = str(parser.parse(scientific_metadata["edf headers"]["Date"]))
     file_name = file_path.stem
 
-    sampleId = get_sample_id_oct_2022(file_name)
+    sampleId = get_sample_id_mar17_2023(file_name)
 
     description = build_search_terms(file_path.parent.name + "_" + file_name)
-    sample_keywords = find_sample_keywords_oct_2022(file_path.name)
+    sample_keywords = find_sample_keywords_mar17_2023(file_path.name)
     dataset = RawDataset(
         owner=scicat_metadata.get("owner"),
         contactEmail=scicat_metadata.get("email"),
@@ -226,8 +225,8 @@ def upload_raw_dataset(
         sampleId=sampleId,
         isPublished=False,
         description=description,
-        keywords=global_keywords + sci_md_keywords+sample_keywords,
-        creationTime=file_mod_time,
+        keywords=list(set(global_keywords + sci_md_keywords+sample_keywords)),
+        creationTime=creationTime,
         **ownable.dict(),
     )
     dataset_id = scicat_client.upload_raw_dataset(dataset)
@@ -318,6 +317,85 @@ def _get_dataset_value(data_set):
     except Exception:
         logger.exception("Exception extracting dataset value")
         return None
+
+
+def get_project_name_mar17_2023(datasetName):
+    # TODO: write a new method for finding project name depending on how it is represented in the dataset name
+    if "cal" in datasetName or "empty" in datasetName:
+        return "calibration"
+    if "mostafa" in datasetName:
+        return "nasser_fouling"
+    if "cameron" in datasetName:
+        return "mckay_fouling"
+    return "landsman_isoporous"
+
+
+def find_sample_keywords_mar17_2023(datasetName):
+    # TODO: write a new method for finding sample keywords depending on how the sample is represented in the dataset name
+    keywords = set()
+    if "thinfilm" in datasetName:
+        keywords.add("thinfilm")
+    if "capillary" in datasetName:
+        keywords.add("capillary")
+    if "kapton" in datasetName:
+        keywords.add("kapton")
+    if "agb" in datasetName:
+        keywords.add("agb")
+    if "DMF" in datasetName:
+        keywords.add("DMF")
+    if "DOX" in datasetName:
+        keywords.add("DOX")
+    if "THF" in datasetName:
+        keywords.add("THF")
+    if "PSP4VP" in datasetName:
+        keywords.add("PSP4VP")
+    if "directbeam" in datasetName:
+        keywords.add("directbeam")
+    return list(keywords)
+
+
+def get_sample_id_mar17_2023(datasetName: str):
+    # TODO: write a new method for finding the sampleId depending on how it is represented in the name
+    sampleId = None
+    if "capillary" in datasetName:
+        sampleId = datasetName[datasetName.find("capillary"):].split("_")
+        if (sampleId[1] == 'empty' or sampleId[1] == 'water'
+           or "agb" in sampleId[1] or "mostafa" in sampleId[1] 
+           or "DOX" in sampleId[1] or "DHF" in sampleId[1] 
+           or "THF" in sampleId[1]):
+            sampleId = sampleId[0] + "_" + sampleId[1]
+        else:
+            sampleId = sampleId[0] + "_" + sampleId[1] + "_" + sampleId[2]
+    elif "thinfilm" in datasetName:
+        sampleId = datasetName[datasetName.find("thinfilm"):].split("_")
+        sampleId = sampleId[0] + "_" + sampleId[1]
+    elif "directbeam" in datasetName:
+        sampleId = "directbeam"
+    elif "kapton" in datasetName:
+        sampleId = datasetName[datasetName.find("kapton"):].split("_")
+        if sampleId[1] == 'empty':
+            sampleId = sampleId[0] + "_" + sampleId[1]
+        else:
+            sampleId = sampleId[0] + "_" + sampleId[1] + "_" + sampleId[2]
+    if sampleId is None:
+        raise Exception(f"No sampleId created for name `{datasetName}`")
+    return sampleId
+
+
+def get_analysis_dataset_name_mar17_2023(raw_fname):
+    # TODO: before ingestion change how the derived_name is generated, could be different depending on the script 
+    # for generating the derived data
+    derived_name = raw_fname[:raw_fname.find('_2m')]
+    return derived_name
+
+
+def get_analysis_dataset_name_oct_2022(raw_fname):
+    # TODO: before ingestion change how the derived_name is generated, could be different depending on the script 
+    # for generating the derived data
+    derived_name = raw_fname[:raw_fname.find('_2m')]
+    derived_name = derived_name[derived_name.find('texas_') + 6:]
+    if 'disp' in derived_name:
+        derived_name = derived_name[derived_name.find('disp'):]
 
 
 def find_sample_keywords_oct_2022(datasetName):
