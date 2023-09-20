@@ -7,6 +7,7 @@ import os
 import PyHyperScattering
 import json
 import xarray as xr
+import pandas as pd
 
 
 from pyscicat.client import (
@@ -25,13 +26,12 @@ from pyscicat.model import (
     DatasetType,
     Ownable,
 )
-from scicat_beamline.ingestors.common_ingestor_code import create_data_files_list
+from scicat_beamline.ingestors.common_ingestor_code import create_data_file, create_data_files_list
 
 from scicat_beamline.utils import Issue, glob_non_hidden_in_folder
 from scicat_beamline.scicat_utils import build_RSoXS_thumb_SST1
 
 ingest_spec = "nsls2_rsoxs_sst1"
-
 
 class ScatteringNsls2Sst1Reader():
     """A DatasetReader for reading nsls2 rsoxs datasets.
@@ -51,7 +51,8 @@ class ScatteringNsls2Sst1Reader():
     _issues = []
     scan_id = ""
 
-    def __init__(self, folder: Path, ownable: Ownable) -> None:
+    def __init__(self, folder: Path, source_folder: Path, ownable: Ownable) -> None:
+        self._source_folder = source_folder
         self._folder = folder
         self._ownable = ownable
         jsonl_file_path = next(glob_non_hidden_in_folder(self._folder, "*.jsonl"))
@@ -86,7 +87,6 @@ class ScatteringNsls2Sst1Reader():
 
         return OrigDatablock(
             datasetId=self.dataset_id,
-            instrumentGroup="instrument-default",
             size=size,
             dataFileList=datafiles,
             **self._ownable.dict(),
@@ -94,6 +94,7 @@ class ScatteringNsls2Sst1Reader():
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
+
         jsonl_file_path = next(glob_non_hidden_in_folder(self._folder, "*.jsonl"))
 
         metadata_dict = {}
@@ -101,6 +102,7 @@ class ScatteringNsls2Sst1Reader():
             metadata_dict = json.load(file)[1]
 
         jsonl_file_name = jsonl_file_path.name[:-6]
+
 
         def modifyKeyword(key, keyword):
             if (key == "saf_id"):
@@ -114,31 +116,43 @@ class ScatteringNsls2Sst1Reader():
         appended_keywords = [
             modifyKeyword(key, metadata_dict[key])
             for key in [
-                "saf_id",
                 "institution",
                 "project_name",
-                "sample_name"
+                # "sample_name"
             ]
             if metadata_dict[key] is not None
             and str(metadata_dict[key]).strip() != ""
         ]
+        # TODO: change SAF id
+        appended_keywords += ["SAF 311598"]
+        owner, contactEmail = get_owner_jul2023(metadata_dict["project_name"])
+
+        df = pd.read_csv(self._source_folder/"master_sample_list.csv")
+        sample_keywords = None
+        for i, row in df.iterrows():
+            if row["sample_id"] == metadata_dict["sample_id"]:
+                sample_keywords: str = row['sample_keywords']
+                assert "not m-wet" not in sample_keywords
+                assert "not mwet" not in sample_keywords
+                sample_keywords = sample_keywords.split(',')
+                sample_keywords = [x.strip() for x in sample_keywords]
 
         dataset = RawDataset(
-            owner="Matt Landsman", #TODO: change before ingest # owner=metadata_dict["user_name"]
-            contactEmail="mrlandsman@lbl.gov", #TODO: change before ingest  # contactEmail=metadata_dict["user_email"]
+            owner=owner,  # TODO: change before ingest # owner=metadata_dict["user_name"]
+            contactEmail=contactEmail,  # TODO: change before ingest  # contactEmail=metadata_dict["user_email"]
             creationLocation="NSLS-II" + " " + metadata_dict["beamline_id"],
             datasetName=jsonl_file_name,
             type=DatasetType.raw,
             instrumentId=metadata_dict["beamline_id"],
             proposalId=metadata_dict["proposal_id"],
             dataFormat="NSLS-II",
-            principalInvestigator="Lynn Katz", #TODO: change before ingestion
-            sourceFolder=self._folder.as_posix(),
+            principalInvestigator="Greg Su", #TODO: change before ingestion
+            sourceFolder=self._source_folder.as_posix(),
             scientificMetadata=metadata_dict,
             sampleId=metadata_dict["sample_id"],
             isPublished=False,
-            description=metadata_dict["sample_desc"],
-            keywords=["scattering", "RSoXS", "NSLS-II"] + appended_keywords,
+            description=metadata_dict["sample_name"]+": " + metadata_dict["sample_desc"],
+            keywords=["scattering", "RSoXS", "NSLS-II", "SST-1 RSoXS", "SST-1"] + appended_keywords + sample_keywords,
             creationTime=str(datetime.fromtimestamp(metadata_dict["time"])),
             **self._ownable.dict(),
         )
@@ -158,11 +172,16 @@ class ScatteringNsls2Sst1Reader():
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
     "Ingest a folder of 11012 scattering folders"
+    #TODO: change source folder depending on dataset and where masks are
+    SOURCE_FOLDER = file_path.parent.parent
+
+    if file_path.name == "spirals" or file_path.name == "alignments":
+        return
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         owner="MWET",
@@ -173,8 +192,9 @@ def ingest(
         createdAt=now_str,
         ownerGroup="MWET",
         accessGroups=["MWET", "ingestor"],
+        instrumentGroup="instrument-default",
     )
-    reader = ScatteringNsls2Sst1Reader(file_path, ownable)
+    reader = ScatteringNsls2Sst1Reader(file_path, SOURCE_FOLDER, ownable)
     issues: List[Issue] = []
 
     png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
@@ -183,13 +203,12 @@ def ingest(
         # Only glob primary images because those are the only ones with something interesting to look at.
         tiff_filenames = sorted(glob_non_hidden_in_folder(file_path, '*primary*.tiff'))
         tiff_filenames.extend(glob_non_hidden_in_folder(file_path, '*primary*.tif'))
-        
+
         tiff_filename = tiff_filenames[len(tiff_filenames) // 2]
         image_data = None
 
         try:
-            file_loader = PyHyperScattering.load.SST1RSoXSLoader(corr_mode='none')
-            image_data = file_loader.loadSingleImage(tiff_filename)
+            image_data = loadImageCorrIsNone(tiff_filename)
         except KeyError as e:
             # Could be too specific as this checks if en_energy_setpoint was not found in the csv file
             # by checking if it is raised in a key error.
@@ -201,22 +220,23 @@ def ingest(
             else:
                 raise e
 
-        build_RSoXS_thumb_SST1(image_data, tiff_filename.stem, file_path, reader.scan_id)
-    png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
+        build_RSoXS_thumb_SST1(image_data, tiff_filename.stem, thumbnail_dir, reader.scan_id)
+    png_files = list(glob_non_hidden_in_folder(thumbnail_dir, "*.png"))
 
-    datafiles, size = create_data_files_list(file_path, excludeCheck=lambda x: x.name == 'dat')
-    
-    primary_csv_found = False
-    for datafile in datafiles:
-        filename = Path(datafile.path).name
-        if ".csv" in filename and "primary" in filename:
-            if primary_csv_found:
-                raise Exception("Must only have one primary CSV inside folder")
-            primary_csv_found = True
-    
-    if not primary_csv_found:
-        raise FileNotFoundError("Primary CSV does not exist inside folder")
+    datafiles, size = create_data_files_list(file_path, excludeCheck=lambda x: x.name == 'dat', relativeTo=SOURCE_FOLDER)
 
+    primary_csv = list(file_path.parent.glob("*"+file_path.name+"*.csv"))
+    assert len(primary_csv) == 1
+    primary_csv_datafile, primary_csv_size = create_data_file(primary_csv[0], relativePath=primary_csv[0].relative_to(SOURCE_FOLDER))
+
+    datafiles.append(primary_csv_datafile)
+    size += primary_csv_size
+
+    # TODO: change based on if there are masks or not
+    masks, masks_size = create_data_files_list(SOURCE_FOLDER/"masks", relativeTo=SOURCE_FOLDER)
+
+    datafiles += masks
+    size += masks_size
 
     dataset = reader.create_dataset()
     dataset_id = scicat_client.upload_raw_dataset(dataset)
@@ -227,6 +247,15 @@ def ingest(
     data_block = reader.create_data_block(datafiles, size)
     scicat_client.upload_datablock(data_block)
     return dataset_id, issues
+
+
+def loadImageCorrIsNone(filepath, dark_pedestal=100):
+    """This is a version of the SST1RSoXSLoader loadSingleImage when corr='none', however it does not return
+    attributes attached to the data"""
+    img = Image.open(filepath)
+    corr = 1
+    image_data = (np.array(img)-dark_pedestal)/corr
+    return xr.DataArray(image_data, dims=['pix_y','pix_x'])
 
 
 def build_thumbnail(image_data, name, directory):
@@ -242,6 +271,14 @@ def build_thumbnail(image_data, name, directory):
     file = dir / Path(filename)
     auto_contrast_image.save(file, format="PNG")
     return file
+
+
+def get_owner_jul2023(project_name: str):
+    if project_name in ["kwon_fouling", "calibration", "landsman_isoporous", "landsman_isoporus", "landsman_microplastics", "landsman_fouling"]:
+        return "Matt Landsman", "mrlandsman@lbl.gov"
+    if project_name == "mckay_fouling":
+        return "Cameron McKay", "cameron.keith.mckay@utexas.edu"
+    raise Exception(f"Unknown project_name: `{project_name}`")
 
 
 # if __name__ == "__main__":
