@@ -8,7 +8,10 @@ requests
 numpy
 Pillow
 pandas
-git+https://github.com/SciCatProject/pyscicat.git@main
+git+https://github.com/SciCatProject/pyscicat.git@v0.2.6
 typer
 matplotlib
-PyHyperScattering
+pyyaml
+pdf2image
+dateutil
+pytz
