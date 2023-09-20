@@ -261,7 +261,6 @@ def ingest(
     scicat_client.upload_datablock(data_block)
     return dataset_id, issues
 
-
 # if __name__ == "__main__":
 #     from pprint import pprint
 
@@ -310,7 +309,7 @@ def get_graph_file_Jul2023(file_path):
     raw_name = file_path.name
     components = raw_name.split('_')
     graph_name = components[0] + "_" + components[1].split('1')[0] + ".txt"
-    return file_path.parent/"analysis"/graph_name
+    return file_path.parent/"plot_data"/graph_name
 
 
 def get_time_Jul2023(file_path):
