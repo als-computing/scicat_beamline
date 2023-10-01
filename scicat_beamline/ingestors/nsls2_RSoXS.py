@@ -123,8 +123,8 @@ class ScatteringNsls2Sst1Reader():
             if metadata_dict[key] is not None
             and str(metadata_dict[key]).strip() != ""
         ]
-        # TODO: change SAF id
-        appended_keywords += ["SAF 311598"]
+        # TODO: change SAF id and transmission/reflection based on rsoxs folder
+         appended_keywords += ["SAF " + metadata_dict["SAF"], "rsoxs_transmission"]
         owner, contactEmail = get_owner_jul2023(metadata_dict["project_name"])
 
         df = pd.read_csv(self._source_folder/"master_sample_list.csv")
