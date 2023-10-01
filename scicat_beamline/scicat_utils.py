@@ -81,7 +81,7 @@ def build_thumbnail(image_array: npt.ArrayLike, thumbnail_dir: Path):
 
 def build_waxs_saxs_thumb_733(array: npt.ArrayLike, thumbnail_dir: Path, edf_name: str):
     # Taken from a Jupyter notebook by Matt Landsman
-    plt.use('Agg')
+    matplotlib.use('Agg')
     array[array < 1] = 1
     fig, ax = plt.subplots()
     im = ax.imshow(
