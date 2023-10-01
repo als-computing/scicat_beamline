@@ -31,13 +31,11 @@ def ingest(
               'May be file or directory depending on the spec '
               'and its ingestor'),
         ),
-    derived_folder: Path = typer.Option(None, help="Folder or file for analysis data"),
     ingest_user: str = typer.Argument("ingestor", help="User doing the ingesting. May be different from the user_name, especially if using a token"),
     base_url: str = typer.Argument("http://localhost:3000/api/v3", help="Scicat server base url. If not provided, will use pyscicat default"),
     token: str = typer.Option(None, help="Scicat api token"),
     username: str = typer.Option(None, help="Scicat server username"),
     password: str = typer.Option(None, help="Scicat server password"),
-    
 
 ):
     try:
@@ -60,10 +58,7 @@ def ingest(
 
         issues = []
         with tempfile.TemporaryDirectory() as thumbs_dir:
-            if derived_folder is None:
-                ingestor_module.ingest(client, ingest_user, dataset_path, thumbs_dir, issues)
-            else:
-                ingestor_module.ingest(client, ingest_user,  dataset_path, derived_folder, thumbs_dir, issues)
+            ingestor_module.ingest(client, ingest_user, dataset_path, thumbs_dir, issues)
             if len(issues) > 0:
                 logger.info(f"Issues found {[str(issue) for issue in issues]}")
     except Exception:

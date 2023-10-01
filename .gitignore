@@ -132,11 +132,3 @@ dmypy.json
 
 *.env
 .netrc.gpg
-fix_scripts/
-rsoxs_reduction_mrl_v2.ipynb
-SST1_PyHyperScattering_altered.ipynb
-SST1_PyHyperScattering.ipynb
-*.hdf
-scicat_beamline/ingestors/saxs_processing_mrl.ipynb
-scicat_beamline/ingestors/saxs_reduction_mrl_v2.ipynb
-632_nexafs_analysis_mrl.ipynb
