@@ -7,23 +7,19 @@ from pyscicat.client import get_file_size, get_file_mod_time
 
 
 def create_data_files_list(
-    folder: Path, excludeCheck: Callable[[Path], bool] = None, recursive=False, relativeTo=None
+    folder: Path, excludeCheck: Callable[[Path], bool] = None, recursive=False
 ) -> Tuple[List[DataFile], int]:
     """Iterates over files in a directory and creates a list of files. It will exclude hidden files.
     It will also exclude directories.
     If the `excludeCheck` is passed in then it will check if it evaluates to true for each file in the directory
     and if it does, then that file will be excluded from the list. If `recursive` is set to true it will recursively iterate
-    over all subdirectories, except hidden ones. `relativeTo` allows us to dictate what folder we express the paths as relative to,
-    if no argument is given then relativeTo defaults to the given folder."""
-
-    if relativeTo is None:
-        relativeTo = folder
+    over all subdirectories, except hidden ones."""
     datafiles = []
     totalSize = 0
 
     for file in glob.iglob(str(folder) + "/**", recursive=recursive):
         file = Path(file)
-        relativePathToFolder = file.relative_to(relativeTo)
+        relativePathToFolder = file.relative_to(folder)
         if file.is_file() is False:
             continue
         if excludeCheck is None or excludeCheck(file) is False:
