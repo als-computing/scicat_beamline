@@ -88,8 +88,13 @@ elif INGEST_SPEC == "als_632_nexafs":
 elif INGEST_SPEC == "733_gisaxs_bladecoating":
     assert type(DERIVED_FOLDER) == str and len(DERIVED_FOLDER) != 0 
     is_derived_folder = True
-    pattern = f"{ROOT_FOLDER}/*"
+    pattern = f"{ROOT_FOLDER}/*/"
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/733_gisaxs_bladecoating.py")
+elif INGEST_SPEC == "SMI_gisaxs_bladecoating":
+    type(DERIVED_FOLDER) == str and len(DERIVED_FOLDER) != 0 
+    is_derived_folder = True
+    pattern = f"{ROOT_FOLDER}/*/"
+    ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/nsls_smi_bladecoating.py")
 
 else:
     raise Exception("Environment variable 'INGEST_SPEC' is invalid.")
@@ -102,6 +107,6 @@ for ingest_file_str in ingest_files_iter:
     if ingest_file_path.exists():
         print(ingest_file_path)
         if is_derived_folder is False:
-            ingest(ingestor_location, ingest_file_path,  INGEST_USER, SCICAT_URL, token=None, username=USERNAME, password=PASSWORD)
+            ingest(ingestor_location, ingest_file_path, None,  INGEST_USER, SCICAT_URL, token=None, username=USERNAME, password=PASSWORD)
         else:
             ingest(ingestor_location, ingest_file_path, pathlib.Path(DERIVED_FOLDER), INGEST_USER, SCICAT_URL, token=None, username=USERNAME, password=PASSWORD)
