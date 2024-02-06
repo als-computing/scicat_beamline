@@ -13,5 +13,5 @@ typer
 matplotlib
 pyyaml
 pdf2image
-dateutil
+python-dateutil
 pytz
