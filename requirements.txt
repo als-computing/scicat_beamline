@@ -1,7 +1,7 @@
 astropy
 fabio
 h5py
-pydantic
+pydantic==1.9.0
 pymongo
 python-dotenv
 requests
