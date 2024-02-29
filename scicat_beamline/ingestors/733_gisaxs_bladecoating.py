@@ -1,8 +1,10 @@
 from datetime import datetime
+import io
 import logging
 from pathlib import Path
 from typing import Dict, List, Tuple
 from collections import OrderedDict
+from PIL import Image
 
 import fabio
 from pyscicat.client import ScicatClient, encode_thumbnail
@@ -19,40 +21,55 @@ from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_f
 
 from scicat_beamline.scicat_utils import (
     build_search_terms,
-    build_waxs_saxs_thumb_733,
     encode_image_2_thumbnail,
 )
 from scicat_beamline.utils import Issue
 from dateutil import parser
 
-ingest_spec = "als733_saxs"
+ingest_spec = "733_gisaxs_bladecoating"
 
 logger = logging.getLogger("scicat_ingest.733_SAXS")
 
-# TODO: before ingestion change according to whether it is SAXS or WAXS
-global_keywords = ["SAXS", "ALS", "7.3.3", "scattering", "7.3.3 SAXS"]  
+# TODO: before ingestion change according to whether it is SAXS or WAXS, also add or change other relevant keywords e.g. "blade_coating"
+global_keywords = ["SAXS", "ALS", "7.3.3", "scattering", "7.3.3 SAXS", "blade_coating"]
+# TODO: change this before uploading. It is necessary for the description
+PARENT_FOLDER = "2023-04_ALS733_gisaxs_bladecoating"
 
 
 def ingest(
     scicat_client: ScicatClient,
     username: str,
     file_path: Path,
+    derived_folder: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
+    #TODO: change source folder, this is set like it is because the calibration folder is usually a few levels up
+    # and the source folder must include it
+    RAW_SOURCE_FOLDER = file_path.parent.parent
+    #TODO: change name of calibration folder
+    CALIBRATION_FOLDER = RAW_SOURCE_FOLDER/"gisaxs_calibrations"
+    # TODO: change exclusion criteria
+    if "_binned" in str(file_path.name):
+        return
 
     scientific_metadata = OrderedDict()
-    edf_file = edf_from_txt(file_path)
-    if edf_file:
-        with fabio.open(edf_file) as fabio_obj:
-            image_data = fabio_obj.data
-            scientific_metadata["edf headers"] = fabio_obj.header
-    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
+    # Exclude patterns: https://stackoverflow.com/a/21502564
+    # We want to exclude any txt files for beamstop testing
+    # first ensure that "beamstop_test" isn't in the folder name
+    assert "beamstop_test" not in file_path.name, "'beamstop_test' is in folder name, \
+        can cause trouble if we have multiple txt files inside the folder, with some also having 'beamstop_test' in their name"
+
+    txt_file = list(set(file_path.glob("*.txt")) - set(file_path.glob("*beamstop_test*")))
+    assert len(txt_file) == 1
+    txt_file = txt_file[0]
+
+    add_to_sci_metadata_from_bad_headers(scientific_metadata, txt_file)
 
     basic_scientific_md = OrderedDict()
 
     # TODO: change based on project name before ingestion
-    basic_scientific_md["project_name"] = get_project_name_mar17_2023(file_path.name)
+    basic_scientific_md["project_name"] = "GAP C SNIPS"
 
     # TODO: change this before ingestion depending on how the institution is marked.
     if (basic_scientific_md["project_name"] == "calibration"):
@@ -61,28 +78,31 @@ def ingest(
         basic_scientific_md["institution"] = "texas"
 
     # TODO: change to transmission or grazing before ingestion
-    basic_scientific_md["geometry"] = "transmission"
+    basic_scientific_md["geometry"] = "grazing"
     # raise Exception("MUST SPECIFY GEOMETRY")
 
     basic_scientific_md.update(scientific_metadata)
     scientific_metadata = basic_scientific_md
 
-    # TODO: change PI before ingestion
+    # TODO: change PI and owner before ingestion
+
+    owner, email = get_owner_info_apr_2023(file_path)
     scicat_metadata = {
-        "owner": "Matt Landsman",
-        "email": "mrlandsman@lbl.gov",
+        "owner": owner,
+        "email": email,
         "instrument_name": "ALS 7.3.3",
         "pi": "Greg Su",
         "proposal": "ALS-11839",
         # TODO: change techniques based on data
-        "techniques": [],
-        "derived_techniques": [],
+        "techniques": ["gisaxs", "blade_coating"],
+        "derived_techniques": ["horizontal integration"],
     }
 
     # temporary access controls setup
     ownable = Ownable(
         ownerGroup="MWET",
         accessGroups=["ingestor", "MWET"],
+        instrumentGroup="instrument-default"
     )
 
     dataset_id = upload_raw_dataset(
@@ -91,27 +111,37 @@ def ingest(
         scicat_metadata,
         scientific_metadata,
         ownable,
+        RAW_SOURCE_FOLDER
     )
-    upload_data_block(scicat_client, file_path, dataset_id, ownable)
-    if edf_file:
-        thumbnail_file = build_waxs_saxs_thumb_733(image_data, thumbnail_dir, edf_file.name)
-        encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
-        upload_attachment(scicat_client, encoded_thumbnail, dataset_id, ownable)
-    
-    create_derived(scicat_client, edf_file, dataset_id, basic_scientific_md, scicat_metadata)
+    upload_data_block(scicat_client, file_path, CALIBRATION_FOLDER, dataset_id, ownable, RAW_SOURCE_FOLDER)
+
+    thumbnail_file = list(file_path.glob("*.gif"))
+    assert len(thumbnail_file) == 1
+    thumbnail_file = thumbnail_file[0]
+    encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
+    upload_attachment(scicat_client, encoded_thumbnail, dataset_id, ownable)
+
+    create_derived(scicat_client, file_path, dataset_id, basic_scientific_md, scicat_metadata, thumbnail_dir, 
+                   derived_folder)
 
     return dataset_id
 
 
-def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset_id: str, basic_scientific_md: OrderedDict, scicat_metadata: dict):
+def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset_id: str,
+                   basic_scientific_md: OrderedDict, scicat_metadata: dict, thumbnail_dir: Path, derived_folder: Path):
     # TODO: change depending on analysis type
-    ANALYSIS = "radial integration"
+    ANALYSIS = "horizontal integration"
     # TODO: change job parameters depending on the parameters given to the script which creates the derived data
     jobParams = {
-        "method": "pyFAI integrate1d",
-        "npt": 2000,
-        "azimuth_range": [-180, 180]
+        "method_1": {
+            "name": "np.nanmean"
+        },
+        "method_2": {
+            "name": "scipy.interpolate.interp1d",
+            "kind": "linear",
+        }
     }
+    
 
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
@@ -125,65 +155,56 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         accessGroups=["MWET", "ingestor"],
     )
 
-    derived_name = get_analysis_dataset_name_mar17_2023(raw_file_path.name)
+    derived_name = raw_file_path.name
+    # TODO: change where analysis path is
+    derived_path = derived_folder/derived_name
 
-    derived_parent_folder = raw_file_path.parent/"analysis"
-
-    derived_files, total_size = create_data_files_list(derived_parent_folder, excludeCheck=lambda path: derived_name not in path.name)
+    derived_files, total_size = create_data_files_list(derived_path)
     if len(derived_files) == 0:
         return
 
     datasetName = derived_name + "_"+ANALYSIS.upper().replace(" ", "_")
-    description = datasetName.replace("_", " ")
+    description = build_search_terms(PARENT_FOLDER + " " + datasetName)
 
-    creationTime = get_file_mod_time(Path(derived_parent_folder/derived_files[0].path))
+    creationTime = get_file_mod_time(derived_path)
 
-    sci_md_keywords = [basic_scientific_md["project_name"], basic_scientific_md["institution"], basic_scientific_md["geometry"]]
+    sci_md_keywords = [basic_scientific_md["project_name"], basic_scientific_md["institution"], basic_scientific_md["geometry"], scicat_metadata["proposal"]]
     sci_md_keywords = [x for x in sci_md_keywords if x is not None]
     basic_scientific_md["analysis"] = ANALYSIS
 
-    sample_keywords = find_sample_keywords_mar17_2023(derived_name)
+    sample_keywords = find_sample_keywords_apr_2023(derived_name)
 
     dataset = DerivedDataset(
         investigator=scicat_metadata.get("pi"),
         inputDatasets=[raw_dataset_id],
-        usedSoftware=["jupyter notebook", "python", "matplotlib", "scipy.interpolate.interp1d", "pyFAI"],
-        techniques=scicat_metadata.get('techniques')+scicat_metadata.get("derived_techniques"),
+        usedSoftware=["jupyter notebook", "python", "matplotlib", "scipy.interpolate.interp1d"],
+        #techniques=scicat_metadata.get('techniques')+scicat_metadata.get("derived_techniques"),
         owner=scicat_metadata.get('owner'),
         contactEmail=scicat_metadata.get('email'),
         datasetName=datasetName,
         type=DatasetType.derived,
         instrumentId="7.3.3",
-        sourceFolder=derived_parent_folder.as_posix(),
+        sourceFolder=derived_path.as_posix(),
         scientificMetadata=basic_scientific_md,
         jobParameters=jobParams,
         isPublished=False,
         description=description,
-        keywords=list(set(global_keywords+sci_md_keywords+sample_keywords+["analysis", "reduced", ANALYSIS])),  # TODO: before ingestion change keywords depending on type of analysis
+        keywords=list(set(global_keywords+sci_md_keywords+sample_keywords+["analysis", ANALYSIS])),  # TODO: before ingestion change keywords depending on type of analysis
         creationTime=creationTime,
         **ownable.dict(),
     )
 
-    derived_id = scicat_client.datasets_create(dataset)["pid"]
-
-    #TODO: decide which thumbnail to use before ingestion
-    thumbPath = None
-    for file in derived_files:
-        if "radint" in Path(file.path).name and Path(file.path).suffix == ".png":
-            thumbPath = derived_parent_folder / file.path
+    derived_id = scicat_client.datasets_create(dataset)
 
     thumbnail = Attachment(
             datasetId=derived_id,
-            thumbnail=encode_thumbnail(thumbPath),
-            caption="radial integration graph",
+            thumbnail=encode_thumbnail(derived_path/(derived_name + "_movie.gif"), imType="gif"),
+            caption="horizontal linecut gif",
             **ownable.dict()
     )
-
     scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
-
     data_block = OrigDatablock(
         datasetId=derived_id,
-        instrumentGroup="instrument-default",
         size=total_size,
         dataFileList=derived_files,
         **ownable.dict(),
@@ -202,30 +223,31 @@ def upload_raw_dataset(
     scicat_metadata: Dict,
     scientific_metadata: Dict,
     ownable: Ownable,
+    source_folder
 ) -> str:
     "Creates a dataset object"
-    sci_md_keywords = [scientific_metadata["project_name"], scientific_metadata["institution"], scientific_metadata["geometry"]]
+    sci_md_keywords = [scientific_metadata["project_name"], scientific_metadata["institution"], scientific_metadata["geometry"], scicat_metadata["proposal"]]
     sci_md_keywords = [x for x in sci_md_keywords if x is not None]
 
-    creationTime = str(parser.parse(scientific_metadata["edf headers"]["Date"]))
+    creationTime = str(parser.parse(fabio.open(next(file_path.glob("*.edf"))).header["Date"]))
     file_name = file_path.stem
 
-    sampleId = get_sample_id_mar17_2023(file_name)
+    sampleId = get_sample_id_apr_2023(file_name)
 
-    description = build_search_terms(file_path.parent.name + "_" + file_name)
-    sample_keywords = find_sample_keywords_mar17_2023(file_path.name)
+    description = build_search_terms(PARENT_FOLDER + "_" + file_name)
+    sample_keywords = find_sample_keywords_apr_2023(file_path.name)
     dataset = RawDataset(
         owner=scicat_metadata.get("owner"),
         contactEmail=scicat_metadata.get("email"),
         creationLocation=scicat_metadata.get("instrument_name"),
-        techniques=scicat_metadata.get("techniques"),
+        #techniques=scicat_metadata.get("techniques"),
         datasetName=file_name,
         type=DatasetType.raw,
         instrumentId=scicat_metadata.get("instrument_name"),
         proposalId=scicat_metadata.get("proposal"),
         dataFormat="733",
         principalInvestigator=scicat_metadata.get("pi"),
-        sourceFolder=str(file_path.parent),
+        sourceFolder=str(source_folder),
         scientificMetadata=scientific_metadata,
         sampleId=sampleId,
         isPublished=False,
@@ -261,21 +283,22 @@ def create_data_files(txt_file_path: Path) -> Tuple[int, List[DataFile]]:
 
 
 def upload_data_block(
-    scicat_client: ScicatClient, txt_file_path: Path, dataset_id: str, ownable: Ownable
+    scicat_client: ScicatClient, file_path: Path, calibration_folder: Path,  dataset_id: str, ownable: Ownable, source_folder: Path
 ) -> OrigDatablock:
     "Creates a OrigDatablock of files"
-    total_size, datafiles = create_data_files(txt_file_path)
+    datafiles, data_size = create_data_files_list(file_path, recursive=True, relativeTo=source_folder)
+    cal_files, cal_size = create_data_files_list(calibration_folder, recursive=True, relativeTo=source_folder)
+
+    total_size = data_size + cal_size
+    datafiles += cal_files
 
     datablock = OrigDatablock(
         datasetId=dataset_id,
-        instrumentGroup="instrument-default",
         size=total_size,
         dataFileList=datafiles,
         **ownable.dict(),
     )
     scicat_client.upload_datablock(datablock)
-
-
 
 
 def upload_attachment(
@@ -284,7 +307,6 @@ def upload_attachment(
     dataset_id: str,
     ownable: Ownable,
 ) -> Attachment:
-    "Creates a thumbnail png"
     attachment = Attachment(
         datasetId=dataset_id,
         thumbnail=encoded_thumnbnail,
@@ -328,7 +350,7 @@ def get_owner_info_apr_2023(file_path: Path):
     owner = "Noah Wamble"
     email = "noah.wamble@utexas.edu"
 
-    if "psp4vp19064k" in str(file_path):
+    if "19064k" in str(file_path):
         owner = "Matt Landsman"
         email = "mrlandsman@lbl.gov"
     return owner, email
@@ -349,6 +371,7 @@ def find_sample_keywords_apr_2023(file_name: str):
         keywords.add("BP-IV-54")
     if "19064k" in file_name.lower():
         keywords.add("polymer source")
+    return list(keywords)
 
 
 def get_project_name_mar17_2023(datasetName):
