@@ -21,6 +21,7 @@ USERNAME = os.getenv("USERNAME")
 INGEST_USER = os.getenv("INGEST_USER")
 PASSWORD = os.getenv("PASSWORD")
 INGEST_SPEC = os.getenv("INGEST_SPEC")
+DERIVED_FOLDER = os.getenv("DERIVED_FOLDER")
 
 assert type(ROOT_FOLDER) == str and len(ROOT_FOLDER) != 0 
 assert type(SCICAT_URL) == str and len(SCICAT_URL) != 0 
@@ -28,6 +29,8 @@ assert type(USERNAME) == str and len(USERNAME) != 0
 assert type(PASSWORD) == str and len(PASSWORD) != 0 
 assert type(INGEST_USER) == str and len(INGEST_USER) != 0 
 assert type(INGEST_SPEC) == str and len(INGEST_SPEC) != 0 
+
+is_derived_folder = False
 
 ROOT_FOLDER = pathlib.Path(ROOT_FOLDER)
 
@@ -76,6 +79,22 @@ elif INGEST_SPEC == "nsls2_trexs_smi":
 elif INGEST_SPEC == "polyfts_dscft":
     pattern = f"{ROOT_FOLDER}/*/"
     ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/phip_sim.py")
+elif INGEST_SPEC == "amd_gromacs":
+    pattern = f"{ROOT_FOLDER}/*/"
+    ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/amd_gromacs.py")
+elif INGEST_SPEC == "als_632_nexafs":
+    pattern = f"{ROOT_FOLDER}/*"
+    ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/als_632_nexafs.py")
+elif INGEST_SPEC == "733_gisaxs_bladecoating":
+    assert type(DERIVED_FOLDER) == str and len(DERIVED_FOLDER) != 0 
+    is_derived_folder = True
+    pattern = f"{ROOT_FOLDER}/*/"
+    ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/733_gisaxs_bladecoating.py")
+elif INGEST_SPEC == "SMI_gisaxs_bladecoating":
+    type(DERIVED_FOLDER) == str and len(DERIVED_FOLDER) != 0 
+    is_derived_folder = True
+    pattern = f"{ROOT_FOLDER}/*/"
+    ingestor_location = pathlib.Path(os.getcwd(), "scicat_beamline/ingestors/nsls_smi_bladecoating.py")
 
 else:
     raise Exception("Environment variable 'INGEST_SPEC' is invalid.")
@@ -87,4 +106,7 @@ for ingest_file_str in ingest_files_iter:
     ingest_file_path = pathlib.Path(ingest_file_str)
     if ingest_file_path.exists():
         print(ingest_file_path)
-        ingest(ingestor_location, ingest_file_path, INGEST_USER, SCICAT_URL, token=None, username=USERNAME, password=PASSWORD)
+        if is_derived_folder is False:
+            ingest(ingestor_location, ingest_file_path, None,  INGEST_USER, SCICAT_URL, token=None, username=USERNAME, password=PASSWORD)
+        else:
+            ingest(ingestor_location, ingest_file_path, pathlib.Path(DERIVED_FOLDER), INGEST_USER, SCICAT_URL, token=None, username=USERNAME, password=PASSWORD)
