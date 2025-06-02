@@ -128,3 +128,53 @@ def build_RSoXS_thumb_SST1(
     save_plot = os.path.join(thumbnail_dir, fname_plot + ".png")
     fig.savefig(save_plot, bbox_inches="tight", dpi=300)
     plt.close()
+
+
+
+# image_processing.py
+import os
+import cv2
+import numpy as np
+
+def equalize_16bit_histogram(img):
+    """Performs histogram equalization for a 16-bit grayscale image."""
+    hist, bins = np.histogram(img.flatten(), 65536, [0, 65536])
+    cdf = hist.cumsum()
+    cdf_normalized = (cdf - cdf.min()) * 65535 / (cdf.max() - cdf.min())
+    cdf_normalized = cdf_normalized.astype('uint16')
+
+    img_equalized = np.interp(img.flatten(), bins[:-1], cdf_normalized)
+    return img_equalized.reshape(img.shape).astype(np.uint16)
+
+def convert_to_8bit(img):
+    """Converts a 16-bit image to 8-bit by normalizing values."""
+    img_8bit = (img / 256).astype('uint8')  # Scale from 16-bit to 8-bit
+    return img_8bit
+
+def process_image(args):
+    """Loads, processes, and saves a single image."""
+    input_path, output_path = args
+
+    img = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)
+    if img is None:
+        print(f"❌ Failed to load: {input_path}")
+        return
+
+    if img.dtype != np.uint16:
+        print(f"⚠️ Skipping (Not 16-bit): {input_path}")
+        return
+
+    print(f"✅ Processing: {input_path}")
+
+    # Apply histogram equalization
+    img_eq_16bit = equalize_16bit_histogram(img)
+
+    # Convert to 8-bit
+    img_eq_8bit = convert_to_8bit(img_eq_16bit)
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    # Save the processed 8-bit image
+    cv2.imwrite(output_path, img_eq_8bit)
+    print(f"✅ Saved: {output_path}")
