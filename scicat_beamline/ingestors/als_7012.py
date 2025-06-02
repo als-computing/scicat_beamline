@@ -11,7 +11,7 @@ from pyscicat.model import (
     CreateDatasetOrigDatablockDto
 )
 
-from scicat_utils import process_image
+from scicat_beamline.scicat_utils import equalize_bit_histogram, convert_to_8bit
 import datetime
 import json
 import os
@@ -133,8 +133,11 @@ if image is not None:
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(111)
-    ax.imshow(image[n:-n, n:-n])
+    ax.imshow(image[n:-n, n:-n], cmap='gray')
+    ax.set_title('Original float 32 Image')
     fig.show()
+    fig.savefig('original_float32.png')
+
 
     thumbnail = image[n:-n, n:-n].copy()
     vmin, vmax = np.percentile(thumbnail, [2, 98])
@@ -179,16 +182,51 @@ else:
     thumbnail = create_smiley_face(256)
 
 
+print(f'thumbnail type: {type(thumbnail)}, {thumbnail.dtype}')
+
+fig = plt.figure(figsize=(10,10))
+# Add an axes that fills the entire figure
+ax = fig.add_axes([0, 0, 1, 1])
+# Turn off the axes
+ax.set_axis_off()
+ax.imshow(thumbnail, cmap='gray')
+fig.show()
+fig.savefig('noaxes_float32.png')
+
+
+thumbnail = equalize_bit_histogram(thumbnail, nbits=32)
+print(f'thumbnail type: {type(thumbnail)}, {thumbnail.dtype}')
+fig = plt.figure(figsize=(10,10))
+ax = fig.add_subplot(111)
+ax.imshow(thumbnail, cmap='gray')
+ax.set_title('Equalized 32-bit')
+fig.show()
+fig.savefig('equalized_uint32.png')
+
+
+thumbnail = convert_to_8bit(thumbnail)
+print(f'thumbnail type: {type(thumbnail)}, {thumbnail.dtype}')
+
+fig = plt.figure(figsize=(10,10))
+ax = fig.add_subplot(111)
+ax.imshow(thumbnail, cmap='gray')
+ax.set_title('Converted to 8-bit')
+fig.savefig('converted_uint8.png')
+
+fig.show()
+
 if thumbnail is not None:
     #with tempfile.TemporaryDirectory() as tmpdir:
     tmpdir = '.'
     temp_path = os.path.join(tmpdir, 'temp_thumbnail.jpg')
 
-    # Save numpy array as jpg
-    Image.fromarray(thumbnail.astype(np.uint8)).convert('L').save(temp_path, 'JPEG')
+    # savefig numpy array as jpg
+    Image.fromarray(thumbnail.astype(np.uint16)).convert('L').save(temp_path, 'JPEG')
 
-    process_image(temp_path, os.path.join(tmpdir, 'temp_thumbnail_processed.jpg'))
-    thumbnail_encoded = encode_thumbnail(os.path.join(tmpdir, 'temp_thumbnail_processed.jpg'))
+    # pop in one of the matplotlib savefigs here.
+    # temp_path = os.path.join(tmpdir, 'original_float32.png')
+    # process_image((temp_path, os.path.join(tmpdir, 'temp_thumbnail_processed.jpg')))
+    thumbnail_encoded = encode_thumbnail(temp_path)
 
     # # Load back with Pillow - do this before the temp dir is cleaned up
     # loaded_pil = Image.open(temp_path)
@@ -212,24 +250,29 @@ if "base64," in thumbnail_encoded_copy:
 img_bytes = base64.b64decode(base64_str)
 
 # Convert bytes to image
-img = Image.open(io.BytesIO(img_bytes))
+img = np.array(Image.open(io.BytesIO(img_bytes)))
 
 import matplotlib.pyplot as plt
 fig = plt.figure(figsize=(10,10))
 ax = fig.add_subplot(111)
-ax.imshow(img)
+ax.imshow(img, cmap='gray')
+ax.set_title('After encoding/decoding')
 fig.show()
+fig.savefig('encode_decode_8bit.png')
 
-#thumbnail_encoded = encode_thumbnail(thumb_path)
+#thumb_path = os.path.join(tmpdir, 'temp_thumbnail.jpg')
+thumb_path = os.path.join(tmpdir, 'noaxes_float32.png')
 
-# # Create Attachment
-# attachment = Attachment(
-#     datasetId=dataset_id,
-#     thumbnail=thumbnail_encoded,
-#     caption="ptychography reconstruction",
-#     **ownable.model_dump(),
-# )
-# client.upload_attachment(attachment)
+thumbnail_encoded = encode_thumbnail(thumb_path)
+
+# Create Attachment
+attachment = Attachment(
+    datasetId=dataset_id,
+    thumbnail=thumbnail_encoded,
+    caption="ptychography reconstruction",
+    **ownable.model_dump(),
+)
+client.upload_attachment(attachment)
 
 ######## ptychography dataset end
 

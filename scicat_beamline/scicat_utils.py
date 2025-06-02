@@ -133,18 +133,37 @@ def build_RSoXS_thumb_SST1(
 
 # image_processing.py
 import os
-import cv2
+# import cv2
 import numpy as np
 
-def equalize_16bit_histogram(img):
-    """Performs histogram equalization for a 16-bit grayscale image."""
-    hist, bins = np.histogram(img.flatten(), 65536, [0, 65536])
-    cdf = hist.cumsum()
-    cdf_normalized = (cdf - cdf.min()) * 65535 / (cdf.max() - cdf.min())
-    cdf_normalized = cdf_normalized.astype('uint16')
+def equalize_bit_histogram(img, nbits=16):
+    """Performs histogram equalization for a n-bit grayscale image."""
+    print(f'Normalizing to {nbits} bits')
+    upper_limit = np.power(2, nbits)
+    print('1')
+    hist, bins = np.histogram(img.flatten(), upper_limit, [0, upper_limit])
+    print('2')
 
+    cdf = hist.cumsum()
+    print('3')
+
+    cdf_normalized = (cdf - cdf.min()) * upper_limit / (cdf.max() - cdf.min())
+    if nbits == 32:
+        cdf_normalized = cdf_normalized.astype(np.float32)
+    if nbits == 16:
+        cdf_normalized = cdf_normalized.astype('uint16')
+    if nbits == 8:
+        cdf_normalized = cdf_normalized.astype('uint8')
+
+    print('4')
     img_equalized = np.interp(img.flatten(), bins[:-1], cdf_normalized)
-    return img_equalized.reshape(img.shape).astype(np.uint16)
+    if nbits == 32:
+        dtype_out = np.uint32
+    if nbits == 16:
+        dtype_out = np.uint16
+    if nbits == 8:
+        dtype_out = 'uint8'
+    return img_equalized.reshape(img.shape).astype(dtype_out)
 
 def convert_to_8bit(img):
     """Converts a 16-bit image to 8-bit by normalizing values."""
@@ -155,19 +174,21 @@ def process_image(args):
     """Loads, processes, and saves a single image."""
     input_path, output_path = args
 
-    img = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)
+    #img = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)
+    img = np.array(Image.open(input_path))
     if img is None:
         print(f"❌ Failed to load: {input_path}")
         return
 
-    if img.dtype != np.uint16:
+    if img.dtype != np.uint8:
+        print(f'image dtype = {type(img[0,0])}')
         print(f"⚠️ Skipping (Not 16-bit): {input_path}")
         return
 
     print(f"✅ Processing: {input_path}")
 
     # Apply histogram equalization
-    img_eq_16bit = equalize_16bit_histogram(img)
+    img_eq_16bit = equalize_bit_histogram(img, nbits=8)
 
     # Convert to 8-bit
     img_eq_8bit = convert_to_8bit(img_eq_16bit)
@@ -176,5 +197,6 @@ def process_image(args):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     # Save the processed 8-bit image
-    cv2.imwrite(output_path, img_eq_8bit)
+    # cv2.imwrite(output_path, img_eq_8bit)
+    Image.fromarray(img_eq_8bit).save(output_path)
     print(f"✅ Saved: {output_path}")
