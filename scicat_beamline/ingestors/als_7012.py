@@ -11,7 +11,7 @@ from pyscicat.model import (
     CreateDatasetOrigDatablockDto
 )
 
-from scicat_beamline.scicat_utils import equalize_bit_histogram, convert_to_8bit
+from scicat_beamline.scicat_utils import create_smiley_face
 import datetime
 import json
 import os
@@ -144,135 +144,32 @@ if image is not None:
     np.clip(thumbnail, vmin, vmax)
 
 else:
-    def create_smiley_face(size=256):
-        # Create a zero array
-        face = np.zeros((size, size))
-
-        # Calculate center and scale factors
-        center = size // 2
-        eye_radius = size // 16
-        eye_y_pos = center - size // 8
-        left_eye_x = center - size // 4
-        right_eye_x = center + size // 4
-
-        # Create eyes
-        y, x = np.ogrid[:size, :size]
-        # Left eye
-        left_eye_mask = (x - left_eye_x)**2 + (y - eye_y_pos)**2 <= eye_radius**2
-        face[left_eye_mask] = 1
-        # Right eye
-        right_eye_mask = (x - right_eye_x)**2 + (y - eye_y_pos)**2 <= eye_radius**2
-        face[right_eye_mask] = 1
-
-        # Create smile
-        smile_center_y = center + size // 6
-        smile_radius = size // 3
-        # Create an arc for the smile
-        for i in range(size):
-            for j in range(size):
-                # Check if point is on the smile arc
-                dist = np.sqrt((i - smile_center_y)**2 + (j - center)**2)
-                if abs(dist - smile_radius) < 2:  # Thickness of smile line
-                    # Only keep lower half of circle and within certain x-range
-                    if i > smile_center_y and abs(j - center) < smile_radius:
-                        face[i, j] = 1
-
-        return face
-    
+    # just for testing
     thumbnail = create_smiley_face(256)
 
-
 print(f'thumbnail type: {type(thumbnail)}, {thumbnail.dtype}')
-
-fig = plt.figure(figsize=(10,10))
-# Add an axes that fills the entire figure
-ax = fig.add_axes([0, 0, 1, 1])
-# Turn off the axes
-ax.set_axis_off()
-ax.imshow(thumbnail, cmap='gray')
-fig.show()
-fig.savefig('noaxes_float32.png')
-
-
-thumbnail = equalize_bit_histogram(thumbnail, nbits=32)
-print(f'thumbnail type: {type(thumbnail)}, {thumbnail.dtype}')
-fig = plt.figure(figsize=(10,10))
-ax = fig.add_subplot(111)
-ax.imshow(thumbnail, cmap='gray')
-ax.set_title('Equalized 32-bit')
-fig.show()
-fig.savefig('equalized_uint32.png')
-
-
-thumbnail = convert_to_8bit(thumbnail)
-print(f'thumbnail type: {type(thumbnail)}, {thumbnail.dtype}')
-
-fig = plt.figure(figsize=(10,10))
-ax = fig.add_subplot(111)
-ax.imshow(thumbnail, cmap='gray')
-ax.set_title('Converted to 8-bit')
-fig.savefig('converted_uint8.png')
-
-fig.show()
 
 if thumbnail is not None:
-    #with tempfile.TemporaryDirectory() as tmpdir:
-    tmpdir = '.'
-    temp_path = os.path.join(tmpdir, 'temp_thumbnail.jpg')
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fig = plt.figure(figsize=(10,10))
+        # Add an axes that fills the entire figure
+        ax = fig.add_axes([0, 0, 1, 1])
+        # Turn off the axes
+        ax.set_axis_off()
+        ax.imshow(thumbnail, cmap='gray')
+        fig.show()
+        fig.savefig(os.path.join(tmpdir, 'thumbnail.png'))
 
-    # savefig numpy array as jpg
-    Image.fromarray(thumbnail.astype(np.uint16)).convert('L').save(temp_path, 'JPEG')
+        thumbnail_encoded = encode_thumbnail(os.path.join(tmpdir, 'thumbnail.png'))
 
-    # pop in one of the matplotlib savefigs here.
-    # temp_path = os.path.join(tmpdir, 'original_float32.png')
-    # process_image((temp_path, os.path.join(tmpdir, 'temp_thumbnail_processed.jpg')))
-    thumbnail_encoded = encode_thumbnail(temp_path)
-
-    # # Load back with Pillow - do this before the temp dir is cleaned up
-    # loaded_pil = Image.open(temp_path)
-    # # Convert to RGB mode if needed and load into memory
-    # loaded_pil = loaded_pil.convert('L')  # 'L' for grayscale
-    # loaded_pil.load()  # Ensure the image is loaded into memory
-
-# Now loaded_pil is available outside the temp directory scope
-# You can convert it back to numpy if needed:
-# loaded_arr = np.array(loaded_pil)
-
-import base64
-import copy
-import io
-thumbnail_encoded_copy = copy.copy(thumbnail_encoded)
-# Remove header if present
-if "base64," in thumbnail_encoded_copy:
-    base64_str = thumbnail_encoded_copy.split("base64,")[1]
-
-# Decode base64 to bytes
-img_bytes = base64.b64decode(base64_str)
-
-# Convert bytes to image
-img = np.array(Image.open(io.BytesIO(img_bytes)))
-
-import matplotlib.pyplot as plt
-fig = plt.figure(figsize=(10,10))
-ax = fig.add_subplot(111)
-ax.imshow(img, cmap='gray')
-ax.set_title('After encoding/decoding')
-fig.show()
-fig.savefig('encode_decode_8bit.png')
-
-#thumb_path = os.path.join(tmpdir, 'temp_thumbnail.jpg')
-thumb_path = os.path.join(tmpdir, 'noaxes_float32.png')
-
-thumbnail_encoded = encode_thumbnail(thumb_path)
-
-# Create Attachment
-attachment = Attachment(
-    datasetId=dataset_id,
-    thumbnail=thumbnail_encoded,
-    caption="ptychography reconstruction",
-    **ownable.model_dump(),
-)
-client.upload_attachment(attachment)
+        # Create Attachment
+        attachment = Attachment(
+            datasetId=dataset_id,
+            thumbnail=thumbnail_encoded,
+            caption="ptychography reconstruction",
+            **ownable.model_dump(),
+        )
+        client.upload_attachment(attachment)
 
 ######## ptychography dataset end
 
