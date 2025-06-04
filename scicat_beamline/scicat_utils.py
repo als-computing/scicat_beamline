@@ -128,3 +128,38 @@ def build_RSoXS_thumb_SST1(
     save_plot = os.path.join(thumbnail_dir, fname_plot + ".png")
     fig.savefig(save_plot, bbox_inches="tight", dpi=300)
     plt.close()
+
+def create_smiley_face(size=256):
+    # Create a zero array
+    face = np.zeros((size, size))
+
+    # Calculate center and scale factors
+    center = size // 2
+    eye_radius = size // 16
+    eye_y_pos = center - size // 8
+    left_eye_x = center - size // 4
+    right_eye_x = center + size // 4
+
+    # Create eyes
+    y, x = np.ogrid[:size, :size]
+    # Left eye
+    left_eye_mask = (x - left_eye_x)**2 + (y - eye_y_pos)**2 <= eye_radius**2
+    face[left_eye_mask] = 1
+    # Right eye
+    right_eye_mask = (x - right_eye_x)**2 + (y - eye_y_pos)**2 <= eye_radius**2
+    face[right_eye_mask] = 1
+
+    # Create smile
+    smile_center_y = center + size // 6
+    smile_radius = size // 3
+    # Create an arc for the smile
+    for i in range(size):
+        for j in range(size):
+            # Check if point is on the smile arc
+            dist = np.sqrt((i - smile_center_y)**2 + (j - center)**2)
+            if abs(dist - smile_radius) < 2:  # Thickness of smile line
+                # Only keep lower half of circle and within certain x-range
+                if i > smile_center_y and abs(j - center) < smile_radius:
+                    face[i, j] = 1
+
+    return face
