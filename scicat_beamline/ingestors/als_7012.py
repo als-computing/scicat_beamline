@@ -25,7 +25,12 @@ from PIL import Image
 
 
 def ingest(scicat_client: ScicatClient):
-    # raw ??
+    #  what types of data are we ingesting?
+
+    #  ------ | raw | processed | reconstructed
+    #  stxm   | ?   |    yes    |     N/A
+    #  ptycho | ?   |    yes    |     yes
+
     pass
 
 def create_thumbnail(file_path : str):
