@@ -10,6 +10,6 @@ pip install [-e] .
 
 Test ingestion (point at Staging SciCat)
 ```
-python scicat_beamline/ingestors/your_script.py
+python scicat_beamline/ingestors/your_test_script.py
 ```
 
