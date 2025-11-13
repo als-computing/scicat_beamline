@@ -90,7 +90,7 @@ def ingest(
     if edf_file:
         thumbnail_file = build_waxs_saxs_thumb_733(image_data, thumbnail_dir, edf_file.name)
         encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
-        upload_attachment(scicat_client, encoded_thumbnail, dataset_id, ownable)
+        upload_attachment(scicat_client, encoded_thumbnail, dataset_id=dataset_id, caption="scattering image", ownable=ownable)
     
     create_derived(scicat_client, edf_file, dataset_id, basic_scientific_md, scicat_metadata)
 
@@ -163,6 +163,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
     )
 
     derived_id = scicat_client.datasets_create(dataset)
+    logger.info(f"Created derived dataset with id {derived_id} for file {raw_fname}")
 
     #TODO: decide which thumbnail to use before ingestion
     thumbPath = None
@@ -170,14 +171,16 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         if "radint" in Path(file.path).name and Path(file.path).suffix == ".png":
             thumbPath = derived_parent_folder / file.path
 
-    thumbnail = Attachment(
-            datasetId=derived_id,
-            thumbnail=encode_thumbnail(thumbPath),
-            caption="radial integration graph",
-            **ownable.dict()
-    )
+    encoded_thumbnail = encode_thumbnail(thumbPath)
 
-    scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
+    upload_attachment(
+        scicat_client,
+        encoded_thumbnail=encoded_thumbnail,
+        dataset_id=derived_id,
+        caption="radial integration graph",
+        ownable=ownable,
+        dataset_type="DerivedDatasets"
+    )
 
     data_block = OrigDatablock(
         datasetId=derived_id,
@@ -232,6 +235,7 @@ def upload_raw_dataset(
         **ownable.dict(),
     )
     dataset_id = scicat_client.datasets_create(dataset)
+    logger.info(f"Created dataset with id {dataset_id} for file {file_path.name}")
     return dataset_id
 
 
@@ -254,6 +258,7 @@ def create_data_files(txt_file_path: Path) -> Tuple[int, List[DataFile]]:
         )
         total_size += file_size
         data_files.append(datafile)
+    logger.info(f"Found {len(data_files)} data files")
     return total_size, data_files
 
 
@@ -267,23 +272,29 @@ def upload_data_block(
         size=total_size,
         dataFileList=datafiles,
     )
-    return scicat_client.datasets_origdatablock_create(dataset_id, datablock)
+    result = scicat_client.datasets_origdatablock_create(dataset_id, datablock)
+    logger.info(f"Created datablock for dataset id {dataset_id} for file {txt_file_path.name}")
+    return result
 
 
 def upload_attachment(
     scicat_client: ScicatClient,
-    encoded_thumnbnail: str,
+    encoded_thumbnail: str,
     dataset_id: str,
+    caption: str,
     ownable: Ownable,
+    dataset_type: str = "Datasets",
 ) -> Attachment:
-    "Creates a thumbnail png"
+    "Creates an attachment thumbnail"
     attachment = Attachment(
         datasetId=dataset_id,
-        thumbnail=encoded_thumnbnail,
-        caption="scattering image",
+        thumbnail=encoded_thumbnail,
+        caption=caption,
         **ownable.dict(),
     )
-    scicat_client.upload_attachment(attachment)
+    result = scicat_client.datasets_attachment_create(attachment, datasetType=dataset_type)
+    logger.info(f"Created attachment for dataset {dataset_id} with caption \"{caption}\"")
+    return result
 
 
 def get_file_size(file_path: Path) -> int:
