@@ -85,9 +85,9 @@ def ingest(
     )
 
     dataset = create_dataset()
-    dataset_id = scicat_client.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.datasets_create(dataset)
 
     datablock = create_data_block(dataset_id, file_path, ownable)
-    scicat_client.upload_datablock(datablock)
+    scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
     return dataset_id, issues

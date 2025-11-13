@@ -1,7 +1,7 @@
 from datetime import datetime
+from typing import Dict, List, Tuple
 import logging
 from pathlib import Path
-from typing import Dict, List, Tuple
 from collections import OrderedDict
 
 import fabio
@@ -9,6 +9,7 @@ from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (
     Attachment,
     OrigDatablock,
+    CreateDatasetOrigDatablockDto,
     DerivedDataset,
     DataFile,
     RawDataset,
@@ -161,7 +162,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         **ownable.dict(),
     )
 
-    derived_id = scicat_client.datasets_create(dataset)["pid"]
+    derived_id = scicat_client.datasets_create(dataset)
 
     #TODO: decide which thumbnail to use before ingestion
     thumbPath = None
@@ -186,7 +187,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         **ownable.dict(),
     )
 
-    scicat_client.upload_datablock(data_block, datasetType="DerivedDatasets")
+    scicat_client.datasets_origdatablock_create(derived_id, data_block)
 
 
 def edf_from_txt(txt_file_path: Path):
@@ -230,7 +231,7 @@ def upload_raw_dataset(
         creationTime=file_mod_time,
         **ownable.dict(),
     )
-    dataset_id = scicat_client.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.datasets_create(dataset)
     return dataset_id
 
 
@@ -262,16 +263,11 @@ def upload_data_block(
     "Creates a OrigDatablock of files"
     total_size, datafiles = create_data_files(txt_file_path)
 
-    datablock = OrigDatablock(
-        datasetId=dataset_id,
-        instrumentGroup="instrument-default",
+    datablock = CreateDatasetOrigDatablockDto(
         size=total_size,
         dataFileList=datafiles,
-        **ownable.dict(),
     )
-    scicat_client.upload_datablock(datablock)
-
-
+    return scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
 
 def upload_attachment(
@@ -295,7 +291,8 @@ def get_file_size(file_path: Path) -> int:
 
 
 def get_file_mod_time(file_path: Path) -> str:
-    return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
+    #return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
+    return datetime.fromtimestamp(file_path.lstat().st_mtime).isoformat() + "Z"
 
 
 def _get_dataset_value(data_set):

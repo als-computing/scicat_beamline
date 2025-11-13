@@ -212,7 +212,8 @@ def ingest(
         scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
 
     data_block = create_data_block(datafiles, dataset_id, ownable, size)
-    scicat_client.upload_datablock(data_block, datasetType="DerivedDatasets")
+    scicat_client.datasets_origdatablock_create(dataset_id, data_block)
+
     return dataset_id, issues
 
 

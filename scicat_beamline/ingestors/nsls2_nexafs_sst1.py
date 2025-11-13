@@ -165,7 +165,7 @@ def ingest(
     else:
         raise Exception("No metadata_row")
 
-    dataset_id = scicat_client.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.datasets_create(dataset)
 
     log_datafiles = []
     for log_path_str in log_file_path_strings:
@@ -196,7 +196,7 @@ def ingest(
         dataFileList=datafiles,
         **ownable.dict(),
     )
-    scicat_client.upload_datablock(data_block)
+    scicat_client.datasets_origdatablock_create(dataset_id, data_block)
     return dataset_id, issues
 
 

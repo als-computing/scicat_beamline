@@ -122,7 +122,7 @@ def upload_raw_dataset(
         creationTime=file_mod_time,
         **ownable.dict(),
     )
-    dataset_id = scicat_client.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.datasets_create(dataset)
     return dataset_id
 
 
@@ -165,11 +165,7 @@ def upload_data_block(
         dataFileList=datafiles,
         **ownable.dict(),
     )
-    scicat_client.upload_datablock(datablock)
-
-
-
-
+    scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
 
 

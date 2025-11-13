@@ -86,7 +86,7 @@ def ingest(
         **ownable.dict(),
     )
 
-    dataset_id = scicat_client.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.datasets_create(dataset)
 
     datafiles = [
         create_data_file(file_path)[0]
@@ -99,7 +99,7 @@ def ingest(
         dataFileList=datafiles,
         **ownable.dict(),
     )
-    scicat_client.upload_datablock(data_block)
+    scicat_client.datasets_origdatablock_create(dataset_id, data_block)
     return dataset_id, issues
 
 

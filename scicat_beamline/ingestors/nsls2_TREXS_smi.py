@@ -142,14 +142,14 @@ def ingest(
     datafiles, size = create_data_files_list(file_path, recursive=True)
     creationTime = get_file_mod_time(Path(str(file_path) + "/" + datafiles[0].path))
     dataset = reader.create_dataset(creationTime)
-    dataset_id = scicat_client.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.datasets_create(dataset)
     reader.dataset_id = dataset_id
 
     thumbnail = reader.create_attachment(png_files[0])
     scicat_client.upload_attachment(thumbnail)
 
     data_block = reader.create_data_block(datafiles, size)
-    scicat_client.upload_datablock(data_block)
+    scicat_client.datasets_origdatablock_create(dataset_id, data_block)
     return dataset_id, issues
 
 

@@ -148,7 +148,7 @@ def upload_data_block(
         dataFileList=datafiles,
         **ownable.dict(),
     )
-    scicat_client.upload_datablock(datablock)
+    scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
 
 def upload_raw_dataset(
@@ -187,7 +187,7 @@ def upload_raw_dataset(
         **ownable.dict(),
     )
 
-    dataset_id = scicat_client.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.datasets_create(dataset)
     return dataset_id
 
 
