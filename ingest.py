@@ -49,8 +49,7 @@ def ingest(
         spec.loader.exec_module(ingestor_module)
 
         logger.info(
-            f"loaded ingestor with spec {ingestor_module.ingest_spec} "
-            f"from {ingestor_module}"
+            f"Using ingestor with spec {ingestor_module.ingest_spec} from {ingestor_module}"
         )
 
         if token:

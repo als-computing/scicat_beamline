@@ -222,7 +222,7 @@ def ingest(
     dataset_id = scicat_client.datasets_create(dataset)
     reader.dataset_id = dataset_id
     thumbnail = reader.create_attachment(png_files[0])
-    scicat_client.upload_attachment(thumbnail)
+    scicat_client.datasets_attachment_create(thumbnail)
 
     data_block = reader.create_data_block(datafiles, size)
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)

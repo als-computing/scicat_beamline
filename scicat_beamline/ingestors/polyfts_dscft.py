@@ -182,7 +182,7 @@ def upload_attachment(
         caption="simulation gif",
         **ownable.dict(),
     )
-    scicat_client.upload_attachment(attachment)
+    scicat_client.datasets_attachment_create(attachment)
 
 
 def get_file_size(file_path: Path) -> int:

@@ -209,7 +209,7 @@ def ingest(
     jpg_files = list(glob_non_hidden_in_folder(file_path, "*.jpg"))
     if len(list(jpg_files)) > 0:
         thumbnail = create_attachment(jpg_files[0], dataset_id, ownable)
-        scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
+        scicat_client.datasets_attachment_create(thumbnail, datasetType="DerivedDatasets")
 
     data_block = create_data_block(datafiles, dataset_id, ownable, size)
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
