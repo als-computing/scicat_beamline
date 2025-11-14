@@ -1,0 +1,26 @@
+[project]
+name = "scicat-beamline-ingestion"
+version = "0.1.0"
+description = "SciCat Beamline ingestion scripts"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dotenv>=0.9.9",
+    "astropy",
+    "fabio",
+    "h5py",
+    "pydantic",
+    "pymongo",
+    "python-dotenv",
+    "requests",
+    "numpy",
+    "Pillow",
+    "pandas",
+    "typer",
+    "matplotlib",
+    "PyHyperScattering"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
