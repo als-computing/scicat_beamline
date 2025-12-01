@@ -83,7 +83,7 @@ def ingest(
         description=description,
         keywords=["NEXAFS", "11.0.1.2", "ALS", "absorption", "11.0.1.2 NEXAFS"],
         creationTime=get_file_mod_time(file_path),
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
     dataset_id = scicat_client.datasets_create(dataset)
@@ -97,7 +97,7 @@ def ingest(
         instrumentGroup="instrument-default",
         size=get_file_size(file_path),
         dataFileList=datafiles,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
     return dataset_id, issues

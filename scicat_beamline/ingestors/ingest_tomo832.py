@@ -104,7 +104,7 @@ def upload_raw_dataset(
         description=description,
         keywords=appended_keywords,
         creationTime=file_mod_time,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     dataset_id = scicat_client.datasets_create(dataset)
     return dataset_id
@@ -134,7 +134,7 @@ def upload_data_block(
         instrumentGroup="instrument-default",
         size=get_file_size(file_path),
         dataFileList=datafiles,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
@@ -150,7 +150,7 @@ def upload_attachment(
         datasetId=dataset_id,
         thumbnail=encoded_thumnbnail,
         caption="scattering image",
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     scicat_client.datasets_attachment_create(attachment)
 

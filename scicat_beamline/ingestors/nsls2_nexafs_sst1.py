@@ -160,7 +160,7 @@ def ingest(
             ],  # + ". " + metadata_row["sample_description.1"],
             keywords=["NEXAFS", "NSLS-II", "SST-1", "SST-1 NEXAFS"] + appended_keywords,
             creationTime=get_file_mod_time(file_path),
-            **ownable.dict(),
+            **ownable.model_dump(),
         )
     else:
         raise Exception("No metadata_row")
@@ -194,7 +194,7 @@ def ingest(
         instrumentGroup="instrument-default",
         size=files_size,
         dataFileList=datafiles,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
     return dataset_id, issues

@@ -35,7 +35,7 @@ def create_data_block(dataset_id: str, file: Path, ownable: Ownable) -> OrigData
         instrumentGroup="instrument-default",
         size=get_file_size(file),
         dataFileList=datafiles,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
 
@@ -59,7 +59,7 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
         description="",
         keywords=["ccd", "theta", "rsoxs", "als", "11.0.1.2"],
         creationTime=get_file_mod_time(file),
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     return dataset
 

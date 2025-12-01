@@ -159,7 +159,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         description=description,
         keywords=global_keywords+sci_md_keywords+sample_keywords+["analysis", "reduced", ANALYSIS],  # TODO: before ingestion change keywords depending on type of analysis
         creationTime=creationTime,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
     derived_id = scicat_client.datasets_create(dataset)
@@ -187,7 +187,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         instrumentGroup="instrument-default",
         size=total_size,
         dataFileList=derived_files,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
     scicat_client.datasets_origdatablock_create(derived_id, data_block)
@@ -232,7 +232,7 @@ def upload_raw_dataset(
         description=description,
         keywords=global_keywords + sci_md_keywords+sample_keywords,
         creationTime=file_mod_time,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     dataset_id = scicat_client.datasets_create(dataset)
     logger.info(f"Created dataset with id {dataset_id} for file {file_path.name}")
@@ -290,7 +290,7 @@ def upload_attachment(
         datasetId=dataset_id,
         thumbnail=encoded_thumbnail,
         caption=caption,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     result = scicat_client.datasets_attachment_create(attachment, datasetType=dataset_type)
     logger.info(f"Created attachment for dataset {dataset_id} with caption \"{caption}\"")

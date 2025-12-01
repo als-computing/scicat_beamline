@@ -146,7 +146,7 @@ def upload_data_block(
         instrumentGroup="instrument-default",
         size=size,
         dataFileList=datafiles,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
@@ -184,7 +184,7 @@ def upload_raw_dataset(
         description=description,
         keywords=appended_keywords,
         creationTime=file_mod_time,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
     dataset_id = scicat_client.datasets_create(dataset)
