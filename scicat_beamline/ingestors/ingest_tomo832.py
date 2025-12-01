@@ -139,6 +139,7 @@ def upload_data_block(
     scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
 
+# TODO: Replace with a generalized version in common_ingestor_code.py
 def upload_attachment(
     scicat_client: ScicatClient,
     encoded_thumnbnail: str,

@@ -277,6 +277,7 @@ def upload_data_block(
     return result
 
 
+# TODO: Move to common_ingestor_code.py and use as a generalized function
 def upload_attachment(
     scicat_client: ScicatClient,
     encoded_thumbnail: str,
