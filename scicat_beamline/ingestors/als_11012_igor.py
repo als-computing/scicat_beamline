@@ -59,7 +59,7 @@ def create_data_block(datafiles, dataset_id, ownable: Ownable, size) -> OrigData
         instrumentGroup="instrument-default",
         size=size,
         dataFileList=datafiles,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
 
@@ -97,7 +97,7 @@ def create_dataset(
         description=description,
         keywords=["scattering", "RSoXS", "11.0.1.2 RSoXS" "11.0.1.2", "ALS", "igor", "analysis", "Irena", "Nika"],
         creationTime=creationTime,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     return dataset
 
@@ -108,7 +108,7 @@ def create_attachment(file: Path, dataset_id: str, ownable: Ownable) -> Attachme
         datasetId=dataset_id,
         thumbnail=encode_thumbnail(file),
         caption="scattering image",
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
 
@@ -209,10 +209,11 @@ def ingest(
     jpg_files = list(glob_non_hidden_in_folder(file_path, "*.jpg"))
     if len(list(jpg_files)) > 0:
         thumbnail = create_attachment(jpg_files[0], dataset_id, ownable)
-        scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
+        scicat_client.datasets_attachment_create(thumbnail, datasetType="DerivedDatasets")
 
     data_block = create_data_block(datafiles, dataset_id, ownable, size)
-    scicat_client.upload_datablock(data_block, datasetType="DerivedDatasets")
+    scicat_client.datasets_origdatablock_create(dataset_id, data_block)
+
     return dataset_id, issues
 
 

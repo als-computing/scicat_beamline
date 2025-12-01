@@ -1,7 +1,7 @@
 from datetime import datetime
+from typing import Dict, List, Tuple
 import logging
 from pathlib import Path
-from typing import Dict, List, Tuple
 from collections import OrderedDict
 
 import fabio
@@ -9,6 +9,7 @@ from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (
     Attachment,
     OrigDatablock,
+    CreateDatasetOrigDatablockDto,
     DerivedDataset,
     DataFile,
     RawDataset,
@@ -89,7 +90,7 @@ def ingest(
     if edf_file:
         thumbnail_file = build_waxs_saxs_thumb_733(image_data, thumbnail_dir, edf_file.name)
         encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
-        upload_attachment(scicat_client, encoded_thumbnail, dataset_id, ownable)
+        upload_attachment(scicat_client, encoded_thumbnail, dataset_id=dataset_id, caption="scattering image", ownable=ownable)
     
     create_derived(scicat_client, edf_file, dataset_id, basic_scientific_md, scicat_metadata)
 
@@ -158,10 +159,11 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         description=description,
         keywords=global_keywords+sci_md_keywords+sample_keywords+["analysis", "reduced", ANALYSIS],  # TODO: before ingestion change keywords depending on type of analysis
         creationTime=creationTime,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
-    derived_id = scicat_client.datasets_create(dataset)["pid"]
+    derived_id = scicat_client.datasets_create(dataset)
+    logger.info(f"Created derived dataset with id {derived_id} for file {raw_fname}")
 
     #TODO: decide which thumbnail to use before ingestion
     thumbPath = None
@@ -169,24 +171,26 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         if "radint" in Path(file.path).name and Path(file.path).suffix == ".png":
             thumbPath = derived_parent_folder / file.path
 
-    thumbnail = Attachment(
-            datasetId=derived_id,
-            thumbnail=encode_thumbnail(thumbPath),
-            caption="radial integration graph",
-            **ownable.dict()
-    )
+    encoded_thumbnail = encode_thumbnail(thumbPath)
 
-    scicat_client.upload_attachment(thumbnail, datasetType="DerivedDatasets")
+    upload_attachment(
+        scicat_client,
+        encoded_thumbnail=encoded_thumbnail,
+        dataset_id=derived_id,
+        caption="radial integration graph",
+        ownable=ownable,
+        dataset_type="DerivedDatasets"
+    )
 
     data_block = OrigDatablock(
         datasetId=derived_id,
         instrumentGroup="instrument-default",
         size=total_size,
         dataFileList=derived_files,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
 
-    scicat_client.upload_datablock(data_block, datasetType="DerivedDatasets")
+    scicat_client.datasets_origdatablock_create(derived_id, data_block)
 
 
 def edf_from_txt(txt_file_path: Path):
@@ -228,9 +232,10 @@ def upload_raw_dataset(
         description=description,
         keywords=global_keywords + sci_md_keywords+sample_keywords,
         creationTime=file_mod_time,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
-    dataset_id = scicat_client.upload_raw_dataset(dataset)
+    dataset_id = scicat_client.datasets_create(dataset)
+    logger.info(f"Created dataset with id {dataset_id} for file {file_path.name}")
     return dataset_id
 
 
@@ -253,6 +258,7 @@ def create_data_files(txt_file_path: Path) -> Tuple[int, List[DataFile]]:
         )
         total_size += file_size
         data_files.append(datafile)
+    logger.info(f"Found {len(data_files)} data files")
     return total_size, data_files
 
 
@@ -262,32 +268,34 @@ def upload_data_block(
     "Creates a OrigDatablock of files"
     total_size, datafiles = create_data_files(txt_file_path)
 
-    datablock = OrigDatablock(
-        datasetId=dataset_id,
-        instrumentGroup="instrument-default",
+    datablock = CreateDatasetOrigDatablockDto(
         size=total_size,
         dataFileList=datafiles,
-        **ownable.dict(),
     )
-    scicat_client.upload_datablock(datablock)
+    result = scicat_client.datasets_origdatablock_create(dataset_id, datablock)
+    logger.info(f"Created datablock for dataset id {dataset_id} for file {txt_file_path.name}")
+    return result
 
 
-
-
+# TODO: Move to common_ingestor_code.py and use as a generalized function
 def upload_attachment(
     scicat_client: ScicatClient,
-    encoded_thumnbnail: str,
+    encoded_thumbnail: str,
     dataset_id: str,
+    caption: str,
     ownable: Ownable,
+    dataset_type: str = "Datasets",
 ) -> Attachment:
-    "Creates a thumbnail png"
+    "Creates an attachment thumbnail"
     attachment = Attachment(
         datasetId=dataset_id,
-        thumbnail=encoded_thumnbnail,
-        caption="scattering image",
-        **ownable.dict(),
+        thumbnail=encoded_thumbnail,
+        caption=caption,
+        **ownable.model_dump(),
     )
-    scicat_client.upload_attachment(attachment)
+    result = scicat_client.datasets_attachment_create(attachment, datasetType=dataset_type)
+    logger.info(f"Created attachment for dataset {dataset_id} with caption \"{caption}\"")
+    return result
 
 
 def get_file_size(file_path: Path) -> int:
@@ -295,7 +303,7 @@ def get_file_size(file_path: Path) -> int:
 
 
 def get_file_mod_time(file_path: Path) -> str:
-    return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
+    return datetime.fromtimestamp(file_path.lstat().st_mtime).isoformat() + "Z"
 
 
 def _get_dataset_value(data_set):

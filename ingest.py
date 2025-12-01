@@ -13,13 +13,18 @@ from scicat_beamline.utils import Issue
 
 logger = logging.getLogger('scicat_ingest')
 logger.setLevel('INFO')
-logname = "data_movement_733.log"
-handler = logging.StreamHandler()
-handler.suffix = "%Y%m%d"
-handler.setLevel('INFO')
+logname = "ingest.log"
+
 formatter = logging.Formatter(fmt='%(asctime)s [%(levelname)s] %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+
+streamHandler = logging.StreamHandler()
+streamHandler.setFormatter(formatter)
+
+fileHandler = logging.FileHandler(logname, mode='a', encoding=None, delay=False, errors=None)
+fileHandler.setFormatter(formatter)
+
+logger.addHandler(streamHandler)
+logger.addHandler(fileHandler)
 app = typer.Typer()
 
 
@@ -44,8 +49,7 @@ def ingest(
         spec.loader.exec_module(ingestor_module)
 
         logger.info(
-            f"loaded ingestor with spec {ingestor_module.ingest_spec} "
-            f"from {ingestor_module}"
+            f"Using ingestor with spec {ingestor_module.ingest_spec} from {ingestor_module}"
         )
 
         if token:
