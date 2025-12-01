@@ -302,7 +302,6 @@ def get_file_size(file_path: Path) -> int:
 
 
 def get_file_mod_time(file_path: Path) -> str:
-    #return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
     return datetime.fromtimestamp(file_path.lstat().st_mtime).isoformat() + "Z"
 
 
