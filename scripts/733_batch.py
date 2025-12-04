@@ -1,18 +1,17 @@
-from pathlib import Path
 import sys
 import tempfile
+from pathlib import Path
 from typing import List
 
 from pyscicat.client import from_token
-
-from scicat_beamline.utils import Issue
+from scicat_beamline.common_ingestor_code import Issue
 from scicat_beamline.ingestors import als_733_SAXS
 
 folder = Path(sys.argv[1])
 token = sys.argv[2]
 user = sys.argv[3]
 scicat_url_base = sys.argv[4]
-try:    
+try:
     issues = []
     client = from_token(scicat_url_base, token)
     txt_files = folder.glob("**/*.txt")

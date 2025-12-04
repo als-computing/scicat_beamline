@@ -1,37 +1,25 @@
+import json
+import os
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
+
 import numpy as np
 from PIL import Image, ImageOps
-import os
-import json
-import zipfile
 
-
-from pyscicat.client import (
-    ScicatClient,
-    encode_thumbnail,
-    get_file_mod_time,
-    get_file_size,
-)
-
-from pyscicat.model import (
-    Attachment,
-    OrigDatablock,
-    DataFile,
-    Dataset,
-    RawDataset,
-    DatasetType,
-    Ownable,
-)
-from scicat_beamline.ingestors.common_ingestor_code import create_data_files_list
-
-from scicat_beamline.utils import Issue, glob_non_hidden_in_folder
+from pyscicat.client import (ScicatClient, encode_thumbnail, get_file_mod_time,
+                             get_file_size)
+from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
+                            OrigDatablock, Ownable, RawDataset)
+from scicat_beamline.common_ingestor_code import (Issue,
+                                                  create_data_files_list,
+                                                  glob_non_hidden_in_folder)
 
 ingest_spec = "nsls2_trexs_smi"
 
 
-class TREXSNsls2SMIReader():
+class TREXSNsls2SMIReader:
     """A DatasetReader for reading nsls2 TREXS datasets.
     Reader expects a folder that contains multiple child folders
     with tiff files."""
@@ -71,19 +59,21 @@ class TREXSNsls2SMIReader():
 
     def create_dataset(self, creationTime) -> Dataset:
         "Creates a dataset object"
-        proposalId = self._folder.name.split('_')[0] # TODO: change to make more general
+        proposalId = self._folder.name.split("_")[
+            0
+        ]  # TODO: change to make more general
         print(self._folder)
 
         dataset = RawDataset(
             owner="Matt Landsman",  # owner=metadata_dict["user_name"]
             contactEmail="mrlandsman@lbl.gov",  # contactEmail=metadata_dict["user_email"]
             creationLocation="NSLS-II SMI TREXS",
-            datasetName=self._folder.name, # TODO: change to make more general
+            datasetName=self._folder.name,  # TODO: change to make more general
             type=DatasetType.raw,
             instrumentId="SMI TREXS",
-            proposalId=proposalId, # TODO: change to make more general
+            proposalId=proposalId,  # TODO: change to make more general
             dataFormat="NSLS-II",
-            principalInvestigator="Lynn Katz", 
+            principalInvestigator="Lynn Katz",
             sourceFolder=self._folder.as_posix(),
             # scientificMetadata=metadata_dict,
             sampleId="",
@@ -136,7 +126,9 @@ def ingest(
         tiff_filename = tiff_filenames[len(tiff_filenames) // 2]
         image_data = Image.open(tiff_filename)
         image_data = np.array(image_data)
-        build_thumbnail(image_data, tiff_filename.name[:-5], tiff_filename.absolute().parent)
+        build_thumbnail(
+            image_data, tiff_filename.name[:-5], tiff_filename.absolute().parent
+        )
         png_files = list(glob_non_hidden_in_folder(file_path, "*/**.png"))
 
     datafiles, size = create_data_files_list(file_path, recursive=True)

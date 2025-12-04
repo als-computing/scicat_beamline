@@ -1,28 +1,16 @@
-from datetime import datetime
 import glob
+from datetime import datetime
 from pathlib import Path
 from typing import List
+
 import numpy
 import pandas
 
-from pyscicat.client import (
-    ScicatClient,
-    get_file_mod_time,
-    get_file_size,
-)
-
-from pyscicat.model import (
-    OrigDatablock,
-    DataFile,
-    RawDataset,
-    DatasetType,
-    Ownable,
-)
-from scicat_beamline.ingestors.common_ingestor_code import (
-    add_to_sci_metadata_from_bad_headers,
-)
-
-from scicat_beamline.utils import Issue
+from pyscicat.client import ScicatClient, get_file_mod_time, get_file_size
+from pyscicat.model import (DataFile, DatasetType, OrigDatablock, Ownable,
+                            RawDataset)
+from scicat_beamline.common_ingestor_code import (
+    Issue, add_to_sci_metadata_from_bad_headers)
 
 ingest_spec = "nsls2_nexafs_sst1"
 
@@ -96,11 +84,12 @@ def ingest(
         scientific_metadata["z_coordinate"] = metadata_row["z_coordinate"]
 
         def modifyKeyword(key, keyword):
-            if (key == "saf_id"):
+            if key == "saf_id":
                 return "SAF " + keyword
-            if (key == "institution"):
+            if key == "institution":
                 return keyword.lower()
             return keyword
+
         # TODO: before ingestion change the keys used for the keywords depending on which are available in the csv file
         appended_keywords = [
             modifyKeyword(key, scientific_metadata[key])
@@ -109,7 +98,7 @@ def ingest(
                 "saf_id",
                 "institution",
                 "project_name",
-                "sample_name"
+                "sample_name",
             ]
             if scientific_metadata[key] is not None
             and str(scientific_metadata[key]).strip() != ""

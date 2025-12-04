@@ -1,35 +1,24 @@
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, OrderedDict, Tuple
+
 import numpy as np
-from PIL import Image, ImageOps
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
+from PIL import Image, ImageOps
 
-from pyscicat.client import (
-    ScicatClient,
-    encode_thumbnail,
-    get_file_mod_time,
-    get_file_size,
-)
-
-from pyscicat.model import (
-    Attachment,
-    OrigDatablock,
-    DataFile,
-    Dataset,
-    RawDataset,
-    DatasetType,
-    Ownable,
-)
-from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers, create_data_files_list
-
-from scicat_beamline.utils import Issue, glob_non_hidden_in_folder
+from pyscicat.client import (ScicatClient, encode_thumbnail, get_file_mod_time,
+                             get_file_size)
+from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
+                            OrigDatablock, Ownable, RawDataset)
+from scicat_beamline.common_ingestor_code import (
+    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list,
+    glob_non_hidden_in_folder)
 
 ingest_spec = "als_11012_scattering"
 
 
-class Scattering11012Reader():
+class Scattering11012Reader:
     """A DatasetReader for reading 11012 scattering datasets.
     Reader exepects a folder that contains the labview (AI) text file as
     well as all fits files and some png files. Png files will be ingested
@@ -80,7 +69,7 @@ class Scattering11012Reader():
         "Creates a dataset object"
         sample_name = self._folder.name
 
-        ai_file_path = next(glob_non_hidden_in_folder(self._folder, '*.txt'))
+        ai_file_path = next(glob_non_hidden_in_folder(self._folder, "*.txt"))
         creationTime = get_file_mod_time(ai_file_path)
         ai_file_name = ai_file_path.name[:-7]
         description = ai_file_name.replace("_", " ")
@@ -118,7 +107,6 @@ class Scattering11012Reader():
         )
 
     def create_scientific_metadata(self) -> Dict:
-
         """Generate a json dict of scientific metadata
         by reading each fits file header
 
@@ -130,7 +118,9 @@ class Scattering11012Reader():
         metadata = {}
         # Headers from AI file
         ai_file_name = next(glob_non_hidden_in_folder(self._folder, "*.txt"))
-        add_to_sci_metadata_from_bad_headers(metadata, ai_file_name, when_to_stop=lambda line: line.startswith("Time"))
+        add_to_sci_metadata_from_bad_headers(
+            metadata, ai_file_name, when_to_stop=lambda line: line.startswith("Time")
+        )
         for fits_file in fits_files:
             with fits.open(fits_file) as hdulist:
                 metadata_header = hdulist[0].header
@@ -174,7 +164,7 @@ def ingest(
         build_thumbnail(image_data, fits_filename.name[:-5], file_path)
     png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
 
-    datafile_array, size = create_data_files_list(file_path, lambda x: x.name == 'dat')
+    datafile_array, size = create_data_files_list(file_path, lambda x: x.name == "dat")
 
     dataset = reader.create_dataset()
     dataset_id = scicat_client.datasets_create(dataset)

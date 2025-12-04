@@ -2,26 +2,16 @@ from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 from typing import List
+
 import numpy
 import pandas
 
-from pyscicat.client import (
-    ScicatClient,
-    get_file_mod_time,
-    get_file_size,
-)
+from pyscicat.client import ScicatClient, get_file_mod_time, get_file_size
+from pyscicat.model import DatasetType, OrigDatablock, Ownable, RawDataset
+from scicat_beamline.common_ingestor_code import (
+    Issue, add_to_sci_metadata_from_bad_headers, create_data_file)
 
-from pyscicat.model import (
-    OrigDatablock,
-    RawDataset,
-    DatasetType,
-    Ownable,
-)
-from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers, create_data_file
-
-from scicat_beamline.utils import Issue
-
-ingest_spec = 'als_11012_nexafs'
+ingest_spec = "als_11012_nexafs"
 
 
 def ingest(
@@ -53,7 +43,11 @@ def ingest(
                 lines_to_skip = line_num - 1
                 break
 
-    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path, when_to_stop=lambda line: line.startswith("Time of"))
+    add_to_sci_metadata_from_bad_headers(
+        scientific_metadata,
+        file_path,
+        when_to_stop=lambda line: line.startswith("Time of"),
+    )
 
     table = pandas.read_table(file_path, skiprows=lines_to_skip)
     # https://stackoverflow.com/a/54403705/
@@ -86,9 +80,7 @@ def ingest(
 
     dataset_id = scicat_client.datasets_create(dataset)
 
-    datafiles = [
-        create_data_file(file_path)[0]
-    ]
+    datafiles = [create_data_file(file_path)[0]]
 
     data_block = OrigDatablock(
         datasetId=dataset_id,

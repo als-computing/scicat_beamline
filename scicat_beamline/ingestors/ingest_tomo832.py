@@ -1,28 +1,19 @@
-from datetime import datetime
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
 import h5py
-from pyscicat.client import ScicatClient
-from pyscicat.model import (
-    Attachment,
-    OrigDatablock,
-    DataFile,
-    RawDataset,
-    DatasetType,
-    Ownable,
-)
 
-from scicat_beamline.scicat_utils import (
-    build_search_terms,
-    build_thumbnail,
-    calculate_access_controls,
-    encode_image_2_thumbnail,
-    NPArrayEncoder,
-)
-from scicat_beamline.utils import Issue, Severity
+from pyscicat.client import ScicatClient
+from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
+                            Ownable, RawDataset)
+from scicat_beamline.common_ingestor_code import Issue, Severity
+from scicat_beamline.scicat_utils import (NPArrayEncoder, build_search_terms,
+                                          build_thumbnail,
+                                          calculate_access_controls,
+                                          encode_image_2_thumbnail)
 
 ingest_spec = "als832_dx_3"
 
@@ -88,14 +79,18 @@ def upload_raw_dataset(
 
     dataset = RawDataset(
         owner=scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
-        contactEmail=scicat_metadata.get("/measurement/sample/experimenter/email") or "Unknown",
-        creationLocation=scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
+        contactEmail=scicat_metadata.get("/measurement/sample/experimenter/email")
+        or "Unknown",
+        creationLocation=scicat_metadata.get("/measurement/instrument/instrument_name")
+        or "Unknown",
         datasetName=file_name,
         type=DatasetType.raw,
-        instrumentId=scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
+        instrumentId=scicat_metadata.get("/measurement/instrument/instrument_name")
+        or "Unknown",
         proposalId=scicat_metadata.get("/measurement/sample/experiment/proposal"),
         dataFormat="DX",
-        principalInvestigator=scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
+        principalInvestigator=scicat_metadata.get("/measurement/sample/experiment/pi")
+        or "Unknown",
         sourceFolder=str(file_path.parent),
         scientificMetadata=scientific_metadata,
         sampleId=description,

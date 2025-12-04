@@ -1,51 +1,61 @@
-
-from importlib.util import spec_from_file_location, module_from_spec
 import logging
-from pathlib import Path
 import tempfile
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from typing import List
 
 import typer
 
 from pyscicat.client import from_credentials, from_token
-
-from scicat_beamline.utils import Issue
+from scicat_beamline.common_ingestor_code import Issue
 
 
 def standard_iterator(pattern: str):
     import glob
+
     return glob.iglob(pattern)
 
 
 def ingest(
-    ingestor_spec: str = typer.Argument(..., help='Spec to ingest'),
+    ingestor_spec: str = typer.Argument(..., help="Spec to ingest"),
     dataset_path: Path = typer.Argument(
         ...,
-        help=('Path of the asset to ingest. '
-              'May be file or directory depending on the spec '
-              'and its ingestor'),
+        help=(
+            "Path of the asset to ingest. "
+            "May be file or directory depending on the spec "
+            "and its ingestor"
         ),
-    ingest_user: str = typer.Argument("ingestor", help="User doing the ingesting. May be different from the user_name, especially if using a token"),
-    base_url: str = typer.Argument("http://localhost:3000/api/v3", help="Scicat server base url. If not provided, will try localhost default"),
+    ),
+    ingest_user: str = typer.Argument(
+        "ingestor",
+        help="User doing the ingesting. May be different from the user_name, especially if using a token",
+    ),
+    base_url: str = typer.Argument(
+        "http://localhost:3000/api/v3",
+        help="Scicat server base url. If not provided, will try localhost default",
+    ),
     token: str = typer.Option(None, help="Scicat api token"),
     username: str = typer.Option(None, help="Scicat server username"),
     password: str = typer.Option(None, help="Scicat server password"),
-
 ):
 
     # At the same time we're streaming logs to console,
     # we also want to write them to a file in the dataset folder.
 
-    logger = logging.getLogger('scicat_ingest')
-    logger.setLevel('INFO')
+    logger = logging.getLogger("scicat_ingest")
+    logger.setLevel("INFO")
     logfile = Path(dataset_path, "scicat_ingester_log.txt")
 
-    formatter = logging.Formatter(fmt='%(asctime)s [%(levelname)s] %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+    formatter = logging.Formatter(
+        fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
+    )
 
     streamHandler = logging.StreamHandler()
     streamHandler.setFormatter(formatter)
 
-    fileHandler = logging.FileHandler(logfile, mode='a', encoding=None, delay=False, errors=None)
+    fileHandler = logging.FileHandler(
+        logfile, mode="a", encoding=None, delay=False, errors=None
+    )
     fileHandler.setFormatter(formatter)
 
     logger.addHandler(streamHandler)
@@ -58,30 +68,39 @@ def ingest(
         if ingestor_spec == "als_11012_igor":
             ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/dat/")
             import scicat_beamline.ingestors.als_11012_igor as ingestor_module
+
             ingestion_function = ingestor_module.ingest
 
         elif ingestor_spec == "als_11012_scattering":
             ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/")
             import scicat_beamline.ingestors.als_11012_scattering as ingestor_module
+
             ingestion_function = ingestor_module.ingest
 
         elif ingestor_spec == "als_11012_nexafs":
             ingest_files_iter = standard_iterator(f"{dataset_path}/Nexafs/*")
             import scicat_beamline.ingestors.nexafs as ingestor_module
+
             ingestion_function = ingestor_module.ingest
 
         elif ingestor_spec == "nsls2_rsoxs_sst1":
             ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
             import scicat_beamline.ingestors.nsls2_RSoXS as ingestor_module
+
             ingestion_function = ingestor_module.ingest
 
         elif ingestor_spec == "nsls2_nexafs_sst1":
             temp_iter = standard_iterator(f"{dataset_path}/*")
             for file_str in temp_iter:
-                if file_str.endswith(".log") or file_str.endswith(".csv") or file_str.endswith(".txt"):
+                if (
+                    file_str.endswith(".log")
+                    or file_str.endswith(".csv")
+                    or file_str.endswith(".txt")
+                ):
                     continue
                 ingest_files_iter.append(file_str)
             import scicat_beamline.ingestors.nsls2_nexafs_sst1 as ingestor_module
+
             ingestion_function = ingestor_module.ingest
 
         elif ingestor_spec == "als733_saxs":
@@ -92,18 +111,21 @@ def ingest(
                     continue
                 ingest_files_iter.append(file_str)
             import scicat_beamline.ingestors.als_733_SAXS as ingestor_module
+
             ingestion_function = ingestor_module.ingest
 
         elif ingestor_spec == "nsls2_trexs_smi":
             ingest_files_iter = standard_iterator("{dataset_path}/*/")
             import scicat_beamline.ingestors.nsls2_TREXS_smi as ingestor_module
+
             ingestion_function = ingestor_module.ingest
 
         elif ingestor_spec == "polyfts_dscft":
             ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
             import scicat_beamline.ingestors.polyfts_dscft as ingestor_module
+
             ingestion_function = ingestor_module.ingest
-        
+
         else:
             logger.exception(f"Cannot resolve ingestor spec {ingestor_spec}")
             return
@@ -125,9 +147,13 @@ def ingest(
                 temp_path = Path(temp_dir)
                 if ingest_file_path.exists():
                     logger.info(f"Ingesting {ingest_file_path}")
-                    ingestion_function(client, ingest_user, ingest_file_path, temp_path, issues)
+                    ingestion_function(
+                        client, ingest_user, ingest_file_path, temp_path, issues
+                    )
                 else:
-                    logger.warning(f"Ingest file path {ingest_file_path} does not exist")
+                    logger.warning(
+                        f"Ingest file path {ingest_file_path} does not exist"
+                    )
 
             if len(issues) > 0:
                 logger.info(f"Issues found {[str(issue) for issue in issues]}")
@@ -136,5 +162,5 @@ def ingest(
         logger.exception(f" Error running ingestor {ingestor_module}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     typer.run(ingest)

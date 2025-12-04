@@ -1,11 +1,13 @@
-# This fixes an error where the projectdirs component of the path was 
+# This fixes an error where the projectdirs component of the path was
 # for some reason changed to a symlink.
+
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from pyscicat.client import from_credentials
 from pyscicat.model import Dataset
-from dotenv import load_dotenv
-import os
-from pathlib import Path
 
 load_dotenv()
 
