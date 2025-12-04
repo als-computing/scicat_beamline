@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, OrderedDict, Tuple
+from typing import Dict, List, OrderedDict, Tuple, Optional
 
 import numpy as np
 from astropy.io import fits
@@ -28,7 +28,7 @@ class Scattering11012Reader:
     headers of each fits file.
     """
 
-    dataset_id: str = None
+    dataset_id: Optional[str] = None
     _issues = []
 
     def __init__(self, folder: Path, ownable: Ownable) -> None:
@@ -57,12 +57,14 @@ class Scattering11012Reader:
     def create_data_block(self, datafiles, size) -> OrigDatablock:
         "Creates a datablock of fits files"
 
+        assert self.dataset_id is not None, "dataset_id must be set before creating data block"
+
         return OrigDatablock(
             datasetId=self.dataset_id,
             instrumentGroup="instrument-default",
             size=size,
             dataFileList=datafiles,
-            **self._ownable.dict(),
+            **self._ownable.model_dump(),
         )
 
     def create_dataset(self) -> Dataset:
