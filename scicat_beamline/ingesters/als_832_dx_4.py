@@ -56,7 +56,7 @@ def ingest(
     scicat_client : ScicatClient
         client to talk to the scicat server
     file_path : str
-        Path to find the file to ingest
+        Path to find the file(s) to ingest
     issues : List[Issue]
         Issues where problems are recorded
 
@@ -65,14 +65,6 @@ def ingest(
     str
         Dataset id of the new
     """
-
-    INGEST_STORAGE_ROOT_PATH = os.getenv("INGEST_STORAGE_ROOT_PATH")
-    INGEST_SOURCE_ROOT_PATH = os.getenv("INGEST_SOURCE_ROOT_PATH")
-
-    if not INGEST_SOURCE_ROOT_PATH or not INGEST_SOURCE_ROOT_PATH:
-        raise ValueError(
-            "INGEST_STORAGE_ROOT_PATH and INGEST_SOURCE_ROOT_PATH must be set"
-        )
 
     with h5py.File(file_path, "r") as file:
         scicat_metadata = _extract_fields(file, scicat_metadata_keys, issues)
@@ -105,9 +97,8 @@ def ingest(
         upload_data_block(
             scicat_client,
             file_path,
-            dataset_id,
-            INGEST_STORAGE_ROOT_PATH,
-            INGEST_SOURCE_ROOT_PATH)
+            dataset_id
+        )
 
         thumbnail_file = build_thumbnail_as_filebuffer(file["/exchange/data"][0])
         encoded_thumbnail = encode_filebuffer_image_2_thumbnail(thumbnail_file)
@@ -156,7 +147,7 @@ def upload_raw_dataset(
         description=description,
         keywords=appended_keywords,
         creationTime=file_mod_time,
-        **ownable.dict(),
+        **ownable.model_dump(),
     )
     logger.debug(f"dataset: {dataset}")
     dataset_id = scicat_client.upload_new_dataset(dataset)
@@ -179,12 +170,13 @@ def upload_data_block(
     scicat_client: ScicatClient,
     file_path: Path,
     dataset_id: str,
-    storage_root_path: str,
-    source_root_path: str
 ) -> OrigDatablock:
     "Creates a datablock of files"
-    # calcularte the path where the file will as known to SciCat
-    storage_path = str(file_path).replace(source_root_path, storage_root_path)
+    # calculate the path where the file will as known to SciCat
+    # TODO: Create a generatlized function for this
+    # that extracts the storage root path from the same place the SciCat credentials are kept
+    #storage_path = str(file_path).replace(source_root_path, storage_root_path)
+    storage_path = str(file_path)
     datafiles = create_data_files(file_path, storage_path)
 
     datablock = CreateDatasetOrigDatablockDto(
