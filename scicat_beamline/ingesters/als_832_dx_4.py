@@ -17,7 +17,7 @@ from pyscicat.model import (
     Ownable,
 )
 
-from scicat_beamline.common_ingester_code import (
+from scicat_beamline.common_ingester_utils import (
     Issue,
     Severity,
     clean_email,

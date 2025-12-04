@@ -14,7 +14,7 @@ from pyscicat.client import (ScicatClient, from_token, get_file_mod_time,
                              get_file_size)
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
-from scicat_beamline.common_ingester_code import Issue
+from scicat_beamline.common_ingester_utils import Issue
 from scicat_beamline.scicat_utils import (build_search_terms, build_thumbnail,
                                           calculate_access_controls)
 

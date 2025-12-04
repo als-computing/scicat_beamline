@@ -7,7 +7,7 @@ from typing import List
 import typer
 
 from pyscicat.client import from_credentials, from_token
-from scicat_beamline.common_ingester_code import Issue
+from scicat_beamline.common_ingester_utils import Issue
 
 
 def standard_iterator(pattern: str):

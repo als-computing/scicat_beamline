@@ -10,7 +10,7 @@ from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
-from scicat_beamline.common_ingester_code import (
+from scicat_beamline.common_ingester_utils import (
     Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list)
 from scicat_beamline.scicat_utils import (build_search_terms,
                                           build_waxs_saxs_thumb_733,

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 from pyscicat.client import from_token
-from scicat_beamline.common_ingester_code import Issue
+from scicat_beamline.common_ingester_utils import Issue
 from scicat_beamline.ingesters import als_733_SAXS
 
 folder = Path(sys.argv[1])

@@ -9,7 +9,7 @@ import h5py
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
-from scicat_beamline.common_ingester_code import Issue, Severity
+from scicat_beamline.common_ingester_utils import Issue, Severity
 from scicat_beamline.scicat_utils import (NPArrayEncoder, build_search_terms,
                                           build_thumbnail,
                                           calculate_access_controls,

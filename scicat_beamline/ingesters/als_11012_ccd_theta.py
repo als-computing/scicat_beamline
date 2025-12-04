@@ -5,7 +5,7 @@ from typing import List
 from pyscicat.client import ScicatClient, get_file_mod_time, get_file_size
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable)
-from scicat_beamline.common_ingester_code import Issue
+from scicat_beamline.common_ingester_utils import Issue
 
 ingest_spec = "als_11012_ccd_theta"
 
