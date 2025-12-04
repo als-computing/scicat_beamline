@@ -26,9 +26,5 @@ fi
 #INGEST_USER=username
 #PASSWORD=password
 
-for d in "$ROOT_FOLDER"/*/ ; do
-    if [ -d "$d" ]; then
-        # Will not run if no directories are available
-        python ingest.py --username "$USERNAME" --password "$PASSWORD" scicat_beamline/ingestors/als_11012_scattering.py "$d" "$INGEST_USER" "$SCICAT_URL"
-    fi
-done
+# Will not run if no directories are available
+python scicat_beamline/ingest.py --username "$USERNAME" --password "$PASSWORD" "als_11012_scattering" "$ROOT_FOLDER" "$INGEST_USER" "$SCICAT_URL"

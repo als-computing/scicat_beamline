@@ -26,9 +26,5 @@ fi
 #INGEST_USER=username
 #PASSWORD=password
 
-for f in "$ROOT_FOLDER"/Nexafs/* ; do
-    if [ -f "$f" ]; then
-        # Will not run if no files are available
-        python ingest.py --username "$USERNAME" --password "$PASSWORD" scicat_beamline/ingestors/nexafs.py "$f" "$INGEST_USER" "$SCICAT_URL"
-    fi
-done
+# Will not run if no directories are available
+python scicat_beamline/ingest.py --username "$USERNAME" --password "$PASSWORD" "als_11012_nexafs" "$ROOT_FOLDER" "$INGEST_USER" "$SCICAT_URL"
