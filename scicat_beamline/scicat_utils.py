@@ -29,23 +29,26 @@ class NPArrayEncoder(json.JSONEncoder):
 
 
 def calculate_access_controls(username, beamline, proposal) -> Dict:
-    # make an access group list that includes the name of the proposal and the name of the beamline
-    access_groups = []
+
     # set owner_group to username so that at least someone has access in case no proposal number is found
     owner_group = username
-    if beamline:
-        access_groups.append(beamline)
-        # username lets the user see the Dataset in order to ingest objects after the Dataset
-        access_groups.append(username)
-        # temporary mapping while beamline controls process request to match beamline name with what comes
-        # from ALSHub
-        if beamline == "bl832":
-            access_groups.append("8.3.2")
-
     if proposal and proposal != "None":
         owner_group = proposal
 
-    # this is a bit of a kludge. Add 8.3.2 into the access groups so that staff will be able to see it
+    # make an access group list that includes the name of the proposal and the name of the beamline
+    access_groups = []
+    if beamline:
+        # This is a bit of a kludge. Add 8.3.2 into the access groups so that staff will be able to see it.
+        # Temporary mapping while beamline controls process request to match beamline name with what comes
+        # from ALSHub.
+        if beamline == "bl832":
+            beamline = "8.3.2"
+
+        access_groups.append(beamline)
+        # username lets the user see the Dataset in order to ingest objects after the Dataset
+        if username != beamline:
+            access_groups.append(username)
+
     return {"owner_group": owner_group, "access_groups": access_groups}
 
 
