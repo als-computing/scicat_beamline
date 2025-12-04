@@ -344,3 +344,19 @@ data_sample_keys = [
     "/measurement/instrument/monochromator/setup/turret1",
 ]
 
+
+if __name__ == "__main__":
+    # ingest(
+    #     ScicatClient(
+    #         # "http://localhost:3000/api/v3",
+    #         os.environ.get("SCICAT_API_URL"),
+    #         None,
+    #         os.environ.get("SCICAT_INGEST_USER"),
+    #         os.environ.get("SCICAT_INGEST_PASSWORD"),
+    #     ),
+    #     "/Users/dylanmcreynolds/data/beamlines/8.3.2/raw/"
+    #     "20231013_065251_MSB_Book1_Proj77_Cell3_Gen2_Li_R2G_FastCharge_DuringCharge0.h5",
+    #     [],
+    #     log_level="DEBUG",
+    # )
+    pass
