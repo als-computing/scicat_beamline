@@ -4,11 +4,11 @@ h5py
 pydantic
 pymongo
 python-dotenv
+pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main#subdirectory=pyscicat
 requests
 numpy
 Pillow
 pandas
-git+https://github.com/SciCatProject/pyscicat.git@main
 typer
 matplotlib
 PyHyperScattering
