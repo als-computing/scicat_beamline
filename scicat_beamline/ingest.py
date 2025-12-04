@@ -7,7 +7,7 @@ from typing import List
 import typer
 
 from pyscicat.client import from_credentials, from_token
-from scicat_beamline.common_ingestor_code import Issue
+from scicat_beamline.common_ingester_code import Issue
 
 
 def standard_iterator(pattern: str):
@@ -17,17 +17,17 @@ def standard_iterator(pattern: str):
 
 
 def ingest(
-    ingestor_spec: str = typer.Argument(..., help="Spec to ingest"),
+    ingester_spec: str = typer.Argument(..., help="Spec to ingest"),
     dataset_path: Path = typer.Argument(
         ...,
         help=(
             "Path of the asset to ingest. "
             "May be file or directory depending on the spec "
-            "and its ingestor"
+            "and its ingester"
         ),
     ),
     ingest_user: str = typer.Argument(
-        "ingestor",
+        "ingester",
         help="User doing the ingesting. May be different from the user_name, especially if using a token",
     ),
     base_url: str = typer.Argument(
@@ -65,31 +65,37 @@ def ingest(
         ingestion_function = None
 
         ingest_files_iter = []
-        if ingestor_spec == "als_11012_igor":
+        if ingester_spec == "als_11012_igor":
             ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/dat/")
-            import scicat_beamline.ingestors.als_11012_igor as ingestor_module
+            import scicat_beamline.ingesters.als_11012_igor as ingester_module
 
-            ingestion_function = ingestor_module.ingest
+            ingestion_function = ingester_module.ingest
 
-        elif ingestor_spec == "als_11012_scattering":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/")
-            import scicat_beamline.ingestors.als_11012_scattering as ingestor_module
-
-            ingestion_function = ingestor_module.ingest
-
-        elif ingestor_spec == "als_11012_nexafs":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/Nexafs/*")
-            import scicat_beamline.ingestors.nexafs as ingestor_module
-
-            ingestion_function = ingestor_module.ingest
-
-        elif ingestor_spec == "nsls2_rsoxs_sst1":
+        elif ingester_spec == "als_832_dx_4":
             ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
-            import scicat_beamline.ingestors.nsls2_RSoXS as ingestor_module
+            import scicat_beamline.ingesters.als_832_dx_4 as ingester_module
 
-            ingestion_function = ingestor_module.ingest
+            ingestion_function = ingester_module.ingest
 
-        elif ingestor_spec == "nsls2_nexafs_sst1":
+        elif ingester_spec == "als_11012_scattering":
+            ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/")
+            import scicat_beamline.ingesters.als_11012_scattering as ingester_module
+
+            ingestion_function = ingester_module.ingest
+
+        elif ingester_spec == "als_11012_nexafs":
+            ingest_files_iter = standard_iterator(f"{dataset_path}/Nexafs/*")
+            import scicat_beamline.ingesters.nexafs as ingester_module
+
+            ingestion_function = ingester_module.ingest
+
+        elif ingester_spec == "nsls2_rsoxs_sst1":
+            ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
+            import scicat_beamline.ingesters.nsls2_RSoXS as ingester_module
+
+            ingestion_function = ingester_module.ingest
+
+        elif ingester_spec == "nsls2_nexafs_sst1":
             temp_iter = standard_iterator(f"{dataset_path}/*")
             for file_str in temp_iter:
                 if (
@@ -99,38 +105,38 @@ def ingest(
                 ):
                     continue
                 ingest_files_iter.append(file_str)
-            import scicat_beamline.ingestors.nsls2_nexafs_sst1 as ingestor_module
+            import scicat_beamline.ingesters.nsls2_nexafs_sst1 as ingester_module
 
-            ingestion_function = ingestor_module.ingest
+            ingestion_function = ingester_module.ingest
 
-        elif ingestor_spec == "als733_saxs":
+        elif ingester_spec == "als733_saxs":
             temp_iter = standard_iterator(f"{dataset_path}/*.txt")
             for file_str in temp_iter:
                 # Matt Landsman said not to include these in ingestion
                 if "autoexpose" in file_str or "beamstop_test" in file_str:
                     continue
                 ingest_files_iter.append(file_str)
-            import scicat_beamline.ingestors.als_733_SAXS as ingestor_module
+            import scicat_beamline.ingesters.als_733_SAXS as ingester_module
 
-            ingestion_function = ingestor_module.ingest
+            ingestion_function = ingester_module.ingest
 
-        elif ingestor_spec == "nsls2_trexs_smi":
+        elif ingester_spec == "nsls2_trexs_smi":
             ingest_files_iter = standard_iterator("{dataset_path}/*/")
-            import scicat_beamline.ingestors.nsls2_TREXS_smi as ingestor_module
+            import scicat_beamline.ingesters.nsls2_TREXS_smi as ingester_module
 
-            ingestion_function = ingestor_module.ingest
+            ingestion_function = ingester_module.ingest
 
-        elif ingestor_spec == "polyfts_dscft":
+        elif ingester_spec == "polyfts_dscft":
             ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
-            import scicat_beamline.ingestors.polyfts_dscft as ingestor_module
+            import scicat_beamline.ingesters.polyfts_dscft as ingester_module
 
-            ingestion_function = ingestor_module.ingest
+            ingestion_function = ingester_module.ingest
 
         else:
-            logger.exception(f"Cannot resolve ingestor spec {ingestor_spec}")
+            logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
             return
 
-        logger.info(f"Using ingestor spec {ingestor_spec}")
+        logger.info(f"Using ingester spec {ingester_spec}")
 
         if token:
             client = from_token(base_url, token)
@@ -142,12 +148,13 @@ def ingest(
 
         with tempfile.TemporaryDirectory() as temp_dir:
             issues = []
+            dataset_id = None
             for ingest_file_str in ingest_files_iter:
                 ingest_file_path = Path(ingest_file_str)
                 temp_path = Path(temp_dir)
                 if ingest_file_path.exists():
                     logger.info(f"Ingesting {ingest_file_path}")
-                    ingestion_function(
+                    dataset_id = ingestion_function(
                         client, ingest_user, ingest_file_path, temp_path, issues
                     )
                 else:
@@ -156,10 +163,16 @@ def ingest(
                     )
 
             if len(issues) > 0:
-                logger.info(f"Issues found {[str(issue) for issue in issues]}")
+                logger.info("The following issues were encountered during ingestion:")
+                for issue in issues:
+                    if issue.severity == "error":
+                        logger.error(f"{issue.msg}")
+                    else:
+                        logger.warning(f"{issue.msg}")
+
 
     except Exception:
-        logger.exception(f" Error running ingestor {ingestor_module}")
+        logger.exception(f" Error running ingester {ingester_module}")
 
 
 if __name__ == "__main__":

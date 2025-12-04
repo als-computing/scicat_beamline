@@ -2,11 +2,13 @@ import glob
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 from pyscicat.client import get_file_mod_time, get_file_size
 from pyscicat.model import DataFile
 
+
+UNKNOWN_EMAIL = "unknown@example.com"
 
 class Severity(str, Enum):
     warning = "warning"
@@ -92,3 +94,60 @@ def add_to_sci_metadata_from_bad_headers(
                 continue
             sci_md[f"unknown_field{unknown_cnt}"] = line
             unknown_cnt += 1
+
+
+def clean_email(email: Any) -> str:
+    """
+    Clean the provided email address.
+
+    This function ensures that the input is a valid email address.
+    It returns a default email if:
+      - The input is not a string,
+      - The input is empty after stripping,
+      - The input equals "NONE" (case-insensitive), or
+      - The input does not contain an "@" symbol.
+
+    Parameters
+    ----------
+    email : any
+        The raw email value extracted from metadata.
+
+    Returns
+    -------
+    str
+        A cleaned email address if valid, otherwise the default unknown email.
+
+    Example
+    -------
+    >>> clean_email("  user@example.com  ")
+    'user@example.com'
+    >>> clean_email("garbage")
+    'unknown@example.com'
+    >>> clean_email(None)
+    'unknown@example.com'
+    """
+    # Check that the email is a string
+    if not isinstance(email, str):
+        logger.info(f"Input email is not a string. Returning {UNKNOWN_EMAIL}")
+        return UNKNOWN_EMAIL
+
+    # Remove surrounding whitespace
+    cleaned = email.strip()
+
+    # Remove leading/trailing quotes, commas, and whitespace
+    cleaned = re.sub(r'^["\'\s,]+|["\'\s,]+$', '', email)
+
+    # Fallback if the email is empty, equals "NONE", or lacks an "@" symbol
+    if not cleaned or cleaned.upper() == "NONE" or "@" not in cleaned:
+        logger.info(f"Invalid email address. Returning {UNKNOWN_EMAIL}")
+        return UNKNOWN_EMAIL
+
+    # Optionally, remove spaces from inside the email (typically invalid in an email address)
+    cleaned = cleaned.replace(" ", "")
+
+    # Final verification: ensure that the cleaned email contains "@".
+    if "@" not in cleaned:
+        logger.info(f"Invalid email address: {cleaned}. Returning {UNKNOWN_EMAIL}")
+        return UNKNOWN_EMAIL
+
+    return cleaned

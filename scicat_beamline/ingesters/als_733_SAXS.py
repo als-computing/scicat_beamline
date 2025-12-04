@@ -10,7 +10,7 @@ from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
-from scicat_beamline.common_ingestor_code import (
+from scicat_beamline.common_ingester_code import (
     Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list)
 from scicat_beamline.scicat_utils import (build_search_terms,
                                           build_waxs_saxs_thumb_733,
@@ -18,7 +18,7 @@ from scicat_beamline.scicat_utils import (build_search_terms,
 
 ingest_spec = "als733_saxs"
 
-logger = logging.getLogger("scicat_ingest.733_SAXS")
+logger = logging.getLogger("scicat_ingest")
 
 
 global_keywords = [
@@ -309,7 +309,7 @@ def upload_data_block(
     return result
 
 
-# TODO: Move to common_ingestor_code.py and use as a generalized function
+# TODO: Move to common_ingester_code.py and use as a generalized function
 def upload_attachment(
     scicat_client: ScicatClient,
     encoded_thumbnail: str,

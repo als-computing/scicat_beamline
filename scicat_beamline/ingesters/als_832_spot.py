@@ -14,7 +14,7 @@ from pyscicat.client import (ScicatClient, from_token, get_file_mod_time,
                              get_file_size)
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
-from scicat_beamline.common_ingestor_code import Issue
+from scicat_beamline.common_ingester_code import Issue
 from scicat_beamline.scicat_utils import (build_search_terms, build_thumbnail,
                                           calculate_access_controls)
 
@@ -54,7 +54,14 @@ def build_scientific_metadata(app_metadata_doc: Dict, spot_fields: Dict) -> Dict
     return OrderedDict(sorted(sci_meta.items()))
 
 
-def ingest(scicat_client, spot_doc) -> IngestionStatus:
+def ingest(
+    scicat_client: ScicatClient,
+    username: str,
+    file_path: Path,
+    temp_path: Path,
+    issues: List[Issue],
+) -> str:
+    # TODO: Needs updated error handling
     status = IngestionStatus(spot_doc.get("_id"))
     fs_doc = spot_doc.get("fs")
     if not fs_doc:

@@ -9,14 +9,14 @@ import fabio
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
-from scicat_beamline.common_ingestor_code import (
+from scicat_beamline.common_ingester_code import (
     Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list)
 from scicat_beamline.scicat_utils import (build_search_terms,
                                           encode_image_2_thumbnail)
 
 ingest_spec = "polyfts_dscft"
 
-logger = logging.getLogger("scicat_ingest.733_SAXS")
+logger = logging.getLogger("scicat_ingest")
 
 
 global_keywords = [
@@ -167,7 +167,7 @@ def upload_data_block(
     scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
 
-# TODO: Replace with a generalized version in common_ingestor_code.py
+# TODO: Replace with a generalized version in common_ingester_code.py
 def upload_attachment(
     scicat_client: ScicatClient,
     encoded_thumnbnail: str,

@@ -12,7 +12,7 @@ from pyscicat.client import (ScicatClient, encode_thumbnail, get_file_mod_time,
                              get_file_size)
 from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
                             OrigDatablock, Ownable, RawDataset)
-from scicat_beamline.common_ingestor_code import (Issue,
+from scicat_beamline.common_ingester_code import (Issue,
                                                   create_data_files_list,
                                                   glob_non_hidden_in_folder)
 
