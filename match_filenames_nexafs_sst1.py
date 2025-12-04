@@ -42,12 +42,8 @@ for path in glob.glob("/home/j/programming/work/datasets/SAF-309867-ML/*"):
             metadata_table.loc[last_row_idx, "file_name"] = f"{path_name}"
         else:
             metadata_table.loc[last_row_idx, "file_name"] = str(metadata_table.loc[idx, "file_name"]) + f",{path_name}"
-            
-                
-                
 
         #print(i)
-
 
 metadata_table.to_csv("/home/j/programming/work/datasets/SAF-309867-ML/M-WET Fall 2022 Beamtime.csv", index=False)
 
