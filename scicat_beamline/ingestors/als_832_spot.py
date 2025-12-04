@@ -26,7 +26,7 @@ from pyscicat.model import (
     RawDataset
 )
 from scicat_beamline.utils import Issue
-from splash_ingest.ingestors.scicat_utils import (
+from scicat_beamline.scicat_utils import (
     build_search_terms,
     build_thumbnail,
     calculate_access_controls,
@@ -148,7 +148,7 @@ def upload_data_block(
         dataFileList=datafiles,
         **ownable.model_dump(),
     )
-    scicat_client.datasets_origdatablock_create(dataset_id, datablock)
+    return scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
 
 def upload_raw_dataset(

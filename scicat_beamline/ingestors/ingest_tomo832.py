@@ -15,14 +15,14 @@ from pyscicat.model import (
     Ownable,
 )
 
-from splash_ingest.ingestors.scicat_utils import (
+from scicat_beamline.scicat_utils import (
     build_search_terms,
     build_thumbnail,
     calculate_access_controls,
     encode_image_2_thumbnail,
     NPArrayEncoder,
 )
-from splash_ingest.ingestors.utils import Issue, Severity
+from scicat_beamline.utils import Issue, Severity
 
 ingest_spec = "als832_dx_3"
 
@@ -32,12 +32,11 @@ logger = logging.getLogger("scicat_ingest")
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
     with h5py.File(file_path, "r") as file:
-        file_path = Path(file_path)
         scicat_metadata = _extract_fields(file, scicat_metadata_keys, issues)
         scientific_metadata = _extract_fields(file, scientific_metadata_keys, issues)
         scientific_metadata["data_sample"] = _get_data_sample(file)
@@ -136,7 +135,7 @@ def upload_data_block(
         dataFileList=datafiles,
         **ownable.model_dump(),
     )
-    scicat_client.datasets_origdatablock_create(dataset_id, datablock)
+    return scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
 
 # TODO: Replace with a generalized version in common_ingestor_code.py
@@ -153,7 +152,7 @@ def upload_attachment(
         caption="scattering image",
         **ownable.model_dump(),
     )
-    scicat_client.datasets_attachment_create(attachment)
+    return scicat_client.datasets_attachment_create(attachment)
 
 
 def get_file_size(file_path: Path) -> int:

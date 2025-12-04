@@ -183,7 +183,7 @@ def create_scientific_metadata(folder: Path) -> Dict:
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
@@ -200,7 +200,6 @@ def ingest(
         accessGroups=["MWET", "ingestor"],
     )
 
-    issues: List[Issue] = []
     datafiles, size = create_data_files_list(file_path)
     dataset = create_dataset(scicat_client, file_path, ownable)
     dataset_id = scicat_client.upload_derived_dataset(dataset)
@@ -214,7 +213,7 @@ def ingest(
     data_block = create_data_block(datafiles, dataset_id, ownable, size)
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
 
-    return dataset_id, issues
+    return dataset_id
 
 
 # if __name__ == "__main__":

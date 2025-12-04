@@ -44,8 +44,6 @@ def ingest(
         accessGroups=["MWET", "ingestor"],
     )
 
-    issues: List[Issue] = []
-
     scientific_metadata = OrderedDict()
 
     lines_to_skip = 0
@@ -100,7 +98,7 @@ def ingest(
         **ownable.model_dump(),
     )
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
-    return dataset_id, issues
+    return dataset_id
 
 
 # if __name__ == "__main__":

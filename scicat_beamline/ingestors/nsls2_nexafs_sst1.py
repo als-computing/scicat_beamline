@@ -47,8 +47,6 @@ def ingest(
         accessGroups=["MWET", "ingestor"],
     )
 
-    issues: List[Issue] = []
-
     lines_to_skip = 0
     with open(file_path) as nexafs_file:
         for line_num, line in enumerate(nexafs_file, 1):
@@ -175,7 +173,6 @@ def ingest(
                 path=log_path_obj.name,
                 size=get_file_size(log_path_obj),
                 time=get_file_mod_time(log_path_obj),
-                type="RawDatasets",
             )
         )
 
@@ -184,7 +181,6 @@ def ingest(
             path=file_path.name,
             size=get_file_size(file_path),
             time=get_file_mod_time(file_path),
-            type="RawDatasets",
         ),
         *log_datafiles,
     ]
@@ -197,7 +193,7 @@ def ingest(
         **ownable.model_dump(),
     )
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
-    return dataset_id, issues
+    return dataset_id
 
 
 # if __name__ == "__main__":

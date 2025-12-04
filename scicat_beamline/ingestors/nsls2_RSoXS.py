@@ -158,7 +158,7 @@ class ScatteringNsls2Sst1Reader():
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
@@ -175,7 +175,6 @@ def ingest(
         accessGroups=["MWET", "ingestor"],
     )
     reader = ScatteringNsls2Sst1Reader(file_path, ownable)
-    issues: List[Issue] = []
 
     png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
     if len(list(png_files)) == 0:
@@ -226,7 +225,7 @@ def ingest(
 
     data_block = reader.create_data_block(datafiles, size)
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
-    return dataset_id, issues
+    return dataset_id
 
 
 def build_thumbnail(image_data, name, directory):

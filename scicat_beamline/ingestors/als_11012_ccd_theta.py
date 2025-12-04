@@ -14,9 +14,10 @@ from pyscicat.model import (
     DataFile,
     Dataset,
     DatasetType,
-    Issue,
     Ownable,
 )
+
+from scicat_beamline.utils import Issue
 
 ingest_spec = "als_11012_ccd_theta"
 
@@ -90,4 +91,4 @@ def ingest(
     datablock = create_data_block(dataset_id, file_path, ownable)
     scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
-    return dataset_id, issues
+    return dataset_id

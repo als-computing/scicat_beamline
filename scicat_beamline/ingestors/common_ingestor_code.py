@@ -1,13 +1,13 @@
 import glob
 from pathlib import Path
 import traceback
-from typing import Callable, List, Tuple
+from typing import Callable, List, Tuple, Optional
 from pyscicat.model import DataFile
 from pyscicat.client import get_file_size, get_file_mod_time
 
 
 def create_data_files_list(
-    folder: Path, excludeCheck: Callable[[Path], bool] = None, recursive=False
+    folder: Path, excludeCheck: Optional[Callable[[Path], bool]] = None, recursive=False
 ) -> Tuple[List[DataFile], int]:
     """Iterates over files in a directory and creates a list of files. It will exclude hidden files.
     It will also exclude directories.
@@ -42,13 +42,12 @@ def create_data_file(file: Path, relativePath=None) -> Tuple[DataFile, int]:
         path=str(relativePath),
         size=get_file_size(file),
         time=get_file_mod_time(file),
-        type="RawDatasets",
     )
     return datafile, get_file_size(file)
 
 
 def add_to_sci_metadata_from_bad_headers(
-    sci_md: dict, file_path: Path, when_to_stop: Callable[[str], bool] = None
+    sci_md: dict, file_path: Path, when_to_stop: Optional[Callable[[str], bool]] = None
 ) -> None:
     """This function will scan through the lines within the file given by `file_path` and attempt to create key value pairs using : or = as a delimiter.
     If there are multiple of these in a single line or none of them then it will add the whole line as the value and create a key called unknown_field{count}.
