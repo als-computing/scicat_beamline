@@ -5,12 +5,13 @@ from typing import List
 
 import numpy
 import pandas
-
 from pyscicat.client import ScicatClient, get_file_mod_time, get_file_size
-from pyscicat.model import (DataFile, DatasetType, OrigDatablock, Ownable,
-                            RawDataset)
+from pyscicat.model import DataFile, DatasetType, OrigDatablock, Ownable, RawDataset
+
 from scicat_beamline.common_ingester_utils import (
-    Issue, add_to_sci_metadata_from_bad_headers)
+    Issue,
+    add_to_sci_metadata_from_bad_headers,
+)
 
 ingest_spec = "nsls2_nexafs_sst1"
 

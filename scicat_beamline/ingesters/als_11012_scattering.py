@@ -1,19 +1,33 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, OrderedDict, Tuple, Optional
+from typing import Dict, List, Optional, OrderedDict, Tuple
 
 import numpy as np
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
 from PIL import Image, ImageOps
+from pyscicat.client import (
+    ScicatClient,
+    encode_thumbnail,
+    get_file_mod_time,
+    get_file_size,
+)
+from pyscicat.model import (
+    Attachment,
+    DataFile,
+    Dataset,
+    DatasetType,
+    OrigDatablock,
+    Ownable,
+    RawDataset,
+)
 
-from pyscicat.client import (ScicatClient, encode_thumbnail, get_file_mod_time,
-                             get_file_size)
-from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
-                            OrigDatablock, Ownable, RawDataset)
 from scicat_beamline.common_ingester_utils import (
-    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list,
-    glob_non_hidden_in_folder)
+    Issue,
+    add_to_sci_metadata_from_bad_headers,
+    create_data_files_list,
+    glob_non_hidden_in_folder,
+)
 
 ingest_spec = "als_11012_scattering"
 

@@ -16,9 +16,7 @@ from scicat_beamline.ingesters.nsls2_nexafs_sst1 import (
     ingest as nsls2_nexafs_sst1_ingest,
 )
 from scicat_beamline.ingesters.nsls2_RSoXS import ingest as nsls2_rsoxs_sst1_ingest
-from scicat_beamline.ingesters.nsls2_TREXS_smi import (
-    ingest as nsls2_TREXS_smi_ingest,
-)
+from scicat_beamline.ingesters.nsls2_TREXS_smi import ingest as nsls2_TREXS_smi_ingest
 from scicat_beamline.ingesters.polyfts_dscft import ingest as polyfts_dscft_ingest
 
 __all__ = [

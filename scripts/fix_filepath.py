@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-
 from pyscicat.client import from_credentials
 from pyscicat.model import Dataset
 

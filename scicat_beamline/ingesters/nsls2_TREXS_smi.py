@@ -7,14 +7,27 @@ from typing import List, Tuple
 
 import numpy as np
 from PIL import Image, ImageOps
+from pyscicat.client import (
+    ScicatClient,
+    encode_thumbnail,
+    get_file_mod_time,
+    get_file_size,
+)
+from pyscicat.model import (
+    Attachment,
+    DataFile,
+    Dataset,
+    DatasetType,
+    OrigDatablock,
+    Ownable,
+    RawDataset,
+)
 
-from pyscicat.client import (ScicatClient, encode_thumbnail, get_file_mod_time,
-                             get_file_size)
-from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
-                            OrigDatablock, Ownable, RawDataset)
-from scicat_beamline.common_ingester_utils import (Issue,
-                                                  create_data_files_list,
-                                                  glob_non_hidden_in_folder)
+from scicat_beamline.common_ingester_utils import (
+    Issue,
+    create_data_files_list,
+    glob_non_hidden_in_folder,
+)
 
 ingest_spec = "nsls2_trexs_smi"
 

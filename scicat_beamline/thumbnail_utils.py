@@ -1,8 +1,8 @@
 import base64
+import io
 import json
 import logging
 import os
-import io
 import re
 from pathlib import Path
 from typing import Dict

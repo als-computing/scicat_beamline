@@ -1,8 +1,8 @@
 import logging
 import tempfile
 from pathlib import Path
-import typer
 
+import typer
 from pyscicat.client import from_credentials, from_token
 
 from scicat_beamline.common_ingester_utils import Issue
@@ -161,7 +161,6 @@ def ingest(
                         logger.error(f"{issue.msg}")
                     else:
                         logger.warning(f"{issue.msg}")
-
 
     except Exception:
         logger.exception(f" Error running ingester {ingester_spec}")

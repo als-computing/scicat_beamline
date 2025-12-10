@@ -5,13 +5,24 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import fabio
-
 from pyscicat.client import ScicatClient, encode_thumbnail
-from pyscicat.model import (Attachment, DataFile, DatasetType, DerivedDataset,
-                            OrigDatablock, Ownable, RawDataset)
+from pyscicat.model import (
+    Attachment,
+    DataFile,
+    DatasetType,
+    DerivedDataset,
+    OrigDatablock,
+    Ownable,
+    RawDataset,
+)
+
 from scicat_beamline.common_ingester_utils import (
-    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list, build_search_terms)
-from scicat_beamline.thumbnail_utils import (encode_image_2_thumbnail)
+    Issue,
+    add_to_sci_metadata_from_bad_headers,
+    build_search_terms,
+    create_data_files_list,
+)
+from scicat_beamline.thumbnail_utils import encode_image_2_thumbnail
 
 ingest_spec = "polyfts_dscft"
 

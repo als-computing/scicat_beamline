@@ -1,7 +1,7 @@
-from datetime import datetime
 import json
 import logging
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -10,22 +10,21 @@ from pyscicat.client import ScicatClient
 from pyscicat.model import (
     Attachment,
     CreateDatasetOrigDatablockDto,
-    OrigDatablock,
     DataFile,
-    RawDataset,
     DatasetType,
+    OrigDatablock,
     Ownable,
+    RawDataset,
 )
 
 from scicat_beamline.common_ingester_utils import (
     Issue,
-    Severity,
-    clean_email,
-    build_search_terms,
     NPArrayEncoder,
+    Severity,
+    build_search_terms,
     calculate_access_controls,
+    clean_email,
 )
-
 from scicat_beamline.thumbnail_utils import (
     build_thumbnail_as_filebuffer,
     encode_filebuffer_image_2_thumbnail,

@@ -5,15 +5,28 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import fabio
-
 from pyscicat.client import ScicatClient, encode_thumbnail
-from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
-                            DataFile, DatasetType, DerivedDataset,
-                            OrigDatablock, Ownable, RawDataset)
+from pyscicat.model import (
+    Attachment,
+    CreateDatasetOrigDatablockDto,
+    DataFile,
+    DatasetType,
+    DerivedDataset,
+    OrigDatablock,
+    Ownable,
+    RawDataset,
+)
+
 from scicat_beamline.common_ingester_utils import (
-    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list, build_search_terms)
-from scicat_beamline.thumbnail_utils import (build_waxs_saxs_thumb_733,
-                                          encode_image_2_thumbnail)
+    Issue,
+    add_to_sci_metadata_from_bad_headers,
+    build_search_terms,
+    create_data_files_list,
+)
+from scicat_beamline.thumbnail_utils import (
+    build_waxs_saxs_thumb_733,
+    encode_image_2_thumbnail,
+)
 
 ingest_spec = "als733_saxs"
 

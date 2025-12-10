@@ -2,10 +2,11 @@
 Prefect flow that ingests data into SciCat
 """
 
-from prefect import flow, get_run_logger
-from typing import Dict, Any
 from pathlib import Path
+from typing import Any, Dict
+
 import typer
+from prefect import flow, get_run_logger
 
 from scicat_beamline import ingest
 
