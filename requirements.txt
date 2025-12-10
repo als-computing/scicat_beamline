@@ -11,4 +11,5 @@ numpy
 pandas
 Pillow
 PyHyperScattering
+prefect==3.4.2
 typer
