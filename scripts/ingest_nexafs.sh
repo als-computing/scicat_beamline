@@ -1,11 +1,10 @@
-# NOTE: Run this in the same directory as the ingest.py file AND run it while you are in the virtual environment
+# NOTE: Run this from the root of the repository, and ideally in the virtual environment
 
 # Change working directory to the location of the file only works with Linux, not Windows or Mac
 cd "$(dirname "$0")"
 
-
 if [[ ! -f .env ]] ; then
-    echo 'File ".env" is not there, aborting.'
+    echo 'File ".env" is missing, aborting.'
     exit 1
 fi
 
@@ -27,4 +26,4 @@ fi
 #PASSWORD=password
 
 # Will not run if no directories are available
-python scicat_beamline/ingest.py --username "$USERNAME" --password "$PASSWORD" "als_11012_scattering" "$ROOT_FOLDER" "$INGEST_USER" "$SCICAT_URL"
+python scicat_beamline/ingest.py --username "$USERNAME" --password "$PASSWORD" "als_11012_nexafs" "$ROOT_FOLDER" "$INGEST_USER" "$SCICAT_URL"
