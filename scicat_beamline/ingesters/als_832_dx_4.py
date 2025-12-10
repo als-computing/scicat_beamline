@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -8,6 +9,7 @@ import h5py
 from pyscicat.client import ScicatClient
 from pyscicat.model import (
     Attachment,
+    CreateDatasetOrigDatablockDto,
     OrigDatablock,
     DataFile,
     RawDataset,
@@ -15,16 +17,22 @@ from pyscicat.model import (
     Ownable,
 )
 
-from splash_ingest.ingestors.scicat_utils import (
-    build_search_terms,
-    build_thumbnail,
-    calculate_access_controls,
-    encode_image_2_thumbnail,
-    NPArrayEncoder,
+from scicat_beamline.common_ingester_utils import (
+    Issue,
+    Severity,
+    clean_email,
 )
-from splash_ingest.ingestors.utils import Issue, Severity
 
-ingest_spec = "als832_dx_3"
+from scicat_beamline.scicat_utils import (
+    NPArrayEncoder,
+    build_search_terms,
+    build_thumbnail_as_filebuffer,
+    calculate_access_controls,
+    encode_filebuffer_image_2_thumbnail,
+)
+
+DEFAULT_USER = "8.3.2"  # In case there's not proposal number
+ingest_spec = "als832_dx_4"  # "als832_dx_3"
 
 logger = logging.getLogger("scicat_ingest")
 
@@ -32,12 +40,33 @@ logger = logging.getLogger("scicat_ingest")
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
-    thumbnail_dir: Path,
+    file_path: Path,
+    temp_path: Path,
     issues: List[Issue],
 ) -> str:
+    """Ingests a file into scicat
+
+    Ingestion to takes a "best effort" stance to ingestion. Along the way,
+    many things can go wrong. Rather than failing the entire ingestion, we
+    collect issues and return them to the caller. These issues are updated
+    in the input issues list.
+
+    Parameters
+    ----------
+    scicat_client : ScicatClient
+        client to talk to the scicat server
+    file_path : str
+        Path to find the file(s) to ingest
+    issues : List[Issue]
+        Issues where problems are recorded
+
+    Returns
+    -------
+    str
+        Dataset id of the new
+    """
+
     with h5py.File(file_path, "r") as file:
-        file_path = Path(file_path)
         scicat_metadata = _extract_fields(file, scicat_metadata_keys, issues)
         scientific_metadata = _extract_fields(file, scientific_metadata_keys, issues)
         scientific_metadata["data_sample"] = _get_data_sample(file)
@@ -45,7 +74,7 @@ def ingest(
             json.dumps(scientific_metadata, cls=NPArrayEncoder)
         )
         access_controls = calculate_access_controls(
-            username,
+            DEFAULT_USER,
             scicat_metadata.get("/measurement/sample/experiment/beamline"),
             scicat_metadata.get("/measurement/sample/experiment/proposal"),
         )
@@ -65,11 +94,19 @@ def ingest(
             encoded_scientific_metadata,
             ownable,
         )
-        upload_data_block(scicat_client, file_path, dataset_id, ownable)
+        upload_data_block(
+            scicat_client,
+            file_path,
+            dataset_id
+        )
 
-        thumbnail_file = build_thumbnail(file["/exchange/data"][0], thumbnail_dir)
-        encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
-        upload_attachment(scicat_client, encoded_thumbnail, dataset_id, ownable)
+        thumbnail_file = build_thumbnail_as_filebuffer(file["/exchange/data"][0])
+        encoded_thumbnail = encode_filebuffer_image_2_thumbnail(thumbnail_file)
+        upload_attachment(
+            scicat_client,
+            encoded_thumbnail,
+            dataset_id,
+            ownable)
 
         return dataset_id
 
@@ -82,22 +119,28 @@ def upload_raw_dataset(
     ownable: Ownable,
 ) -> str:
     "Creates a dataset object"
+    file_size = get_file_size(file_path)
     file_mod_time = get_file_mod_time(file_path)
     file_name = scicat_metadata.get("/measurement/sample/file_name")
     description = build_search_terms(file_name)
     appended_keywords = description.split()
-
+    logger.info(f"email: {scicat_metadata.get('/measurement/sample/experimenter/email')}")
     dataset = RawDataset(
         owner=scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
-        contactEmail=scicat_metadata.get("/measurement/sample/experimenter/email") or "Unknown",
-        creationLocation=scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
+        contactEmail=clean_email(scicat_metadata.get("/measurement/sample/experimenter/email"))
+        or "unknown@example.com",
+        creationLocation=scicat_metadata.get("/measurement/instrument/instrument_name")
+        or "Unknown",
         datasetName=file_name,
         type=DatasetType.raw,
-        instrumentId=scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
+        instrumentId=scicat_metadata.get("/measurement/instrument/instrument_name")
+        or "Unknown",
         proposalId=scicat_metadata.get("/measurement/sample/experiment/proposal"),
         dataFormat="DX",
-        principalInvestigator=scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
+        principalInvestigator=scicat_metadata.get("/measurement/sample/experiment/pi")
+        or "Unknown",
         sourceFolder=str(file_path.parent),
+        size=file_size,
         scientificMetadata=scientific_metadata,
         sampleId=description,
         isPublished=False,
@@ -106,40 +149,43 @@ def upload_raw_dataset(
         creationTime=file_mod_time,
         **ownable.model_dump(),
     )
-    dataset_id = scicat_client.datasets_create(dataset)
+    logger.debug(f"dataset: {dataset}")
+    dataset_id = scicat_client.upload_new_dataset(dataset)
     return dataset_id
 
 
-def create_data_files(file_path: Path) -> List[DataFile]:
+def create_data_files(file_path: Path, storage_path: str) -> List[DataFile]:
     "Collects all fits files"
     datafiles = []
     datafile = DataFile(
-        path=file_path.name,
+        path=storage_path,
         size=get_file_size(file_path),
         time=get_file_mod_time(file_path),
-        type="RawDatasets",
     )
     datafiles.append(datafile)
     return datafiles
 
 
 def upload_data_block(
-    scicat_client: ScicatClient, file_path: Path, dataset_id: str, ownable: Ownable
+    scicat_client: ScicatClient,
+    file_path: Path,
+    dataset_id: str,
 ) -> OrigDatablock:
-    "Creates a datablock of fits files"
-    datafiles = create_data_files(file_path)
+    "Creates a datablock of files"
+    # calculate the path where the file will as known to SciCat
+    # TODO: Create a generatlized function for this
+    # that extracts the storage root path from the same place the SciCat credentials are kept
+    #storage_path = str(file_path).replace(source_root_path, storage_root_path)
+    storage_path = str(file_path)
+    datafiles = create_data_files(file_path, storage_path)
 
-    datablock = OrigDatablock(
-        datasetId=dataset_id,
-        instrumentGroup="instrument-default",
+    datablock = CreateDatasetOrigDatablockDto(
         size=get_file_size(file_path),
-        dataFileList=datafiles,
-        **ownable.model_dump(),
+        dataFileList=datafiles
     )
-    scicat_client.datasets_origdatablock_create(dataset_id, datablock)
+    return scicat_client.upload_dataset_origdatablock(dataset_id, datablock)
 
 
-# TODO: Replace with a generalized version in common_ingestor_code.py
 def upload_attachment(
     scicat_client: ScicatClient,
     encoded_thumnbnail: str,
@@ -150,10 +196,10 @@ def upload_attachment(
     attachment = Attachment(
         datasetId=dataset_id,
         thumbnail=encoded_thumnbnail,
-        caption="scattering image",
+        caption="raw image",
         **ownable.model_dump(),
     )
-    scicat_client.datasets_attachment_create(attachment)
+    return scicat_client.upload_attachment(attachment)
 
 
 def get_file_size(file_path: Path) -> int:
@@ -161,7 +207,7 @@ def get_file_size(file_path: Path) -> int:
 
 
 def get_file_mod_time(file_path: Path) -> str:
-    return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
+    return datetime.fromtimestamp(file_path.lstat().st_mtime).isoformat()
 
 
 def _extract_fields(file, keys, issues) -> Dict[str, Any]:
@@ -206,6 +252,8 @@ def _get_data_sample(file, sample_size=10):
         if not data_array:
             continue
         step_size = int(len(data_array) / sample_size)
+        if step_size == 0:
+            step_size = 1
         sample = data_array[0::step_size]
         data_sample[key] = sample
 
@@ -238,10 +286,12 @@ scientific_metadata_keys = [
     "/measurement/instrument/detector/pixel_size",
     "/measurement/instrument/detector/temperature",
     "/measurement/instrument/monochromator/setup/Z2",
-    "/measurement/instrument/monochromator/setup/temperature_tc2",
-    "/measurement/instrument/monochromator/setup/temperature_tc3",
-    "/measurement/instrument/slits/setup/hslits_A_Door",
-    "/measurement/instrument/slits/setup/hslits_A_Wall",
+    # NOTE: These are commented out because they are no longer present in the h5 file as of March 25, 2025
+    # Keeping them commented out in case they are needed in the future
+    # "/measurement/instrument/monochromator/setup/temperature_tc2",
+    # "/measurement/instrument/monochromator/setup/temperature_tc3",
+    # "/measurement/instrument/slits/setup/hslits_A_Door",
+    # "/measurement/instrument/slits/setup/hslits_A_Wall",
     "/measurement/instrument/slits/setup/hslits_center",
     "/measurement/instrument/slits/setup/hslits_size",
     "/measurement/instrument/slits/setup/vslits_Lead_Flag",
@@ -285,3 +335,20 @@ data_sample_keys = [
     "/measurement/instrument/monochromator/setup/turret2",
     "/measurement/instrument/monochromator/setup/turret1",
 ]
+
+
+if __name__ == "__main__":
+    # ingest(
+    #     ScicatClient(
+    #         # "http://localhost:3000/api/v3",
+    #         os.environ.get("SCICAT_API_URL"),
+    #         None,
+    #         os.environ.get("SCICAT_INGEST_USER"),
+    #         os.environ.get("SCICAT_INGEST_PASSWORD"),
+    #     ),
+    #     "/Users/dylanmcreynolds/data/beamlines/8.3.2/raw/"
+    #     "20231013_065251_MSB_Book1_Proj77_Cell3_Gen2_Li_R2G_FastCharge_DuringCharge0.h5",
+    #     [],
+    #     log_level="DEBUG",
+    # )
+    pass

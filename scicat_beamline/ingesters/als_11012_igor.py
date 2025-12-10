@@ -1,27 +1,16 @@
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, OrderedDict, Tuple
+
 import pandas
 
-from pyscicat.client import (
-    ScicatClient,
-    encode_thumbnail,
-    get_file_mod_time,
-    get_file_size,
-)
-from pyscicat.model import (
-    Attachment,
-    OrigDatablock,
-    DataFile,
-    Dataset,
-    DatasetType,
-    DerivedDataset,
-    Ownable,
-)
-from scicat_beamline.ingestors.common_ingestor_code import create_data_files_list
-
-
-from scicat_beamline.utils import Issue, glob_non_hidden_in_folder
+from pyscicat.client import (ScicatClient, encode_thumbnail, get_file_mod_time,
+                             get_file_size)
+from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
+                            DerivedDataset, OrigDatablock, Ownable)
+from scicat_beamline.common_ingester_utils import (Issue,
+                                                  create_data_files_list,
+                                                  glob_non_hidden_in_folder)
 
 ingest_spec = "als_11012_igor"
 
@@ -70,14 +59,19 @@ def create_dataset(
     datasetName = folder.parent.name + "_IGOR_ANALYSIS"
     inputDatasetName = folder.parent.name
     a = scicat_client.get_datasets({"datasetName": inputDatasetName})
-    ai_file_name = next(glob_non_hidden_in_folder(folder.parent, '*.txt')).name[:-7]
+    ai_file_name = next(glob_non_hidden_in_folder(folder.parent, "*.txt")).name[:-7]
 
     sci_md = create_scientific_metadata(folder)
     creationTime = list(sci_md.values())[0]["Processed on"]
 
     description = ai_file_name.replace("_", " ")
     description = description.replace("-", " ")
-    description = inputDatasetName.replace("_", " ").replace("-", " ") + " " + description + " igor analysis"
+    description = (
+        inputDatasetName.replace("_", " ").replace("-", " ")
+        + " "
+        + description
+        + " igor analysis"
+    )
     dataset = DerivedDataset(
         investigator="Cameron McKay",
         inputDatasets=[a[0]["pid"]],
@@ -95,7 +89,16 @@ def create_dataset(
         sampleId=datasetName,
         isPublished=False,
         description=description,
-        keywords=["scattering", "RSoXS", "11.0.1.2 RSoXS" "11.0.1.2", "ALS", "igor", "analysis", "Irena", "Nika"],
+        keywords=[
+            "scattering",
+            "RSoXS",
+            "11.0.1.2 RSoXS" "11.0.1.2",
+            "ALS",
+            "igor",
+            "analysis",
+            "Irena",
+            "Nika",
+        ],
         creationTime=creationTime,
         **ownable.model_dump(),
     )
@@ -113,7 +116,6 @@ def create_attachment(file: Path, dataset_id: str, ownable: Ownable) -> Attachme
 
 
 def create_scientific_metadata(folder: Path) -> Dict:
-
     """Generate a json dict of scientific metadata
     by reading each dat file header
 
@@ -183,7 +185,7 @@ def create_scientific_metadata(folder: Path) -> Dict:
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
@@ -200,7 +202,6 @@ def ingest(
         accessGroups=["MWET", "ingestor"],
     )
 
-    issues: List[Issue] = []
     datafiles, size = create_data_files_list(file_path)
     dataset = create_dataset(scicat_client, file_path, ownable)
     dataset_id = scicat_client.upload_derived_dataset(dataset)
@@ -209,12 +210,14 @@ def ingest(
     jpg_files = list(glob_non_hidden_in_folder(file_path, "*.jpg"))
     if len(list(jpg_files)) > 0:
         thumbnail = create_attachment(jpg_files[0], dataset_id, ownable)
-        scicat_client.datasets_attachment_create(thumbnail, datasetType="DerivedDatasets")
+        scicat_client.datasets_attachment_create(
+            thumbnail, datasetType="DerivedDatasets"
+        )
 
     data_block = create_data_block(datafiles, dataset_id, ownable, size)
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
 
-    return dataset_id, issues
+    return dataset_id
 
 
 # if __name__ == "__main__":

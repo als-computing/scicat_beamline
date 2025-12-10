@@ -1,34 +1,29 @@
-from datetime import datetime
 import logging
+from collections import OrderedDict
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
-from collections import OrderedDict
 
 import fabio
-from pyscicat.client import ScicatClient, encode_thumbnail
-from pyscicat.model import (
-    Attachment,
-    OrigDatablock,
-    DerivedDataset,
-    DataFile,
-    RawDataset,
-    DatasetType,
-    Ownable,
-)
-from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers, create_data_files_list
 
-from scicat_beamline.scicat_utils import (
-    build_search_terms,
-    encode_image_2_thumbnail,
-)
-from scicat_beamline.utils import Issue
+from pyscicat.client import ScicatClient, encode_thumbnail
+from pyscicat.model import (Attachment, DataFile, DatasetType, DerivedDataset,
+                            OrigDatablock, Ownable, RawDataset)
+from scicat_beamline.common_ingester_utils import (
+    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list)
+from scicat_beamline.scicat_utils import (build_search_terms,
+                                          encode_image_2_thumbnail)
 
 ingest_spec = "polyfts_dscft"
 
-logger = logging.getLogger("scicat_ingest.733_SAXS")
+logger = logging.getLogger("scicat_ingest")
 
 
-global_keywords = ["PolyFTS", "DSCFT", ] #TODO: before ingestion change
+global_keywords = [
+    "PolyFTS",
+    "DSCFT",
+]  # TODO: before ingestion change
+
 
 def ingest(
     scicat_client: ScicatClient,
@@ -40,19 +35,18 @@ def ingest(
 
     scientific_metadata = OrderedDict()
 
-    #TODO: change this before ingestion
+    # TODO: change this before ingestion
     basic_scientific_md = OrderedDict()
     basic_scientific_md["institution"] = "ucsb"
 
-    #TODO: change based on project name before ingestion
+    # TODO: change based on project name before ingestion
     basic_scientific_md["project_name"] = "cooper_diblock_nips"
 
-
-    #raise Exception("MUST SPECIFY GEOMETRY")
+    # raise Exception("MUST SPECIFY GEOMETRY")
 
     scientific_metadata.update(basic_scientific_md)
- 
-    #TODO: change PI before ingestion
+
+    # TODO: change PI before ingestion
     scicat_metadata = {
         "owner": "Tony Cooper",
         "email": "acooper@ucsb.edu",
@@ -91,7 +85,10 @@ def upload_raw_dataset(
     ownable: Ownable,
 ) -> str:
     "Creates a dataset object"
-    sci_md_keywords = [scientific_metadata["project_name"], scientific_metadata["institution"]]
+    sci_md_keywords = [
+        scientific_metadata["project_name"],
+        scientific_metadata["institution"],
+    ]
     sci_md_keywords = [x for x in sci_md_keywords if x is not None]
 
     params_file = folder / "params.in"
@@ -102,7 +99,7 @@ def upload_raw_dataset(
     # sampleId = get_sample_id_oct_2022(file_name)
 
     description = build_search_terms(folder_name)
-    #sample_keywords = find_sample_keywords_oct_2022(folder.name)
+    # sample_keywords = find_sample_keywords_oct_2022(folder.name)
     dataset = RawDataset(
         owner=scicat_metadata.get("owner"),
         contactEmail=scicat_metadata.get("email"),
@@ -139,7 +136,8 @@ def upload_data_block(
     total_size += get_file_size(file_rho_initial)
     total_size += get_file_size(file_w_initial)
 
-    datafiles = [DataFile(
+    datafiles = [
+        DataFile(
             path=file_params.name,
             size=get_file_size(file_params),
             time=get_file_mod_time(file_params),
@@ -156,7 +154,8 @@ def upload_data_block(
             size=get_file_size(file_rho_initial),
             time=get_file_mod_time(file_rho_initial),
             type="RawDatasets",
-        )]
+        ),
+    ]
 
     datablock = OrigDatablock(
         datasetId=dataset_id,
@@ -168,7 +167,7 @@ def upload_data_block(
     scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
 
-# TODO: Replace with a generalized version in common_ingestor_code.py
+# TODO: Replace with a generalized version in common_ingester_code.py
 def upload_attachment(
     scicat_client: ScicatClient,
     encoded_thumnbnail: str,
@@ -261,4 +260,3 @@ def _get_dataset_value(data_set):
 #         if posIndex != -1:
 #             sampleId = sampleId[:sampleId.find("pos")]
 #     return sampleId
-

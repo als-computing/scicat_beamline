@@ -1,35 +1,24 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, OrderedDict, Tuple
+from typing import Dict, List, OrderedDict, Tuple, Optional
+
 import numpy as np
-from PIL import Image, ImageOps
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
+from PIL import Image, ImageOps
 
-from pyscicat.client import (
-    ScicatClient,
-    encode_thumbnail,
-    get_file_mod_time,
-    get_file_size,
-)
-
-from pyscicat.model import (
-    Attachment,
-    OrigDatablock,
-    DataFile,
-    Dataset,
-    RawDataset,
-    DatasetType,
-    Ownable,
-)
-from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers, create_data_files_list
-
-from scicat_beamline.utils import Issue, glob_non_hidden_in_folder
+from pyscicat.client import (ScicatClient, encode_thumbnail, get_file_mod_time,
+                             get_file_size)
+from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
+                            OrigDatablock, Ownable, RawDataset)
+from scicat_beamline.common_ingester_utils import (
+    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list,
+    glob_non_hidden_in_folder)
 
 ingest_spec = "als_11012_scattering"
 
 
-class Scattering11012Reader():
+class Scattering11012Reader:
     """A DatasetReader for reading 11012 scattering datasets.
     Reader exepects a folder that contains the labview (AI) text file as
     well as all fits files and some png files. Png files will be ingested
@@ -39,7 +28,7 @@ class Scattering11012Reader():
     headers of each fits file.
     """
 
-    dataset_id: str = None
+    dataset_id: Optional[str] = None
     _issues = []
 
     def __init__(self, folder: Path, ownable: Ownable) -> None:
@@ -68,19 +57,21 @@ class Scattering11012Reader():
     def create_data_block(self, datafiles, size) -> OrigDatablock:
         "Creates a datablock of fits files"
 
+        assert self.dataset_id is not None, "dataset_id must be set before creating data block"
+
         return OrigDatablock(
             datasetId=self.dataset_id,
             instrumentGroup="instrument-default",
             size=size,
             dataFileList=datafiles,
-            **self._ownable.dict(),
+            **self._ownable.model_dump(),
         )
 
     def create_dataset(self) -> Dataset:
         "Creates a dataset object"
         sample_name = self._folder.name
 
-        ai_file_path = next(glob_non_hidden_in_folder(self._folder, '*.txt'))
+        ai_file_path = next(glob_non_hidden_in_folder(self._folder, "*.txt"))
         creationTime = get_file_mod_time(ai_file_path)
         ai_file_name = ai_file_path.name[:-7]
         description = ai_file_name.replace("_", " ")
@@ -118,7 +109,6 @@ class Scattering11012Reader():
         )
 
     def create_scientific_metadata(self) -> Dict:
-
         """Generate a json dict of scientific metadata
         by reading each fits file header
 
@@ -130,7 +120,9 @@ class Scattering11012Reader():
         metadata = {}
         # Headers from AI file
         ai_file_name = next(glob_non_hidden_in_folder(self._folder, "*.txt"))
-        add_to_sci_metadata_from_bad_headers(metadata, ai_file_name, when_to_stop=lambda line: line.startswith("Time"))
+        add_to_sci_metadata_from_bad_headers(
+            metadata, ai_file_name, when_to_stop=lambda line: line.startswith("Time")
+        )
         for fits_file in fits_files:
             with fits.open(fits_file) as hdulist:
                 metadata_header = hdulist[0].header
@@ -144,11 +136,10 @@ class Scattering11012Reader():
         return metadata
 
 
-# def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
     username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
 ) -> str:
@@ -165,7 +156,6 @@ def ingest(
         accessGroups=["MWET", "ingestor"],
     )
     reader = Scattering11012Reader(file_path, ownable)
-    issues: List[Issue] = []
 
     png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
     if len(list(png_files)) == 0:
@@ -175,7 +165,7 @@ def ingest(
         build_thumbnail(image_data, fits_filename.name[:-5], file_path)
     png_files = list(glob_non_hidden_in_folder(file_path, "*.png"))
 
-    datafile_array, size = create_data_files_list(file_path, lambda x: x.name == 'dat')
+    datafile_array, size = create_data_files_list(file_path, lambda x: x.name == "dat")
 
     dataset = reader.create_dataset()
     dataset_id = scicat_client.datasets_create(dataset)
@@ -186,7 +176,7 @@ def ingest(
 
     data_block = reader.create_data_block(datafile_array, size)
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
-    return dataset_id, issues
+    return dataset_id
 
 
 def build_thumbnail(fits_data, name, directory):

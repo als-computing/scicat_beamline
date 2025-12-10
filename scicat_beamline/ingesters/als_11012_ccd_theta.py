@@ -2,21 +2,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-
-from pyscicat.client import (
-    ScicatClient,
-    get_file_mod_time,
-    get_file_size,
-)
-
-from pyscicat.model import (
-    OrigDatablock,
-    DataFile,
-    Dataset,
-    DatasetType,
-    Issue,
-    Ownable,
-)
+from pyscicat.client import ScicatClient, get_file_mod_time, get_file_size
+from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
+                            Ownable)
+from scicat_beamline.common_ingester_utils import Issue
 
 ingest_spec = "als_11012_ccd_theta"
 
@@ -90,4 +79,4 @@ def ingest(
     datablock = create_data_block(dataset_id, file_path, ownable)
     scicat_client.datasets_origdatablock_create(dataset_id, datablock)
 
-    return dataset_id, issues
+    return dataset_id

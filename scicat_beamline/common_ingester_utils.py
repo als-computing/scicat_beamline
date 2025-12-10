@@ -1,13 +1,39 @@
-import glob
+import glob, logging
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-import traceback
-from typing import Callable, List, Tuple
+from typing import Any, Callable, List, Optional, Tuple, Union
+
+from pyscicat.client import get_file_mod_time, get_file_size
 from pyscicat.model import DataFile
-from pyscicat.client import get_file_size, get_file_mod_time
+
+
+UNKNOWN_EMAIL = "unknown@example.com"
+
+class Severity(str, Enum):
+    warning = "warning"
+    error = "error"
+
+
+@dataclass
+class Issue:
+    severity: Severity
+    msg: str
+    exception: Optional[Union[str, None]] = None
+
+
+logger = logging.getLogger("scicat_ingest")
+
+
+def glob_non_hidden_in_folder(folder: Path, pattern: str, recursive=False):
+    """ "This code will return an iterator to all the non-hidden files in a folder according to
+    the regex provided to argument `pattern.` if `recursive` is True it will allow for recursion in the glob pattern
+    """
+    return map(Path, glob.iglob(str(folder) + "/" + pattern, recursive=recursive))
 
 
 def create_data_files_list(
-    folder: Path, excludeCheck: Callable[[Path], bool] = None, recursive=False
+    folder: Path, excludeCheck: Optional[Callable[[Path], bool]] = None, recursive=False
 ) -> Tuple[List[DataFile], int]:
     """Iterates over files in a directory and creates a list of files. It will exclude hidden files.
     It will also exclude directories.
@@ -42,13 +68,12 @@ def create_data_file(file: Path, relativePath=None) -> Tuple[DataFile, int]:
         path=str(relativePath),
         size=get_file_size(file),
         time=get_file_mod_time(file),
-        type="RawDatasets",
     )
     return datafile, get_file_size(file)
 
 
 def add_to_sci_metadata_from_bad_headers(
-    sci_md: dict, file_path: Path, when_to_stop: Callable[[str], bool] = None
+    sci_md: dict, file_path: Path, when_to_stop: Optional[Callable[[str], bool]] = None
 ) -> None:
     """This function will scan through the lines within the file given by `file_path` and attempt to create key value pairs using : or = as a delimiter.
     If there are multiple of these in a single line or none of them then it will add the whole line as the value and create a key called unknown_field{count}.
@@ -72,3 +97,60 @@ def add_to_sci_metadata_from_bad_headers(
                 continue
             sci_md[f"unknown_field{unknown_cnt}"] = line
             unknown_cnt += 1
+
+
+def clean_email(email: Any) -> str:
+    """
+    Clean the provided email address.
+
+    This function ensures that the input is a valid email address.
+    It returns a default email if:
+      - The input is not a string,
+      - The input is empty after stripping,
+      - The input equals "NONE" (case-insensitive), or
+      - The input does not contain an "@" symbol.
+
+    Parameters
+    ----------
+    email : any
+        The raw email value extracted from metadata.
+
+    Returns
+    -------
+    str
+        A cleaned email address if valid, otherwise the default unknown email.
+
+    Example
+    -------
+    >>> clean_email("  user@example.com  ")
+    'user@example.com'
+    >>> clean_email("garbage")
+    'unknown@example.com'
+    >>> clean_email(None)
+    'unknown@example.com'
+    """
+    # Check that the email is a string
+    if not isinstance(email, str):
+        logger.info(f"Input email is not a string. Returning {UNKNOWN_EMAIL}")
+        return UNKNOWN_EMAIL
+
+    # Remove surrounding whitespace
+    cleaned = email.strip()
+
+    # Remove leading/trailing quotes, commas, and whitespace
+    cleaned = re.sub(r'^["\'\s,]+|["\'\s,]+$', '', email)
+
+    # Fallback if the email is empty, equals "NONE", or lacks an "@" symbol
+    if not cleaned or cleaned.upper() == "NONE" or "@" not in cleaned:
+        logger.info(f"Invalid email address. Returning {UNKNOWN_EMAIL}")
+        return UNKNOWN_EMAIL
+
+    # Optionally, remove spaces from inside the email (typically invalid in an email address)
+    cleaned = cleaned.replace(" ", "")
+
+    # Final verification: ensure that the cleaned email contains "@".
+    if "@" not in cleaned:
+        logger.info(f"Invalid email address: {cleaned}. Returning {UNKNOWN_EMAIL}")
+        return UNKNOWN_EMAIL
+
+    return cleaned

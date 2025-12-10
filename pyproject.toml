@@ -10,6 +10,7 @@ dependencies = [
     "fabio",
     "h5py",
     "pydantic",
+    "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
     "pymongo",
     "python-dotenv",
     "requests",
@@ -24,3 +25,7 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["scicat_beamline*"]

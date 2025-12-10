@@ -1,36 +1,34 @@
-from datetime import datetime
-from typing import Dict, List, Tuple
 import logging
-from pathlib import Path
 from collections import OrderedDict
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Tuple
 
 import fabio
-from pyscicat.client import ScicatClient, encode_thumbnail
-from pyscicat.model import (
-    Attachment,
-    OrigDatablock,
-    CreateDatasetOrigDatablockDto,
-    DerivedDataset,
-    DataFile,
-    RawDataset,
-    DatasetType,
-    Ownable,
-)
-from scicat_beamline.ingestors.common_ingestor_code import add_to_sci_metadata_from_bad_headers, create_data_files_list
 
-from scicat_beamline.scicat_utils import (
-    build_search_terms,
-    build_waxs_saxs_thumb_733,
-    encode_image_2_thumbnail,
-)
-from scicat_beamline.utils import Issue
+from pyscicat.client import ScicatClient, encode_thumbnail
+from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
+                            DataFile, DatasetType, DerivedDataset,
+                            OrigDatablock, Ownable, RawDataset)
+from scicat_beamline.common_ingester_utils import (
+    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list)
+from scicat_beamline.scicat_utils import (build_search_terms,
+                                          build_waxs_saxs_thumb_733,
+                                          encode_image_2_thumbnail)
 
 ingest_spec = "als733_saxs"
 
-logger = logging.getLogger("scicat_ingest.733_SAXS")
+logger = logging.getLogger("scicat_ingest")
 
 
-global_keywords = ["SAXS", "ALS", "7.3.3", "scattering", "7.3.3 SAXS"] #TODO: before ingestion change according to SAXS/WAXS
+global_keywords = [
+    "SAXS",
+    "ALS",
+    "7.3.3",
+    "scattering",
+    "7.3.3 SAXS",
+]  # TODO: before ingestion change according to SAXS/WAXS
+
 
 def ingest(
     scicat_client: ScicatClient,
@@ -48,29 +46,29 @@ def ingest(
             scientific_metadata["edf headers"] = fabio_obj.header
     add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
 
-    #TODO: change this before ingestion depending on how the institution is marked. Sometimes it's in the name and sometimes it's not.
+    # TODO: change this before ingestion depending on how the institution is marked. Sometimes it's in the name and sometimes it's not.
     basic_scientific_md = OrderedDict()
-    if ("cal" in file_path.name):
+    if "cal" in file_path.name:
         basic_scientific_md["institution"] = "lbnl"
     else:
         basic_scientific_md["institution"] = "texas"
 
-    #TODO: change based on project name before ingestion
+    # TODO: change based on project name before ingestion
     basic_scientific_md["project_name"] = "SNIPS membranes"
 
-    #TODO: change to transmission or grazing before ingestion
+    # TODO: change to transmission or grazing before ingestion
     basic_scientific_md["geometry"] = "transmission"
-    #raise Exception("MUST SPECIFY GEOMETRY")
+    # raise Exception("MUST SPECIFY GEOMETRY")
 
     scientific_metadata.update(basic_scientific_md)
- 
-    #TODO: change PI before ingestion
+
+    # TODO: change PI before ingestion
     scicat_metadata = {
-        "owner": "Matt Landsman",
-        "email": "mrlandsman@lbl.gov",
+        "owner": "Garrett Birkel",
+        "email": "gwbirkel@lbl.gov",
         "instrument_name": "ALS 7.3.3",
         "proposal": "UNKNOWN",
-        "pi": "Greg Su",
+        "pi": "Garrett Birkel",
     }
 
     # temporary access controls setup
@@ -88,23 +86,36 @@ def ingest(
     )
     upload_data_block(scicat_client, file_path, dataset_id, ownable)
     if edf_file:
-        thumbnail_file = build_waxs_saxs_thumb_733(image_data, thumbnail_dir, edf_file.name)
+        thumbnail_file = build_waxs_saxs_thumb_733(
+            image_data, thumbnail_dir, edf_file.name
+        )
         encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
-        upload_attachment(scicat_client, encoded_thumbnail, dataset_id=dataset_id, caption="scattering image", ownable=ownable)
-    
-    create_derived(scicat_client, edf_file, dataset_id, basic_scientific_md, scicat_metadata)
+        upload_attachment(
+            scicat_client,
+            encoded_thumbnail,
+            dataset_id=dataset_id,
+            caption="scattering image",
+            ownable=ownable,
+        )
+
+    create_derived(
+        scicat_client, edf_file, dataset_id, basic_scientific_md, scicat_metadata
+    )
 
     return dataset_id
 
 
-def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset_id: str, basic_scientific_md: OrderedDict, scicat_metadata: dict):
+def create_derived(
+    scicat_client: ScicatClient,
+    raw_file_path: Path,
+    raw_dataset_id: str,
+    basic_scientific_md: OrderedDict,
+    scicat_metadata: dict,
+):
     # TODO: change depending on analysis type
     ANALYSIS = "radial integration"
     # TODO: change job parameters depending on the parameters given to the script which creates the derived data
-    jobParams = {
-        "method": "pyFAI integrate1d",
-        "npt": 2000
-    }
+    jobParams = {"method": "pyFAI integrate1d", "npt": 2000}
 
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
@@ -117,27 +128,35 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         ownerGroup="MWET",
         accessGroups=["MWET", "ingestor"],
     )
-    # TODO: before ingestion change how the derived_name is generated, could be different depending on the script 
+    # TODO: before ingestion change how the derived_name is generated, could be different depending on the script
     # for generating the derived data
 
     raw_fname = raw_file_path.name
-    derived_name = raw_fname[:raw_fname.find('_2m')]
-    derived_name = derived_name[derived_name.find('texas_') + 6:]
-    if 'disp' in derived_name:
-        derived_name = derived_name[derived_name.find('disp'):]
+    derived_name = raw_fname[: raw_fname.find("_2m")]
+    derived_name = derived_name[derived_name.find("texas_") + 6 :]
+    if "disp" in derived_name:
+        derived_name = derived_name[derived_name.find("disp") :]
 
-    derived_parent_folder = raw_file_path.parent/"analysis"
+    derived_parent_folder = raw_file_path.parent / "analysis"
 
-    derived_files, total_size = create_data_files_list(derived_parent_folder, excludeCheck=lambda path: derived_name not in path.name)
+    derived_files, total_size = create_data_files_list(
+        derived_parent_folder, excludeCheck=lambda path: derived_name not in path.name
+    )
     if len(derived_files) == 0:
         return
 
-    datasetName = derived_name + "_"+ANALYSIS.upper().replace(" ", "_")
+    datasetName = derived_name + "_" + ANALYSIS.upper().replace(" ", "_")
     description = datasetName.replace("_", " ")
 
-    creationTime = get_file_mod_time(Path(derived_parent_folder/derived_files[0].path))
+    creationTime = get_file_mod_time(
+        Path(derived_parent_folder / derived_files[0].path)
+    )
 
-    sci_md_keywords = [basic_scientific_md["project_name"], basic_scientific_md["institution"], basic_scientific_md["geometry"]]
+    sci_md_keywords = [
+        basic_scientific_md["project_name"],
+        basic_scientific_md["institution"],
+        basic_scientific_md["geometry"],
+    ]
     sci_md_keywords = [x for x in sci_md_keywords if x is not None]
     basic_scientific_md["analysis"] = ANALYSIS
 
@@ -147,8 +166,8 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         investigator=scicat_metadata.get("pi"),
         inputDatasets=[raw_dataset_id],
         usedSoftware=["jupyter notebook", "python", "matplotlib", "pyFAI"],
-        owner=scicat_metadata.get('owner'),
-        contactEmail=scicat_metadata.get('email'),
+        owner=scicat_metadata.get("owner"),
+        contactEmail=scicat_metadata.get("email"),
         datasetName=datasetName,
         type=DatasetType.derived,
         instrumentId="7.3.3",
@@ -157,7 +176,14 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         jobParameters=jobParams,
         isPublished=False,
         description=description,
-        keywords=global_keywords+sci_md_keywords+sample_keywords+["analysis", "reduced", ANALYSIS],  # TODO: before ingestion change keywords depending on type of analysis
+        keywords=global_keywords
+        + sci_md_keywords
+        + sample_keywords
+        + [
+            "analysis",
+            "reduced",
+            ANALYSIS,
+        ],  # TODO: before ingestion change keywords depending on type of analysis
         creationTime=creationTime,
         **ownable.model_dump(),
     )
@@ -165,7 +191,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
     derived_id = scicat_client.datasets_create(dataset)
     logger.info(f"Created derived dataset with id {derived_id} for file {raw_fname}")
 
-    #TODO: decide which thumbnail to use before ingestion
+    # TODO: decide which thumbnail to use before ingestion
     thumbPath = None
     for file in derived_files:
         if "radint" in Path(file.path).name and Path(file.path).suffix == ".png":
@@ -179,7 +205,7 @@ def create_derived(scicat_client: ScicatClient, raw_file_path: Path, raw_dataset
         dataset_id=derived_id,
         caption="radial integration graph",
         ownable=ownable,
-        dataset_type="DerivedDatasets"
+        dataset_type="DerivedDatasets",
     )
 
     data_block = OrigDatablock(
@@ -205,7 +231,11 @@ def upload_raw_dataset(
     ownable: Ownable,
 ) -> str:
     "Creates a dataset object"
-    sci_md_keywords = [scientific_metadata["project_name"], scientific_metadata["institution"], scientific_metadata["geometry"]]
+    sci_md_keywords = [
+        scientific_metadata["project_name"],
+        scientific_metadata["institution"],
+        scientific_metadata["geometry"],
+    ]
     sci_md_keywords = [x for x in sci_md_keywords if x is not None]
 
     file_mod_time = get_file_mod_time(file_path)
@@ -230,7 +260,7 @@ def upload_raw_dataset(
         sampleId=sampleId,
         isPublished=False,
         description=description,
-        keywords=global_keywords + sci_md_keywords+sample_keywords,
+        keywords=global_keywords + sci_md_keywords + sample_keywords,
         creationTime=file_mod_time,
         **ownable.model_dump(),
     )
@@ -273,11 +303,13 @@ def upload_data_block(
         dataFileList=datafiles,
     )
     result = scicat_client.datasets_origdatablock_create(dataset_id, datablock)
-    logger.info(f"Created datablock for dataset id {dataset_id} for file {txt_file_path.name}")
+    logger.info(
+        f"Created datablock for dataset id {dataset_id} for file {txt_file_path.name}"
+    )
     return result
 
 
-# TODO: Move to common_ingestor_code.py and use as a generalized function
+# TODO: Move to common_ingester_code.py and use as a generalized function
 def upload_attachment(
     scicat_client: ScicatClient,
     encoded_thumbnail: str,
@@ -293,8 +325,10 @@ def upload_attachment(
         caption=caption,
         **ownable.model_dump(),
     )
-    result = scicat_client.datasets_attachment_create(attachment, datasetType=dataset_type)
-    logger.info(f"Created attachment for dataset {dataset_id} with caption \"{caption}\"")
+    result = scicat_client.datasets_attachment_create(
+        attachment, datasetType=dataset_type
+    )
+    logger.info(f'Created attachment for dataset {dataset_id} with caption "{caption}"')
     return result
 
 
@@ -350,28 +384,27 @@ def get_sample_id_oct_2022(datasetName: str):
     # TODO: write a new method for finding the sampleId depending on how it is represented in the name
     sampleId = None
     if "agb" in datasetName:
-        sampleId = datasetName[datasetName.find("agb"):].split('_')
+        sampleId = datasetName[datasetName.find("agb") :].split("_")
         sampleId = sampleId[0]
     elif "kapton" in datasetName and "cal" not in datasetName:
-        sampleId = datasetName[datasetName.find("kapton"):].split("_")
-        if sampleId[1] == 'ctrl':
+        sampleId = datasetName[datasetName.find("kapton") :].split("_")
+        if sampleId[1] == "ctrl":
             sampleId = sampleId[0] + "_" + sampleId[1]
         else:
             sampleId = sampleId[0] + "_" + sampleId[1] + "_" + sampleId[2]
     elif "B19" in datasetName:
-        sampleId = datasetName[datasetName.find("B19"):].split('_')
+        sampleId = datasetName[datasetName.find("B19") :].split("_")
         sampleId = sampleId[0] + "_" + sampleId[1] + "_" + sampleId[2]
     elif "B13" in datasetName:
-        sampleId = datasetName[datasetName.find("B13"):].split('_')
-        sampleId = sampleId[0]+"_"+sampleId[1]+"_"+sampleId[2]
+        sampleId = datasetName[datasetName.find("B13") :].split("_")
+        sampleId = sampleId[0] + "_" + sampleId[1] + "_" + sampleId[2]
     elif "disp" in datasetName:
-        sampleId = datasetName[datasetName.find("disp"):].split('_')
+        sampleId = datasetName[datasetName.find("disp") :].split("_")
         sampleId = sampleId[0]
     elif "agnp" in datasetName:
-        sampleId = datasetName[datasetName.find("agnp"):].split('_')
+        sampleId = datasetName[datasetName.find("agnp") :].split("_")
         sampleId = sampleId[0]
         posIndex = sampleId.find("pos")
         if posIndex != -1:
-            sampleId = sampleId[:sampleId.find("pos")]
+            sampleId = sampleId[: sampleId.find("pos")]
     return sampleId
-
