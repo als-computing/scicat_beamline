@@ -1,4 +1,4 @@
-import glob
+import glob, logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -20,6 +20,9 @@ class Issue:
     severity: Severity
     msg: str
     exception: Optional[Union[str, None]] = None
+
+
+logger = logging.getLogger("scicat_ingest")
 
 
 def glob_non_hidden_in_folder(folder: Path, pattern: str, recursive=False):
