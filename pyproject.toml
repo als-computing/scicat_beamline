@@ -13,9 +13,9 @@ dependencies = [
     "numpy",
     "pandas",
     "Pillow",
-    "prefect==3.4.2"
+    "prefect==3.4.2",
     "pydantic",
-    "PyHyperScattering"
+    "PyHyperScattering",
     "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
     "pymongo",
     "python-dotenv",
