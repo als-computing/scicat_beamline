@@ -10,7 +10,7 @@ SCICAT_URL=https://mwet.lbl.gov/api/v3
 USERNAME=username
 INGEST_USER=username
 PASSWORD=password
-INGEST_SPEC=als_11012_igor OR als_11012_scattering OR als_11012_nexafs
+INGEST_SPEC=als_11012_igor OR als_11012_scattering OR als_11012_nexafs, etc
 ```
 
 If you're developing locally, install dependencies and work in a virtual environment like so:

@@ -1,11 +1,23 @@
 import logging
 import tempfile
 from pathlib import Path
-
 import typer
 
 from pyscicat.client import from_credentials, from_token
+
 from scicat_beamline.common_ingester_utils import Issue
+from scicat_beamline.ingesters import (
+    als_733_saxs_ingest,
+    als_832_dx_4_ingest,
+    als_11012_ccd_theta_ingest,
+    als_11012_igor_ingest,
+    als_11012_scattering_ingest,
+    nexafs_ingest,
+    nsls2_nexafs_sst1_ingest,
+    nsls2_rsoxs_sst1_ingest,
+    nsls2_TREXS_smi_ingest,
+    polyfts_dscft_ingest,
+)
 
 
 def standard_iterator(pattern: str):
@@ -37,8 +49,8 @@ def ingest(
     password: str = typer.Option(None, help="Scicat server password"),
 ):
 
-    # At the same time we're streaming logs to console,
-    # we also want to write them to a file in the dataset folder.
+    # At the same time we're streaming logs to the console,
+    # we'll write them to a file in the dataset folder.
 
     logger = logging.getLogger("scicat_ingest")
     logger.setLevel("INFO")
@@ -59,39 +71,31 @@ def ingest(
     logger.addHandler(streamHandler)
     logger.addHandler(fileHandler)
 
+    logger.info(f"Using ingester spec {ingester_spec}")
+
     try:
         ingestion_function = None
 
         ingest_files_iter = []
         if ingester_spec == "als_11012_igor":
             ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/dat/")
-            import scicat_beamline.ingesters.als_11012_igor as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = als_733_saxs_ingest
 
         elif ingester_spec == "als_832_dx_4":
             ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
-            import scicat_beamline.ingesters.als_832_dx_4 as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = als_832_dx_4_ingest
 
         elif ingester_spec == "als_11012_scattering":
             ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/")
-            import scicat_beamline.ingesters.als_11012_scattering as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = als_11012_scattering_ingest
 
         elif ingester_spec == "als_11012_nexafs":
             ingest_files_iter = standard_iterator(f"{dataset_path}/Nexafs/*")
-            import scicat_beamline.ingesters.nexafs as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = nexafs_ingest
 
         elif ingester_spec == "nsls2_rsoxs_sst1":
             ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
-            import scicat_beamline.ingesters.nsls2_RSoXS as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = nsls2_rsoxs_sst1_ingest
 
         elif ingester_spec == "nsls2_nexafs_sst1":
             temp_iter = standard_iterator(f"{dataset_path}/*")
@@ -103,9 +107,7 @@ def ingest(
                 ):
                     continue
                 ingest_files_iter.append(file_str)
-            import scicat_beamline.ingesters.nsls2_nexafs_sst1 as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = nsls2_nexafs_sst1_ingest
 
         elif ingester_spec == "als733_saxs":
             temp_iter = standard_iterator(f"{dataset_path}/*.txt")
@@ -114,27 +116,19 @@ def ingest(
                 if "autoexpose" in file_str or "beamstop_test" in file_str:
                     continue
                 ingest_files_iter.append(file_str)
-            import scicat_beamline.ingesters.als_733_SAXS as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = als_733_saxs_ingest
 
         elif ingester_spec == "nsls2_trexs_smi":
             ingest_files_iter = standard_iterator("{dataset_path}/*/")
-            import scicat_beamline.ingesters.nsls2_TREXS_smi as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = nsls2_TREXS_smi_ingest
 
         elif ingester_spec == "polyfts_dscft":
             ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
-            import scicat_beamline.ingesters.polyfts_dscft as ingester_module
-
-            ingestion_function = ingester_module.ingest
+            ingestion_function = polyfts_dscft_ingest
 
         else:
             logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
             return
-
-        logger.info(f"Using ingester spec {ingester_spec}")
 
         if token:
             client = from_token(base_url, token)
@@ -170,7 +164,7 @@ def ingest(
 
 
     except Exception:
-        logger.exception(f" Error running ingester {ingester_module}")
+        logger.exception(f" Error running ingester {ingester_spec}")
 
 
 if __name__ == "__main__":

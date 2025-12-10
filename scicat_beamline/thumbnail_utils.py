@@ -21,50 +21,6 @@ logger = logging.getLogger("scicat_ingest")
 can_debug = logger.isEnabledFor(logging.DEBUG)
 
 
-class NPArrayEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        if isinstance(obj, np.floating):
-            return float(obj)
-        if isinstance(obj, np.ndarray):
-            return [None if np.isnan(item) or np.isinf(item) else item for item in obj]
-        return json.JSONEncoder.default(self, obj)
-
-
-def calculate_access_controls(username, beamline, proposal) -> Dict:
-
-    # set owner_group to username so that at least someone has access in case no proposal number is found
-    owner_group = username
-    if proposal and proposal != "None":
-        owner_group = proposal
-
-    # make an access group list that includes the name of the proposal and the name of the beamline
-    access_groups = []
-    if beamline:
-        # No quotes, spaces, or commas at the beginning or end
-        beamline = re.sub(r'^["\'\s,]+|["\'\s,]+$', '', beamline.lower())
-        # This is a bit of a kludge. Add 8.3.2 into the access groups so that staff will be able to see it.
-        # Temporary mapping while beamline controls process request to match beamline name with what comes
-        # from ALSHub.
-        if beamline == "bl832":
-            beamline = "8.3.2"
-
-        access_groups.append(beamline)
-        # username lets the user see the Dataset in order to ingest objects after the Dataset
-        if username != beamline:
-            access_groups.append(username)
-
-    return {"owner_group": owner_group, "access_groups": access_groups}
-
-
-def build_search_terms(sample_name):
-    """extract search terms from sample name to provide something pleasing to search on"""
-    terms = re.split("[^a-zA-Z0-9]", sample_name)
-    description = [term.lower() for term in terms if len(term) > 0]
-    return " ".join(description)
-
-
 def encode_image_2_thumbnail(filename, imType="jpg"):
     logging.info(f"Creating thumbnail for dataset: {filename}")
     header = "data:image/{imType};base64,".format(imType=imType)

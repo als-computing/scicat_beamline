@@ -21,13 +21,13 @@ from scicat_beamline.common_ingester_utils import (
     Issue,
     Severity,
     clean_email,
+    build_search_terms,
+    NPArrayEncoder,
+    calculate_access_controls,
 )
 
-from scicat_beamline.scicat_utils import (
-    NPArrayEncoder,
-    build_search_terms,
+from scicat_beamline.thumbnail_utils import (
     build_thumbnail_as_filebuffer,
-    calculate_access_controls,
     encode_filebuffer_image_2_thumbnail,
 )
 

@@ -16,7 +16,7 @@ from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
 from scicat_beamline.common_ingester_utils import (Issue,
                                                   create_data_files_list,
                                                   glob_non_hidden_in_folder)
-from scicat_beamline.scicat_utils import build_RSoXS_thumb_SST1
+from scicat_beamline.thumbnail_utils import build_RSoXS_thumb_SST1
 
 ingest_spec = "nsls2_rsoxs_sst1"
 

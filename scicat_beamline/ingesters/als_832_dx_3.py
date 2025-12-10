@@ -9,10 +9,8 @@ import h5py
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
-from scicat_beamline.common_ingester_utils import Issue, Severity
-from scicat_beamline.scicat_utils import (NPArrayEncoder, build_search_terms,
-                                          build_thumbnail,
-                                          calculate_access_controls,
+from scicat_beamline.common_ingester_utils import (Issue, Severity, build_search_terms, NPArrayEncoder, calculate_access_controls)
+from scicat_beamline.thumbnail_utils import (build_thumbnail,
                                           encode_image_2_thumbnail)
 
 # Note: This spec should be considered obsolete. Use als_832_dx_4 instead.
