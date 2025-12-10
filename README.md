@@ -1,6 +1,6 @@
-This repository stores scripts used at various beamlines to ingest data into Scicat.
+This repository stores code used at various beamlines to ingest data into Scicat.
 
-The primary way to invoke these is through the scripts in the root folder, e.g. `ingest_script.py`
+One can manually invoke these through the `manual_ingest.py` script in the root folder.
 
 You can configure necessary settings by creating an `.env` file like so:
 
