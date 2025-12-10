@@ -10,7 +10,7 @@ dependencies = [
     "fabio",
     "h5py",
     "pydantic",
-    "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main#subdirectory=pyscicat",
+    "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
     "pymongo",
     "python-dotenv",
     "requests",

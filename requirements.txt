@@ -4,7 +4,7 @@ h5py
 pydantic
 pymongo
 python-dotenv
-pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main#subdirectory=pyscicat
+pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main
 requests
 numpy
 Pillow
