@@ -15,9 +15,12 @@ SCICAT_URL = os.getenv("SCICAT_URL")
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
 
-assert type(SCICAT_URL) == str and len(SCICAT_URL) != 0
-assert type(USERNAME) == str and len(USERNAME) != 0
-assert type(PASSWORD) == str and len(PASSWORD) != 0
+if not SCICAT_URL:
+    raise ValueError("SCICAT_URL environment variable is required")
+if not USERNAME:
+    raise ValueError("USERNAME environment variable is required")
+if not PASSWORD:
+    raise ValueError("PASSWORD environment variable is required")
 
 client = from_credentials(SCICAT_URL, USERNAME, PASSWORD)
 
