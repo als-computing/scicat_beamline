@@ -71,7 +71,9 @@ class Scattering11012Reader:
     def create_data_block(self, datafiles, size) -> OrigDatablock:
         "Creates a datablock of fits files"
 
-        assert self.dataset_id is not None, "dataset_id must be set before creating data block"
+        assert (
+            self.dataset_id is not None
+        ), "dataset_id must be set before creating data block"
 
         return OrigDatablock(
             datasetId=self.dataset_id,

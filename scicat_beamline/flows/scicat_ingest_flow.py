@@ -42,7 +42,7 @@ def scicat_ingest_flow(
         base_url: Scicat server base url. If not provided, will try localhost default
         token: Scicat api token
         username: Scicat server username
-        password: Scicat server password        
+        password: Scicat server password
     Returns:
         Dict containing task results or skip message
     """

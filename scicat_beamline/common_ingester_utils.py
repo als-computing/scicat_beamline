@@ -8,8 +8,8 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 from pyscicat.client import get_file_mod_time, get_file_size
 from pyscicat.model import DataFile
 
-
 UNKNOWN_EMAIL = "unknown@example.com"
+
 
 class Severity(str, Enum):
     warning = "warning"
@@ -48,7 +48,7 @@ def calculate_access_controls(username, beamline, proposal) -> Dict:
     access_groups = []
     if beamline:
         # No quotes, spaces, or commas at the beginning or end
-        beamline = re.sub(r'^["\'\s,]+|["\'\s,]+$', '', beamline.lower())
+        beamline = re.sub(r'^["\'\s,]+|["\'\s,]+$', "", beamline.lower())
         # This is a bit of a kludge. Add 8.3.2 into the access groups so that staff will be able to see it.
         # Temporary mapping while beamline controls process request to match beamline name with what comes
         # from ALSHub.
@@ -183,7 +183,7 @@ def clean_email(email: Any) -> str:
     cleaned = email.strip()
 
     # Remove leading/trailing quotes, commas, and whitespace
-    cleaned = re.sub(r'^["\'\s,]+|["\'\s,]+$', '', email)
+    cleaned = re.sub(r'^["\'\s,]+|["\'\s,]+$', "", email)
 
     # Fallback if the email is empty, equals "NONE", or lacks an "@" symbol
     if not cleaned or cleaned.upper() == "NONE" or "@" not in cleaned:

@@ -93,19 +93,11 @@ def ingest(
             encoded_scientific_metadata,
             ownable,
         )
-        upload_data_block(
-            scicat_client,
-            file_path,
-            dataset_id
-        )
+        upload_data_block(scicat_client, file_path, dataset_id)
 
         thumbnail_file = build_thumbnail_as_filebuffer(file["/exchange/data"][0])
         encoded_thumbnail = encode_filebuffer_image_2_thumbnail(thumbnail_file)
-        upload_attachment(
-            scicat_client,
-            encoded_thumbnail,
-            dataset_id,
-            ownable)
+        upload_attachment(scicat_client, encoded_thumbnail, dataset_id, ownable)
 
         return dataset_id
 
@@ -123,10 +115,14 @@ def upload_raw_dataset(
     file_name = scicat_metadata.get("/measurement/sample/file_name")
     description = build_search_terms(file_name)
     appended_keywords = description.split()
-    logger.info(f"email: {scicat_metadata.get('/measurement/sample/experimenter/email')}")
+    logger.info(
+        f"email: {scicat_metadata.get('/measurement/sample/experimenter/email')}"
+    )
     dataset = RawDataset(
         owner=scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
-        contactEmail=clean_email(scicat_metadata.get("/measurement/sample/experimenter/email"))
+        contactEmail=clean_email(
+            scicat_metadata.get("/measurement/sample/experimenter/email")
+        )
         or "unknown@example.com",
         creationLocation=scicat_metadata.get("/measurement/instrument/instrument_name")
         or "Unknown",
@@ -174,13 +170,12 @@ def upload_data_block(
     # calculate the path where the file will as known to SciCat
     # TODO: Create a generatlized function for this
     # that extracts the storage root path from the same place the SciCat credentials are kept
-    #storage_path = str(file_path).replace(source_root_path, storage_root_path)
+    # storage_path = str(file_path).replace(source_root_path, storage_root_path)
     storage_path = str(file_path)
     datafiles = create_data_files(file_path, storage_path)
 
     datablock = CreateDatasetOrigDatablockDto(
-        size=get_file_size(file_path),
-        dataFileList=datafiles
+        size=get_file_size(file_path), dataFileList=datafiles
     )
     return scicat_client.upload_dataset_origdatablock(dataset_id, datablock)
 
