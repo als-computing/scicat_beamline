@@ -5,21 +5,21 @@ description = "SciCat Beamline ingestion scripts"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "dotenv>=0.9.9",
     "astropy",
+    "dotenv>=0.9.9",
     "fabio",
     "h5py",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "Pillow",
     "pydantic",
+    "PyHyperScattering"
     "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
     "pymongo",
     "python-dotenv",
     "requests",
-    "numpy",
-    "Pillow",
-    "pandas",
     "typer",
-    "matplotlib",
-    "PyHyperScattering"
 ]
 
 [build-system]

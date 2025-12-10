@@ -1,14 +1,14 @@
 astropy
 fabio
 h5py
+matplotlib
 pydantic
 pymongo
 python-dotenv
 pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main
 requests
 numpy
-Pillow
 pandas
-typer
-matplotlib
+Pillow
 PyHyperScattering
+typer
