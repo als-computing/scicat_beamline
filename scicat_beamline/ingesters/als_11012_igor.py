@@ -1,17 +1,14 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, OrderedDict, Tuple
+from typing import Dict, List, OrderedDict
 
 import pandas
 from pyscicat.client import (
     ScicatClient,
     encode_thumbnail,
-    get_file_mod_time,
-    get_file_size,
 )
 from pyscicat.model import (
     Attachment,
-    DataFile,
     Dataset,
     DatasetType,
     DerivedDataset,

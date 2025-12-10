@@ -1,6 +1,3 @@
-import json
-import os
-import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
@@ -11,11 +8,9 @@ from pyscicat.client import (
     ScicatClient,
     encode_thumbnail,
     get_file_mod_time,
-    get_file_size,
 )
 from pyscicat.model import (
     Attachment,
-    DataFile,
     Dataset,
     DatasetType,
     OrigDatablock,

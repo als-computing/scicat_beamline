@@ -1,7 +1,6 @@
 import sys
 import tempfile
 from pathlib import Path
-from typing import List
 
 from pyscicat.client import from_token
 

@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 import PyHyperScattering
@@ -11,12 +11,9 @@ from PIL import Image, ImageOps
 from pyscicat.client import (
     ScicatClient,
     encode_thumbnail,
-    get_file_mod_time,
-    get_file_size,
 )
 from pyscicat.model import (
     Attachment,
-    DataFile,
     Dataset,
     DatasetType,
     OrigDatablock,

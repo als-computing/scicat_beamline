@@ -2,15 +2,13 @@ import logging
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
-import fabio
-from pyscicat.client import ScicatClient, encode_thumbnail
+from pyscicat.client import ScicatClient
 from pyscicat.model import (
     Attachment,
     DataFile,
     DatasetType,
-    DerivedDataset,
     OrigDatablock,
     Ownable,
     RawDataset,
@@ -18,9 +16,7 @@ from pyscicat.model import (
 
 from scicat_beamline.common_ingester_utils import (
     Issue,
-    add_to_sci_metadata_from_bad_headers,
     build_search_terms,
-    create_data_files_list,
 )
 from scicat_beamline.thumbnail_utils import encode_image_2_thumbnail
 
