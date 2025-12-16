@@ -16,7 +16,6 @@ dataset_path = Path(
     os.getenv("IMPORT_SUBFOLDER", "testing/test_data/bltest"),
 )
 
-
 # Apply the deployment using the newer API
 if __name__ == "__main__":
     import sys
@@ -87,7 +86,6 @@ if __name__ == "__main__":
         "dataset_path:": dataset_path,
         "ingest_user": os.getenv("INGEST_USER", "datasetIngestor"),
         "base_url": os.getenv("SCICAT_URL", "https://dataportal-staging.als.lbl.gov/api/v3"),
-        "token": None,
         "username": os.getenv("SCICAT_USERNAME", None),
         "password": os.getenv("SCICAT_PASSWORD", None)
     }
