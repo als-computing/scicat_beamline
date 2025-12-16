@@ -68,9 +68,9 @@ async def trigger_flow(
         print(f"🔍 Looking for deployment '{deployment_name}'...")
         
         deployments = await client.read_deployments(
-        #    deployment_filter=DeploymentFilter(
-        #        name=dname
-        #    )
+            deployment_filter=DeploymentFilter(
+                name=dname
+            )
         )
 
         print(f"deployments:")
