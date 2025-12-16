@@ -5,6 +5,7 @@ Prefect flow that ingests data into SciCat
 from pathlib import Path
 from typing import Any, Dict
 
+import os
 import typer
 from prefect import flow, get_run_logger
 
@@ -45,14 +46,15 @@ def scicat_ingest_flow(
         Dict containing task results or skip message
     """
     # Get the Prefect logger for the current flow run
-    logger = get_run_logger()
+    prefect_adapter = get_run_logger()
+    dataset_full_path = Path(os.getenv("INTERNAL_BASE_FOLDER", os.getenv("BASE_FOLDER", ".")), dataset_path).resolve()
 
     return ingest(
         ingester_spec=ingester_spec,
-        dataset_path=dataset_path,
+        dataset_path=dataset_full_path,
         ingest_user=ingest_user,
         base_url=base_url,
         username=username,
         password=password,
-        logger=logger
+        logger=prefect_adapter.logger
     )

@@ -48,8 +48,8 @@ services:
     # macOS: Set to 0:0 (root) - Docker Desktop handles file permissions automatically
     user: "0:0"
     volumes:
-      # Mount cosmic data directory (with write access to emit an import log)
-      - ${IMPORT_BASE_FOLDER:-./}:/opt/prefect/import_folder:rw
+      # Mount data directory (with write access to emit an import log)
+      - ${BASE_FOLDER:-./}:${INTERNAL_BASE_FOLDER:-/opt/prefect/import_folder}:rw
     logging:
       options:
         max-size: "1m"
