@@ -11,5 +11,5 @@ numpy
 pandas
 Pillow
 PyHyperScattering
-prefect==3.4.2
+prefect==2.20.17
 typer
