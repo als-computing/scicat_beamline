@@ -1,6 +1,7 @@
 import logging
 import tempfile
 from pathlib import Path
+import glob
 
 import typer
 from typing import Any, Dict
@@ -65,8 +66,19 @@ def ingest(
     # A visibity test
     here = Path(__file__).parent.parent.parent.parent.absolute()
     logger.info(f"Testing datafiles visibility in {here}")
-    datafiles, size = create_data_files_list(here, recursive=False)
-    logger.info(f"Datafiles visibility test found {len(datafiles)} files totaling {size} bytes.")
+
+    datafiles = []
+    totalSize = 0
+
+    for file in glob.iglob(str(here) + "/**", recursive=False):
+        file = Path(file)
+        if file.is_file() is False:
+            continue
+        size = file.lstat().st_size
+        datafiles.append({"path": str(file), "size": size})
+        totalSize += size
+
+    logger.info(f"Datafiles visibility test found {len(datafiles)} files totaling {totalSize} bytes.")
     for df in datafiles:
         logger.info(f"  Datafile: {df.path} size {df.size} bytes")
 
