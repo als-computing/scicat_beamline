@@ -2,7 +2,7 @@
 SciCat ingesters for different beamlines
 """
 
-from scicat_beamline.ingesters.test import ingest as test_ingest
+from scicat_beamline.ingesters.test_ingest import ingest as als_test_ingest
 from scicat_beamline.ingesters.als_733_SAXS import ingest as als_733_saxs_ingest
 from scicat_beamline.ingesters.als_832_dx_4 import ingest as als_832_dx_4_ingest
 from scicat_beamline.ingesters.als_11012_ccd_theta import (
@@ -21,7 +21,7 @@ from scicat_beamline.ingesters.nsls2_TREXS_smi import ingest as nsls2_TREXS_smi_
 from scicat_beamline.ingesters.polyfts_dscft import ingest as polyfts_dscft_ingest
 
 __all__ = [
-    "test_ingest",
+    "als_test_ingest",
     "als_733_saxs_ingest",
     "als_832_dx_4_ingest",
     "als_11012_ccd_theta_ingest",

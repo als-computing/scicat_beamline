@@ -2,11 +2,11 @@ import glob
 import logging
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple, Union, Dict
 
-from pyscicat.client import get_file_mod_time, get_file_size
 from pyscicat.model import DataFile
 
 UNKNOWN_EMAIL = "unknown@example.com"
@@ -36,6 +36,14 @@ class NPArrayEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return [None if np.isnan(item) or np.isinf(item) else item for item in obj]
         return json.JSONEncoder.default(self, obj)
+
+
+def get_file_size(file_path: Path) -> int:
+    return file_path.lstat().st_size
+
+
+def get_file_mod_time(file_path: Path) -> str:
+    return datetime.fromtimestamp(file_path.lstat().st_mtime).isoformat() + "Z"
 
 
 def calculate_access_controls(username, beamline, proposal) -> Dict:

@@ -9,7 +9,6 @@ from PIL import Image, ImageOps
 from pyscicat.client import (
     ScicatClient,
     encode_thumbnail,
-    get_file_mod_time,
 )
 from pyscicat.model import (
     Attachment,
@@ -25,6 +24,7 @@ from scicat_beamline.common_ingester_utils import (
     add_to_sci_metadata_from_bad_headers,
     create_data_files_list,
     glob_non_hidden_in_folder,
+    get_file_mod_time
 )
 
 ingest_spec = "als_11012_scattering"

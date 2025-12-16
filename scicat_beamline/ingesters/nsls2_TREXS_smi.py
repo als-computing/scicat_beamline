@@ -7,7 +7,6 @@ from PIL import Image, ImageOps
 from pyscicat.client import (
     ScicatClient,
     encode_thumbnail,
-    get_file_mod_time,
 )
 from pyscicat.model import (
     Attachment,
@@ -22,6 +21,7 @@ from scicat_beamline.common_ingester_utils import (
     Issue,
     create_data_files_list,
     glob_non_hidden_in_folder,
+    get_file_mod_time,
 )
 
 ingest_spec = "nsls2_trexs_smi"
@@ -62,7 +62,7 @@ class TREXSNsls2SMIReader:
             instrumentGroup="instrument-default",
             size=size,
             dataFileList=datafiles,
-            **self._ownable.dict(),
+            **self._ownable.model_dump(),
         )
 
     def create_dataset(self, creationTime) -> Dataset:
@@ -89,7 +89,7 @@ class TREXSNsls2SMIReader:
             description=self._folder.name,
             keywords=["TREXS", "nsls-ii", "SMI", "scattering", proposalId, "SMI TREXS"],
             creationTime=creationTime,
-            **self._ownable.dict(),
+            **self._ownable.model_dump(),
         )
         return dataset
 
@@ -99,7 +99,7 @@ class TREXSNsls2SMIReader:
             datasetId=self.dataset_id,
             thumbnail=encode_thumbnail(file),
             caption="scattering image",
-            **self._ownable.dict(),
+            **self._ownable.model_dump(),
         )
 
 
@@ -114,8 +114,6 @@ def ingest(
     "Ingest a TREXS folder"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
-        owner="MWET",
-        contactEmail="dmcreynolds@lbl.gov",
         createdBy="dylan",
         updatedBy="dylan",
         updatedAt=now_str,

@@ -21,6 +21,8 @@ from scicat_beamline.common_ingester_utils import (
     Severity,
     build_search_terms,
     calculate_access_controls,
+    get_file_mod_time,
+    get_file_size,
 )
 from scicat_beamline.thumbnail_utils import build_thumbnail, encode_image_2_thumbnail
 
@@ -159,14 +161,6 @@ def upload_attachment(
         **ownable.model_dump(),
     )
     return scicat_client.datasets_attachment_create(attachment)
-
-
-def get_file_size(file_path: Path) -> int:
-    return file_path.lstat().st_size
-
-
-def get_file_mod_time(file_path: Path) -> str:
-    return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
 
 
 def _extract_fields(file, keys, issues) -> Dict[str, Any]:

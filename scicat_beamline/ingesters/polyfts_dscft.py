@@ -17,6 +17,8 @@ from pyscicat.model import (
 from scicat_beamline.common_ingester_utils import (
     Issue,
     build_search_terms,
+    get_file_mod_time,
+    get_file_size,
 )
 from scicat_beamline.thumbnail_utils import encode_image_2_thumbnail
 
@@ -188,14 +190,6 @@ def upload_attachment(
         **ownable.model_dump(),
     )
     scicat_client.datasets_attachment_create(attachment)
-
-
-def get_file_size(file_path: Path) -> int:
-    return file_path.lstat().st_size
-
-
-def get_file_mod_time(file_path: Path) -> str:
-    return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
 
 
 def _get_dataset_value(data_set):

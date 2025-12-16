@@ -7,7 +7,7 @@ from typing import Dict, List
 
 from numpy import append
 from pymongo import MongoClient
-from pyscicat.client import ScicatClient, from_token, get_file_mod_time, get_file_size
+from pyscicat.client import ScicatClient
 from pyscicat.model import (
     DataFile,
     Dataset,
@@ -17,8 +17,12 @@ from pyscicat.model import (
     RawDataset,
 )
 
-from scicat_beamline.common_ingester_utils import Issue, build_search_terms
-from scicat_beamline.thumbnail_utils import build_thumbnail, calculate_access_controls
+from scicat_beamline.common_ingester_utils import (
+    Issue, build_search_terms,
+    get_file_mod_time,
+    calculate_access_controls,
+)
+from scicat_beamline.thumbnail_utils import build_thumbnail
 
 
 @dataclass
@@ -150,7 +154,7 @@ def upload_raw_dataset(
 ) -> str:
     "Creates a dataset object"
     file = Path(fs_doc.get("phyloc"))
-    file_mod_time = 0
+    file_mod_time = "0"
     file_name = file.stem
     if file.exists():
         file_mod_time = get_file_mod_time(file)

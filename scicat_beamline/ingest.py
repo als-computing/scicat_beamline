@@ -13,7 +13,7 @@ from scicat_beamline.ingesters import (
     als_11012_igor_ingest,
     als_11012_scattering_ingest,
     nexafs_ingest,
-    test_ingest,
+    als_test_ingest,
     nsls2_nexafs_sst1_ingest,
     nsls2_rsoxs_sst1_ingest,
     nsls2_TREXS_smi_ingest,
@@ -82,7 +82,7 @@ def ingest(
             temp_iter = standard_iterator(f"{dataset_path}/*.txt")
             for file_str in temp_iter:
                 ingest_files_iter.append(file_str)
-            ingestion_function = test_ingest
+            ingestion_function = als_test_ingest
 
         elif ingester_spec == "als_11012_igor":
             ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/dat/")
@@ -138,9 +138,9 @@ def ingest(
             return
 
         if token:
-            client = from_token(base_url, token)
+            pyscicat_client = from_token(base_url, token)
         elif username and password:
-            client = from_credentials(base_url, username, password)
+            pyscicat_client = from_credentials(base_url, username, password)
         else:
             typer.echo("Must provide either SciCat token or username and password")
             return
@@ -154,7 +154,7 @@ def ingest(
                 if ingest_file_path.exists():
                     logger.info(f"Ingesting {ingest_file_path}")
                     dataset_id = ingestion_function(
-                        client, ingest_user, ingest_file_path, temp_path, issues
+                        pyscicat_client, ingest_user, ingest_file_path, temp_path, issues
                     )
                 else:
                     logger.warning(
@@ -168,6 +168,13 @@ def ingest(
                         logger.error(f"{issue.msg}")
                     else:
                         logger.warning(f"{issue.msg}")
+
+            if dataset_id is not None:
+                logger.info(f"Dataset ID: {dataset_id}")
+            else:
+                logger.warning(f"No dataset ID returned.")
+
+            logger.info(f"Ingestion finished.")
 
     except Exception:
         logger.exception(f" Error running ingester {ingester_spec}")
