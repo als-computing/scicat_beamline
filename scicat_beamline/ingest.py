@@ -80,7 +80,7 @@ def ingest(
 
     logger.info(f"Datafiles visibility test found {len(datafiles)} files totaling {totalSize} bytes.")
     for df in datafiles:
-        logger.info(f"  Datafile: {df.path} size {df.size} bytes")
+        logger.info(f"  Datafile: {df["path"]} size {df["size"]} bytes")
 
     logfile = Path(dataset_path, "scicat_ingester_log.txt")
     formatter = logging.Formatter(
