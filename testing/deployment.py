@@ -107,13 +107,7 @@ if __name__ == "__main__":
         
         print(f"✅ Deployment 'scicat-ingest-deployment' created successfully!")
         print(f"   Deployment ID: {deployment_id}")
-        print(f"   Work Pool: import_worker_pool")
-        print(f"   Work Queue: resource_aware_worker_queue")
         print(f"   Source: {source_url} branch {source_branch}")
-        print(f"\n📋 Next steps:")
-        print(f"   1. Make sure changes are pushed: git push origin {source_branch}")
-        print(f"   2. Start workers: docker compose -f docker/compose.yml up -d")
-        print(f"   3. Run deployment: prefect deployment run 'scicat-ingest-flow/scicat-ingest-deployment'")
             
     except Exception as e:
         print(f"❌ Error creating deployment: {e}")

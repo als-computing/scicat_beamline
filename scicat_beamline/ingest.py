@@ -13,6 +13,7 @@ from scicat_beamline.ingesters import (
     als_11012_igor_ingest,
     als_11012_scattering_ingest,
     nexafs_ingest,
+    test_ingest,
     nsls2_nexafs_sst1_ingest,
     nsls2_rsoxs_sst1_ingest,
     nsls2_TREXS_smi_ingest,
@@ -75,9 +76,15 @@ def ingest(
 
     try:
         ingestion_function = None
-
         ingest_files_iter = []
-        if ingester_spec == "als_11012_igor":
+
+        if ingester_spec == "bltest":
+            temp_iter = standard_iterator(f"{dataset_path}/*.txt")
+            for file_str in temp_iter:
+                ingest_files_iter.append(file_str)
+            ingestion_function = test_ingest
+
+        elif ingester_spec == "als_11012_igor":
             ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/dat/")
             ingestion_function = als_733_saxs_ingest
 
