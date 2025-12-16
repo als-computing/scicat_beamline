@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     from prefect.runner.storage import GitRepository
 
-    source_url = "https://github.com/als-computing/scicat_beamline.git"
+    source_url = "https://github.com/als-computing/scicat_beamline_ingestion.git"
 
     # Parse command line arguments
     # --branch <name>: Deploy from a specific branch (default: main)

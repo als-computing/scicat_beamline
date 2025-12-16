@@ -15,7 +15,7 @@ RUN mkdir -p /opt/prefect/temp
 WORKDIR /opt/prefect/temp
 
 # Copy package source and dependencies
-COPY scicat_beamline ./scicat_beamline
+COPY scicat_beamline_ingestion ./scicat_beamline_ingestion
 COPY pyproject.toml README.md ./
 
 # Install dependencies from pyproject.toml using uv
