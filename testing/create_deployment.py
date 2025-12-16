@@ -1,5 +1,5 @@
 """
-Deployment configuration for the GPU-aware Docker container flow.
+Deployment configuration for the SciCat ingestion Docker container flow.
 
 This file creates a Prefect deployment that can be scheduled and executed by a Prefect worker.
 """

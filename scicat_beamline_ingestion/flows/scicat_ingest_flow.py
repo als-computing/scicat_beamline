@@ -9,7 +9,7 @@ from typing import Any, Dict
 import typer
 from prefect import flow, get_run_logger
 
-from scicat_beamline_ingestion import ingest
+import scicat_beamline_ingestion.ingest as ingest
 
 
 @flow(name="scicat-ingest-flow")

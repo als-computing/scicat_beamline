@@ -1,5 +1,5 @@
 """
-SciCat-related code for different beamlines
+SciCat-related ingestion code for different beamlines
 """
 
 from scicat_beamline_ingestion.ingest import ingest

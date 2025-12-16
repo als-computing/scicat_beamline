@@ -35,4 +35,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["scicat_beamline_ingestion*"]
+include = ["common_ingester_utils*", "thumbnail_utils*", "ingesters*", "scicat_beamline_ingestion*"]
