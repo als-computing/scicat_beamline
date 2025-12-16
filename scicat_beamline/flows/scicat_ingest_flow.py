@@ -22,13 +22,12 @@ def scicat_ingest_flow(
     ),
     ingest_user: str = typer.Argument(
         "ingester",
-        help="User doing the ingesting. May be different from the user_name, especially if using a token",
+        help="User doing the ingesting. May be different from the user_name.",
     ),
     base_url: str = typer.Argument(
         "http://localhost:3000/api/v3",
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    token: str = typer.Option(None, help="Scicat api token"),
     username: str = typer.Option(None, help="Scicat server username"),
     password: str = typer.Option(None, help="Scicat server password"),
 ) -> Dict[str, Any]:
@@ -40,7 +39,6 @@ def scicat_ingest_flow(
         dataset_path: Path of the asset to ingest. May be file or directory depending on the spec.
         ingest_user: User doing the ingesting. May be different from the user_name, especially if using a token
         base_url: Scicat server base url. If not provided, will try localhost default
-        token: Scicat api token
         username: Scicat server username
         password: Scicat server password
     Returns:
@@ -49,12 +47,12 @@ def scicat_ingest_flow(
     # Get the Prefect logger for the current flow run
     logger = get_run_logger()
 
-    ingest(
+    return ingest(
         ingester_spec=ingester_spec,
         dataset_path=dataset_path,
         ingest_user=ingest_user,
         base_url=base_url,
-        token=token,
         username=username,
         password=password,
+        logger=logger
     )

@@ -3,7 +3,9 @@ import tempfile
 from pathlib import Path
 
 import typer
-from pyscicat.client import from_credentials, from_token
+from typing import Any, Dict
+
+from pyscicat.client import from_credentials
 
 from scicat_beamline.common_ingester_utils import Issue
 from scicat_beamline.ingesters import (
@@ -39,40 +41,37 @@ def ingest(
     ),
     ingest_user: str = typer.Argument(
         "ingester",
-        help="User doing the ingesting. May be different from the user_name, especially if using a token",
+        help="User doing the ingesting. May be different from the user_name.",
     ),
     base_url: str = typer.Argument(
         "http://localhost:3000/api/v3",
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    token: str = typer.Option(None, help="Scicat api token"),
     username: str = typer.Option(None, help="Scicat server username"),
     password: str = typer.Option(None, help="Scicat server password"),
+    logger: logging.Logger = typer.Option(None, help="Logger to use"),
 ):
 
     # At the same time we're streaming logs to the console,
     # we'll write them to a file in the dataset folder.
 
-    logger = logging.getLogger("scicat_ingest")
-    logger.setLevel("INFO")
-    logfile = Path(dataset_path, "scicat_ingester_log.txt")
+    if logger is None:
+        logger = logging.getLogger("scicat_ingest")
+        logger.setLevel("INFO")
 
+    logfile = Path(dataset_path, "scicat_ingester_log.txt")
     formatter = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
     )
-
-    streamHandler = logging.StreamHandler()
-    streamHandler.setFormatter(formatter)
-
     fileHandler = logging.FileHandler(
         logfile, mode="a", encoding=None, delay=False, errors=None
     )
     fileHandler.setFormatter(formatter)
-
-    logger.addHandler(streamHandler)
     logger.addHandler(fileHandler)
 
     logger.info(f"Using ingester spec {ingester_spec}")
+
+    results:Dict[str, Any] = {}
 
     try:
         ingestion_function = None
@@ -135,15 +134,13 @@ def ingest(
 
         else:
             logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
-            return
+            return results
 
-        if token:
-            pyscicat_client = from_token(base_url, token)
-        elif username and password:
+        if username and password:
             pyscicat_client = from_credentials(base_url, username, password)
         else:
-            typer.echo("Must provide either SciCat token or username and password")
-            return
+            typer.echo("Must provide a SciCat username and password")
+            return results
 
         with tempfile.TemporaryDirectory() as temp_dir:
             issues = []
@@ -170,6 +167,7 @@ def ingest(
                         logger.warning(f"{issue.msg}")
 
             if dataset_id is not None:
+                results["dataset_id"] = dataset_id
                 logger.info(f"Dataset ID: {dataset_id}")
             else:
                 logger.warning(f"No dataset ID returned.")
@@ -179,6 +177,7 @@ def ingest(
     except Exception:
         logger.exception(f" Error running ingester {ingester_spec}")
 
+    return results
 
 if __name__ == "__main__":
     typer.run(ingest)
