@@ -49,7 +49,7 @@ services:
     user: "0:0"
     volumes:
       # Mount cosmic data directory (with write access to emit an import log)
-      - ${ROOT_FOLDER:-/cosmic-dtn/groups/cosmic/Data}:/import_folder:rw
+      - ${IMPORT_BASE_FOLDER:-./}:/opt/prefect/import_folder:rw
     logging:
       options:
         max-size: "1m"

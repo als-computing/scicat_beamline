@@ -10,19 +10,19 @@ RUN apt-get update && apt-get install -y \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.cargo/bin:$PATH"
 
-# Set working directory
+# Set working directory to a temporary location for package installation
+RUN mkdir -p /opt/prefect/temp
 WORKDIR /opt/prefect/temp
 
 # Copy package source and dependencies
 COPY scicat_beamline ./scicat_beamline
-RUN chmod +x ./scicat_beamline/ingest.py
 COPY pyproject.toml README.md ./
 
 # Install dependencies from pyproject.toml using uv
 # --system: install into system Python (no venv needed in container)
 RUN uv pip install --system --no-cache .
 
-# Clean up temporary files
+# Now that packages are installed, remove what we copied
 RUN cd /opt/prefect && rm -rf temp
 
 # The flow code will be cloned from GitHub at runtime

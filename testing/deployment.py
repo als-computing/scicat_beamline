@@ -8,13 +8,7 @@ from scicat_beamline.flows.scicat_ingest_flow import scicat_ingest_flow
 from pathlib import Path
 import os
 
-# Base directory for local storage
 BASE_DIR = Path(__file__).parent.parent.absolute()
-
-dataset_path = Path(
-    os.getenv("IMPORT_BASE_FOLDER", BASE_DIR),
-    os.getenv("IMPORT_SUBFOLDER", "testing/test_data/bltest"),
-)
 
 # Apply the deployment using the newer API
 if __name__ == "__main__":
@@ -30,7 +24,7 @@ if __name__ == "__main__":
 
     print("Creating deployment...")
     print(f"Flow code location: {BASE_DIR}\n")
-    
+
     from prefect.runner.storage import GitRepository
 
     source_url = "https://github.com/als-computing/scicat_beamline.git"
@@ -83,7 +77,7 @@ if __name__ == "__main__":
 
     parameters = {
         "ingester_spec": os.getenv("INGEST_SPEC", "blTEST"),
-        "dataset_path": dataset_path,
+        "dataset_path": os.getenv("IMPORT_SUBFOLDER", "bltest"),
         "ingest_user": os.getenv("INGEST_USER", "datasetIngestor"),
         "base_url": os.getenv("SCICAT_URL", "https://dataportal-staging.als.lbl.gov/api/v3"),
         "username": os.getenv("SCICAT_USERNAME", None),

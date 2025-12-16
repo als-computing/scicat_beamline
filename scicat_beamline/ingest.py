@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from pyscicat.client import from_credentials
 
-from scicat_beamline.common_ingester_utils import ( Issue, create_data_files_list )
+from scicat_beamline.common_ingester_utils import ( Issue )
 
 from scicat_beamline.ingesters import (
     als_733_saxs_ingest,
@@ -26,8 +26,6 @@ from scicat_beamline.ingesters import (
 
 
 def standard_iterator(pattern: str):
-    import glob
-
     return glob.iglob(pattern)
 
 
@@ -64,13 +62,13 @@ def ingest(
     logger.info(f"Setting up ingester logfile.")
 
     # A visibity test
-    here = Path(__file__).parent.parent.parent.parent.parent.absolute()
+    here = Path("/opt/prefect/import_folder", dataset_path).resolve()
     logger.info(f"Testing datafiles visibility in {here}")
 
     datafiles = []
     totalSize = 0
 
-    for file in glob.iglob(str(here) + "/**", recursive=False):
+    for file in glob.iglob(str(here) + "/**", recursive=True):
         file = Path(file)
         size = 0
         if file.is_file() is True:
