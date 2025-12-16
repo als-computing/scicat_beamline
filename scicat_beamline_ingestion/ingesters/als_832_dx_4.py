@@ -6,20 +6,16 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import h5py
+from common_ingester_utils import (Issue, NPArrayEncoder, Severity,
+                                   build_search_terms,
+                                   calculate_access_controls, clean_email,
+                                   get_file_mod_time, get_file_size)
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, OrigDatablock, Ownable,
                             RawDataset)
-
-from scicat_beamline.common_ingester_utils import (Issue, NPArrayEncoder,
-                                                   Severity,
-                                                   build_search_terms,
-                                                   calculate_access_controls,
-                                                   clean_email,
-                                                   get_file_mod_time,
-                                                   get_file_size)
-from scicat_beamline.thumbnail_utils import (
-    build_thumbnail_as_filebuffer, encode_filebuffer_image_2_thumbnail)
+from thumbnail_utils import (build_thumbnail_as_filebuffer,
+                             encode_filebuffer_image_2_thumbnail)
 
 DEFAULT_USER = "8.3.2"  # In case there's not proposal number
 ingest_spec = "als832_dx_4"  # "als832_dx_3"

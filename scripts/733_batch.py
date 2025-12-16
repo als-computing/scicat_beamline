@@ -4,8 +4,8 @@ from pathlib import Path
 
 from pyscicat.client import from_token
 
-from scicat_beamline.common_ingester_utils import Issue
-from scicat_beamline.ingesters import als_733_SAXS
+from scicat_beamline_ingestion.common_ingester_utils import Issue
+from scicat_beamline_ingestion.ingesters import als_733_SAXS
 
 folder = Path(sys.argv[1])
 token = sys.argv[2]

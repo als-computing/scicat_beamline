@@ -3,7 +3,7 @@ import pathlib
 
 from dotenv import load_dotenv
 
-from scicat_beamline.ingest import ingest
+from scicat_beamline_ingestion.ingest import ingest
 
 load_dotenv()
 

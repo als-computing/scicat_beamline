@@ -7,7 +7,8 @@ This file creates a Prefect deployment that can be scheduled and executed by a P
 import os
 from pathlib import Path
 
-from scicat_beamline.flows.scicat_ingest_flow import scicat_ingest_flow
+from scicat_beamline_ingestion.flows.scicat_ingest_flow import \
+    scicat_ingest_flow
 
 BASE_DIR = Path(__file__).parent.parent.absolute()
 
@@ -91,7 +92,7 @@ if __name__ == "__main__":
         # Create deployment with chosen source
         deployment_id = scicat_ingest_flow.from_source(
             source=source,
-            entrypoint="scicat_beamline/flows/scicat_ingest_flow.py:scicat_ingest_flow"
+            entrypoint="scicat_beamline_ingestion/flows/scicat_ingest_flow.py:scicat_ingest_flow"
         ).deploy(
             name="scicat-ingest-deployment",
             work_pool_name="import_worker_pool",

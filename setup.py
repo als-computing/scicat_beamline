@@ -17,7 +17,7 @@ def read_requirements(filename):
 
 
 setup(
-    name="scicat_beamline",
+    name="scicat-beamline-ingestion",
     version="0.2.0",
     url="https://github.com/mypackage.git",
     author="Author Name",
