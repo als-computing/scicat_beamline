@@ -63,9 +63,10 @@ def ingest(
     logger.info(f"Setting up ingester logfile.")
 
     # A visibity test
-    here = Path(__file__).parent.parent.parent.parent.parent.absolute()
+    here = Path(__file__).parent.parent.parent.parent.absolute()
+    logger.info(f"Testing datafiles visibility in {here}")
     datafiles, size = create_data_files_list(here, recursive=False)
-    logger.info(f"Datafiles visibility test found {len(datafiles)} files in {here} totaling {size} bytes.")
+    logger.info(f"Datafiles visibility test found {len(datafiles)} files totaling {size} bytes.")
     for df in datafiles:
         logger.info(f"  Datafile: {df.path} size {df.size} bytes")
 
