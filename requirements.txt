@@ -2,7 +2,7 @@ astropy
 fabio
 h5py
 matplotlib
-pydantic
+pydantic==2.11
 pymongo
 python-dotenv
 pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main
