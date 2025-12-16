@@ -62,13 +62,13 @@ def ingest(
     logger.info(f"Setting up ingester logfile.")
 
     # A visibity test
-    here = Path("/opt/prefect/import_folder", dataset_path).resolve()
-    logger.info(f"Testing datafiles visibility in {here}")
+    dataset_full_path = Path("/opt/prefect/import_folder", dataset_path).resolve()
+    logger.info(f"Testing datafiles visibility in {dataset_full_path}")
 
     datafiles = []
     totalSize = 0
 
-    for file in glob.iglob(str(here) + "/**", recursive=True):
+    for file in glob.iglob(str(dataset_full_path) + "/**", recursive=True):
         file = Path(file)
         size = 0
         if file.is_file() is True:
@@ -80,7 +80,7 @@ def ingest(
     for df in datafiles:
         logger.info(f"  Datafile: {df["path"]} size {df["size"]} bytes")
 
-    logfile = Path(dataset_path, "scicat_ingester_log.txt")
+    logfile = Path(dataset_full_path, "scicat_ingester_log.txt")
     formatter = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
     )
@@ -99,33 +99,33 @@ def ingest(
         ingest_files_iter = []
 
         if ingester_spec == "bltest":
-            temp_iter = standard_iterator(f"{dataset_path}/*.txt")
+            temp_iter = standard_iterator(f"{dataset_full_path}/*.txt")
             for file_str in temp_iter:
                 ingest_files_iter.append(file_str)
             ingestion_function = als_test_ingest
 
         elif ingester_spec == "als_11012_igor":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/dat/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/CCD/*/dat/")
             ingestion_function = als_733_saxs_ingest
 
         elif ingester_spec == "als_832_dx_4":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/*/")
             ingestion_function = als_832_dx_4_ingest
 
         elif ingester_spec == "als_11012_scattering":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/CCD/*/")
             ingestion_function = als_11012_scattering_ingest
 
         elif ingester_spec == "als_11012_nexafs":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/Nexafs/*")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/Nexafs/*")
             ingestion_function = nexafs_ingest
 
         elif ingester_spec == "nsls2_rsoxs_sst1":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/*/")
             ingestion_function = nsls2_rsoxs_sst1_ingest
 
         elif ingester_spec == "nsls2_nexafs_sst1":
-            temp_iter = standard_iterator(f"{dataset_path}/*")
+            temp_iter = standard_iterator(f"{dataset_full_path}/*")
             for file_str in temp_iter:
                 if (
                     file_str.endswith(".log")
@@ -137,7 +137,7 @@ def ingest(
             ingestion_function = nsls2_nexafs_sst1_ingest
 
         elif ingester_spec == "als733_saxs":
-            temp_iter = standard_iterator(f"{dataset_path}/*.txt")
+            temp_iter = standard_iterator(f"{dataset_full_path}/*.txt")
             for file_str in temp_iter:
                 # Matt Landsman said not to include these in ingestion
                 if "autoexpose" in file_str or "beamstop_test" in file_str:
@@ -146,11 +146,11 @@ def ingest(
             ingestion_function = als_733_saxs_ingest
 
         elif ingester_spec == "nsls2_trexs_smi":
-            ingest_files_iter = standard_iterator("{dataset_path}/*/")
+            ingest_files_iter = standard_iterator("{dataset_full_path}/*/")
             ingestion_function = nsls2_TREXS_smi_ingest
 
         elif ingester_spec == "polyfts_dscft":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/*/")
             ingestion_function = polyfts_dscft_ingest
 
         else:
