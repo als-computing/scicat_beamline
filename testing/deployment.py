@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
     parameters = {
         "ingester_spec": os.getenv("INGEST_SPEC", "blTEST"),
-        "dataset_path:": dataset_path,
+        "dataset_path": dataset_path,
         "ingest_user": os.getenv("INGEST_USER", "datasetIngestor"),
         "base_url": os.getenv("SCICAT_URL", "https://dataportal-staging.als.lbl.gov/api/v3"),
         "username": os.getenv("SCICAT_USERNAME", None),
