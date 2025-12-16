@@ -73,10 +73,6 @@ async def trigger_flow(
             )
         )
 
-        print(f"deployments:")
-        for r in deployments:
-            print(r.model_dump())
-
         if not deployments:
             print(f"❌ Deployment '{deployment_name}' not found!")
             print(f"\n💡 Make sure you've deployed the flow:")
