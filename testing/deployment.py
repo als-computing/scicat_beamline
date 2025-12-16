@@ -16,20 +16,6 @@ dataset_path = Path(
     os.getenv("IMPORT_SUBFOLDER", "testing/test_data/bltest"),
 )
 
-# Define deployment parameters
-deployment_params = {
-    "name": "scicat-ingest-flow",
-    "parameters": {
-        "ingester_spec": os.getenv("INGEST_SPEC", "blTEST"),
-        "dataset_path:": dataset_path,
-        "ingest_user": os.getenv("INGEST_USER", "datasetIngestor"),
-        "base_url": os.getenv("SCICAT_URL", "https://dataportal-staging.als.lbl.gov/api/v3"),
-        "token": None,
-        "username": os.getenv("SCICAT_USERNAME", None),
-        "password": os.getenv("SCICAT_PASSWORD", None)
-    },
-    "tags": ["scicat", "beamline", "ingest"]
-}
 
 # Apply the deployment using the newer API
 if __name__ == "__main__":
@@ -95,7 +81,19 @@ if __name__ == "__main__":
             url=source_url,
             branch=source_branch,
         )
-    
+
+    parameters = {
+        "ingester_spec": os.getenv("INGEST_SPEC", "blTEST"),
+        "dataset_path:": dataset_path,
+        "ingest_user": os.getenv("INGEST_USER", "datasetIngestor"),
+        "base_url": os.getenv("SCICAT_URL", "https://dataportal-staging.als.lbl.gov/api/v3"),
+        "token": None,
+        "username": os.getenv("SCICAT_USERNAME", None),
+        "password": os.getenv("SCICAT_PASSWORD", None)
+    }
+
+    tags = ["scicat", "beamline", "ingest"]
+
     try:
         # Create deployment with chosen source
         deployment_id = scicat_ingest_flow.from_source(
@@ -105,8 +103,8 @@ if __name__ == "__main__":
             name="scicat-ingest-deployment",
             work_pool_name="import_worker_pool",
             work_queue_name="import_worker_queue",
-            parameters=deployment_params["parameters"],
-            tags=deployment_params["tags"],
+            parameters=parameters,
+            tags=tags,
         )
         
         print(f"✅ Deployment 'scicat-ingest-deployment' created successfully!")

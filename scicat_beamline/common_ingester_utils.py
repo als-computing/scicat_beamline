@@ -1,9 +1,10 @@
 import glob
 import logging
+import json
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union, Dict
 
 from pyscicat.client import get_file_mod_time, get_file_size
 from pyscicat.model import DataFile
