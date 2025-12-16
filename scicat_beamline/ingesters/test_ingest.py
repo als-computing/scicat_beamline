@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -131,7 +131,7 @@ def create_derived(
     # TODO: change job parameters depending on the parameters given to the script which creates the derived data
     jobParams = {"method": "pyFAI integrate1d", "npt": 2000}
 
-    now_str = datetime.isoformat(datetime.now(datetime.timezone.utc)) + "Z"
+    now_str = datetime.isoformat(datetime.now(timezone.utc)) + "Z"
     ownable = Ownable(
         createdBy="dylan",
         updatedBy="dylan",

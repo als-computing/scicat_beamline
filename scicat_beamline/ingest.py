@@ -62,24 +62,6 @@ def ingest(
 
     logger.info(f"Setting up ingester logfile.")
 
-    # A visibity test
-    logger.info(f"Testing datafiles visibility in {dataset_path}")
-
-    datafiles = []
-    totalSize = 0
-
-    for file in glob.iglob(str(dataset_path) + "/**", recursive=True):
-        file = Path(file)
-        size = 0
-        if file.is_file() is True:
-            size = file.lstat().st_size
-        datafiles.append({"path": str(file), "size": size})
-        totalSize += size
-
-    logger.info(f"Datafiles visibility test found {len(datafiles)} files totaling {totalSize} bytes.")
-    for df in datafiles:
-        logger.info(f"  Datafile: {df["path"]} size {df["size"]} bytes")
-
     logfile = Path(dataset_path, "scicat_ingester_log.txt")
     formatter = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
