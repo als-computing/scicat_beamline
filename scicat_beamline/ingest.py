@@ -72,9 +72,9 @@ def ingest(
 
     for file in glob.iglob(str(here) + "/**", recursive=False):
         file = Path(file)
-        if file.is_file() is False:
-            continue
-        size = file.lstat().st_size
+        size = 0
+        if file.is_file() is True:
+            size = file.lstat().st_size
         datafiles.append({"path": str(file), "size": size})
         totalSize += size
 
