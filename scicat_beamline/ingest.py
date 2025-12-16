@@ -67,7 +67,7 @@ def ingest(
     datafiles, size = create_data_files_list(here, recursive=True)
     logger.info(f"Datafiles visibility test found {len(datafiles)} files in {here} totaling {size} bytes.")
     for df in datafiles:
-        logger.debug(f"  Datafile: {df.path} size {df.size} bytes")
+        logger.info(f"  Datafile: {df.path} size {df.size} bytes")
 
     logfile = Path(dataset_path, "scicat_ingester_log.txt")
     formatter = logging.Formatter(
