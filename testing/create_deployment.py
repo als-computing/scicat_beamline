@@ -4,9 +4,10 @@ Deployment configuration for the GPU-aware Docker container flow.
 This file creates a Prefect deployment that can be scheduled and executed by a Prefect worker.
 """
 
-from scicat_beamline.flows.scicat_ingest_flow import scicat_ingest_flow
-from pathlib import Path
 import os
+from pathlib import Path
+
+from scicat_beamline.flows.scicat_ingest_flow import scicat_ingest_flow
 
 BASE_DIR = Path(__file__).parent.parent.absolute()
 

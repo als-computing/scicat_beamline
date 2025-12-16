@@ -2,10 +2,10 @@
 Prefect flow that ingests data into SciCat
 """
 
+import os
 from pathlib import Path
 from typing import Any, Dict
 
-import os
 import typer
 from prefect import flow, get_run_logger
 

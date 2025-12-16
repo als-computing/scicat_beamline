@@ -6,26 +6,13 @@ import numpy as np
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
 from PIL import Image, ImageOps
-from pyscicat.client import (
-    ScicatClient,
-    encode_thumbnail,
-)
-from pyscicat.model import (
-    Attachment,
-    Dataset,
-    DatasetType,
-    OrigDatablock,
-    Ownable,
-    RawDataset,
-)
+from pyscicat.client import ScicatClient, encode_thumbnail
+from pyscicat.model import (Attachment, Dataset, DatasetType, OrigDatablock,
+                            Ownable, RawDataset)
 
 from scicat_beamline.common_ingester_utils import (
-    Issue,
-    add_to_sci_metadata_from_bad_headers,
-    create_data_files_list,
-    glob_non_hidden_in_folder,
-    get_file_mod_time
-)
+    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list,
+    get_file_mod_time, glob_non_hidden_in_folder)
 
 ingest_spec = "als_11012_scattering"
 

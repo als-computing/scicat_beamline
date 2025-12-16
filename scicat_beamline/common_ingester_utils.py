@@ -1,12 +1,12 @@
 import glob
-import logging
 import json
+import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Tuple, Union, Dict
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from pyscicat.model import DataFile
 

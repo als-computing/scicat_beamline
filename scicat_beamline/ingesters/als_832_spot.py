@@ -8,20 +8,12 @@ from typing import Dict, List
 from numpy import append
 from pymongo import MongoClient
 from pyscicat.client import ScicatClient
-from pyscicat.model import (
-    DataFile,
-    Dataset,
-    DatasetType,
-    OrigDatablock,
-    Ownable,
-    RawDataset,
-)
+from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
+                            Ownable, RawDataset)
 
-from scicat_beamline.common_ingester_utils import (
-    Issue, build_search_terms,
-    get_file_mod_time,
-    calculate_access_controls,
-)
+from scicat_beamline.common_ingester_utils import (Issue, build_search_terms,
+                                                   calculate_access_controls,
+                                                   get_file_mod_time)
 from scicat_beamline.thumbnail_utils import build_thumbnail
 
 

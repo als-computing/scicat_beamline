@@ -5,21 +5,12 @@ from pathlib import Path
 from typing import Dict, List
 
 from pyscicat.client import ScicatClient
-from pyscicat.model import (
-    Attachment,
-    DataFile,
-    DatasetType,
-    OrigDatablock,
-    Ownable,
-    RawDataset,
-)
+from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
+                            Ownable, RawDataset)
 
-from scicat_beamline.common_ingester_utils import (
-    Issue,
-    build_search_terms,
-    get_file_mod_time,
-    get_file_size,
-)
+from scicat_beamline.common_ingester_utils import (Issue, build_search_terms,
+                                                   get_file_mod_time,
+                                                   get_file_size)
 from scicat_beamline.thumbnail_utils import encode_image_2_thumbnail
 
 ingest_spec = "polyfts_dscft"

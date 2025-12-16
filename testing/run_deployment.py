@@ -11,14 +11,15 @@ Safe to run on:
 - Linux (with or without GPUs)
 - CI/CD environments
 """
-import sys
 import asyncio
+import sys
 from pathlib import Path
-from prefect import get_client
-from prefect.client.schemas.filters import DeploymentFilter, DeploymentFilterName
-from typing import Dict, Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from docker_toolkit import check_docker
+from prefect import get_client
+from prefect.client.schemas.filters import (DeploymentFilter,
+                                            DeploymentFilterName)
 from prefect_toolkit import check_prefect_server
 
 
@@ -32,6 +33,7 @@ def print_header(text):
 def load_env_file():
     """Load .env file if it exists."""
     from pathlib import Path
+
     from dotenv import load_dotenv
 
     env_file = Path(__file__).parent / '.env'

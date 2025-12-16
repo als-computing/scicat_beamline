@@ -3,9 +3,10 @@
 Tools for dealing with Docker
 """
 
-import os, sys
 import argparse
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 

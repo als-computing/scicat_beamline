@@ -3,24 +3,13 @@ from pathlib import Path
 from typing import Dict, List, OrderedDict
 
 import pandas
-from pyscicat.client import (
-    ScicatClient,
-    encode_thumbnail,
-)
-from pyscicat.model import (
-    Attachment,
-    Dataset,
-    DatasetType,
-    DerivedDataset,
-    OrigDatablock,
-    Ownable,
-)
+from pyscicat.client import ScicatClient, encode_thumbnail
+from pyscicat.model import (Attachment, Dataset, DatasetType, DerivedDataset,
+                            OrigDatablock, Ownable)
 
-from scicat_beamline.common_ingester_utils import (
-    Issue,
-    create_data_files_list,
-    glob_non_hidden_in_folder,
-)
+from scicat_beamline.common_ingester_utils import (Issue,
+                                                   create_data_files_list,
+                                                   glob_non_hidden_in_folder)
 
 ingest_spec = "als_11012_igor"
 

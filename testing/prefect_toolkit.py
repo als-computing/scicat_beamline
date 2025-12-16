@@ -6,9 +6,12 @@ This script creates a "import_worker_pool" work pool that can be used for
 running deployments that need to check GPU resources.
 """
 
-import subprocess
-import os, sys, time
 import argparse
+import os
+import subprocess
+import sys
+import time
+
 from prefect import get_client
 from prefect.client.schemas.actions import WorkPoolCreate, WorkPoolUpdate
 from prefect.exceptions import ObjectAlreadyExists
