@@ -7,7 +7,8 @@ from typing import Any, Dict
 
 from pyscicat.client import from_credentials
 
-from scicat_beamline.common_ingester_utils import Issue
+from scicat_beamline.common_ingester_utils import ( Issue, create_data_files_list )
+
 from scicat_beamline.ingesters import (
     als_733_saxs_ingest,
     als_832_dx_4_ingest,
@@ -58,6 +59,15 @@ def ingest(
     if logger is None:
         logger = logging.getLogger("scicat_ingest")
         logger.setLevel("INFO")
+
+    logger.info(f"Setting up ingester logfile.")
+
+    # A visibity test
+    here = Path(__file__).parent.absolute()
+    datafiles, size = create_data_files_list(here, recursive=True)
+    logger.info(f"Datafiles visibility test found {len(datafiles)} files in {here} totaling {size} bytes.")
+    for df in datafiles:
+        logger.debug(f"  Datafile: {df.path} size {df.size} bytes")
 
     logfile = Path(dataset_path, "scicat_ingester_log.txt")
     formatter = logging.Formatter(
