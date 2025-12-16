@@ -98,7 +98,6 @@ async def trigger_flow(
         print(f"   ID: {flow_run.id}")
         print(f"   Name: {flow_run.name}")
         print(f"   State: {flow_run.state.type if flow_run.state else 'PENDING'}")
-        print()
         
 
 
@@ -130,12 +129,8 @@ def main():
     flow_run_id = asyncio.run(
         trigger_flow()
     )
-    
-    # Print result
-    print(flow_run_id)
 
     print("\nFinished.")
-    return 0 if flow_run_id else 1
 
 if __name__ == "__main__":
     sys.exit(main())
