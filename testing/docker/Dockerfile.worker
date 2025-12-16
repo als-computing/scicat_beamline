@@ -1,0 +1,30 @@
+FROM prefecthq/prefect:3.4.2-python3.13
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv (fast Python package installer)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Set working directory
+WORKDIR /opt/prefect/temp
+
+# Copy package source and dependencies
+COPY scicat_beamline ./scicat_beamline
+RUN chmod +x ./scicat_beamline/ingest.py
+COPY pyproject.toml README.md ./
+
+# Install dependencies from pyproject.toml using uv
+# --system: install into system Python (no venv needed in container)
+RUN uv pip install --system --no-cache .
+
+# Clean up temporary files
+RUN cd /opt/prefect && rm -rf temp
+
+# The flow code will be cloned from GitHub at runtime
+# Dependencies are already installed from pyproject.toml
+WORKDIR /opt/prefect
