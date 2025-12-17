@@ -7,8 +7,6 @@ This file creates a Prefect deployment that can be scheduled and executed by a P
 import os
 from pathlib import Path
 
-#from prefect.deployments.runner import DeploymentImage
-
 
 BASE_DIR = Path(__file__).parent.parent.absolute()
 
@@ -55,7 +53,7 @@ if __name__ == "__main__":
     github_token = os.getenv("GITHUB_TOKEN")
     
     if github_token:
-        #from pydantic import SecretStr
+        from pydantic import SecretStr
 
         print("   Using GitHub token for authentication")
         
@@ -65,8 +63,7 @@ if __name__ == "__main__":
             print("   Found existing GitHub token secret")
         except:
             print("   Creating GitHub token secret block")
-            #secret_block = Secret(value=SecretStr(github_token)) # Prefect 3 wants a SecretStr
-            secret_block = Secret(value=github_token)
+            secret_block = Secret(value=SecretStr(github_token)) # Prefect 3 wants a SecretStr
             secret_block.save("github-token", overwrite=True)
 
         source = GitRepository(

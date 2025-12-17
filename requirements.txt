@@ -1,15 +1,16 @@
 astropy
+dotenv>=0.9.9
 fabio
 h5py
 matplotlib
-pydantic==2.11
-pymongo
-python-dotenv
-pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main
-requests
 numpy
 pandas
 Pillow
+prefect>=3.4.2
+pydantic==2.12.5
 PyHyperScattering
-prefect==2.20.17
+pymongo
+pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main
+python-dotenv>=1.2.1
+requests
 typer

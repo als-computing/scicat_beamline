@@ -13,12 +13,12 @@ dependencies = [
     "numpy",
     "pandas",
     "Pillow",
-    "prefect==2.20.17",
-    "pydantic==2.11",
+    "prefect>=3.4.2",
+    "pydantic==2.12.5",
     "PyHyperScattering",
-    "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
     "pymongo",
-    "python-dotenv",
+    "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
+    "python-dotenv>=1.2.1",
     "requests",
     "typer",
 ]
@@ -26,7 +26,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "docker>=7.0.0",
-    "prefect==2.20.17",
+    "prefect>=3.4.2",
 ]
 
 [build-system]

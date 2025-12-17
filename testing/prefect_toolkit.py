@@ -63,43 +63,6 @@ def create_work_pool(name="ingest_worker_pool", pool_type="process", base_job_te
     Returns:
         bool: True if work pool was created or already exists, False if failed
     """
-    # Note: We can't use the Prefect client to do this until we upgrade to Prefect 3,
-    # and splash_flows is currently on Prefect 2.
-    command = f"""
-        prefect work-pool create \
-            --type {pool_type} \
-            --paused false {name} || \
-        prefect work-pool update \
-            --description "Process-based work pool for running flows from GitHub storage" \
-            {name}
-    """
-    print_section(f"Creating work pool '{name}' (type: {pool_type})")
-    try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            check=True,
-            text=True,
-            capture_output=True
-        )
-        print(f"✅ Work pool '{name}' created/updated successfully!")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Error creating/updating work pool: {e.stderr}")
-        return False
-    return True
-    
-
-def create_work_pool_prefect3(name="ingest_worker_pool", pool_type="process", base_job_template={}):
-    """
-    Create a Prefect work pool.
-    
-    Args:
-        name: Name of the work pool
-        pool_type: Type of work pool (process, kubernetes, docker, etc.)
-        
-    Returns:
-        bool: True if work pool was created or already exists, False if failed
-    """
     with get_client(sync_client=True) as client:
 
         print_section(f"Creating work pool '{name}' (type: {pool_type})")

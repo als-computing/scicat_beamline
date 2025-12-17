@@ -1,4 +1,4 @@
-FROM prefecthq/prefect:2.20.17-python3.12
+FROM prefecthq/prefect:3.4.2-python3.12
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -20,9 +20,8 @@ COPY pyproject.toml README.md ./
 
 # Install dependencies from pyproject.toml using uv
 # --system: install into system Python (no venv needed in container)
-# Note that we can't use uv unless we're using a Prefect 3-based image
-#RUN uv pip install --system --no-cache .
-RUN pip3 install --disable-pip-version-check --no-cache-dir .
+# Note that we need a Prefect 3 or higher image to run uv
+RUN uv pip install --system --no-cache .
 
 # Now that packages are installed, remove what we copied
 RUN cd /opt/prefect && rm -rf temp
