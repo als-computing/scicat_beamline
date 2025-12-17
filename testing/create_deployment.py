@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     # Parse command line arguments
     # --branch <name>: Deploy from a specific branch (default: main)
-    source_branch = "2025/12/10-flow"
+    source_branch = "main"
     if "--branch" in sys.argv:
         try:
             branch_idx = sys.argv.index("--branch")
