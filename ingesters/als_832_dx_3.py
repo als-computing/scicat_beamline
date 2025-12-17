@@ -5,13 +5,14 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import h5py
+from pyscicat.client import ScicatClient
+from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
+                            Ownable, RawDataset)
+
 from common_ingester_utils import (Issue, NPArrayEncoder, Severity,
                                    build_search_terms,
                                    calculate_access_controls,
                                    get_file_mod_time, get_file_size)
-from pyscicat.client import ScicatClient
-from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
-                            Ownable, RawDataset)
 from thumbnail_utils import build_thumbnail, encode_image_2_thumbnail
 
 # Note: This spec should be considered obsolete. Use als_832_dx_4 instead.

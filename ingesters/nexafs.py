@@ -5,11 +5,12 @@ from typing import List
 
 import numpy
 import pandas
+from pyscicat.client import ScicatClient
+from pyscicat.model import DatasetType, OrigDatablock, Ownable, RawDataset
+
 from common_ingester_utils import (Issue, add_to_sci_metadata_from_bad_headers,
                                    create_data_file, get_file_mod_time,
                                    get_file_size)
-from pyscicat.client import ScicatClient
-from pyscicat.model import DatasetType, OrigDatablock, Ownable, RawDataset
 
 ingest_spec = "als_11012_nexafs"
 

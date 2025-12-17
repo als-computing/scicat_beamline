@@ -7,7 +7,6 @@ This file creates a Prefect deployment that can be scheduled and executed by a P
 import os
 from pathlib import Path
 
-
 BASE_DIR = Path(__file__).parent.parent.absolute()
 
 # Apply the deployment using the newer API
@@ -22,8 +21,8 @@ if __name__ == "__main__":
         os.environ['PREFECT_API_URL'] = 'http://localhost:4200/api'
         print(f"⚠️ Using default URL for prefect: {os.environ['PREFECT_API_URL']}")
 
-    from prefect.runner.storage import GitRepository
     from prefect.blocks.system import Secret
+    from prefect.runner.storage import GitRepository
 
     from scicat_beamline_ingestion.flows.scicat_ingest_flow import \
         scicat_ingest_flow

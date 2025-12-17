@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import typer
+from pyscicat.client import from_credentials
+
 from common_ingester_utils import Issue
 from ingesters import (als_733_saxs_ingest, als_832_dx_4_ingest,
                        als_11012_ccd_theta_ingest, als_11012_igor_ingest,
@@ -13,7 +15,6 @@ from ingesters import (als_733_saxs_ingest, als_832_dx_4_ingest,
                        nexafs_ingest, nsls2_nexafs_sst1_ingest,
                        nsls2_rsoxs_sst1_ingest, nsls2_TREXS_smi_ingest,
                        polyfts_dscft_ingest)
-from pyscicat.client import from_credentials
 
 
 def standard_iterator(pattern: str):

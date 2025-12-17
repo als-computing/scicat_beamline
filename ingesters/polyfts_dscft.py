@@ -4,11 +4,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
-from common_ingester_utils import (Issue, build_search_terms,
-                                   get_file_mod_time, get_file_size)
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
+
+from common_ingester_utils import (Issue, build_search_terms,
+                                   get_file_mod_time, get_file_size)
 from thumbnail_utils import encode_image_2_thumbnail
 
 ingest_spec = "polyfts_dscft"

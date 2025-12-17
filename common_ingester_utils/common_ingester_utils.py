@@ -2,13 +2,13 @@ import glob
 import json
 import logging
 import re
-import numpy as np
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 from pyscicat.model import DataFile
 
 UNKNOWN_EMAIL = "unknown@example.com"

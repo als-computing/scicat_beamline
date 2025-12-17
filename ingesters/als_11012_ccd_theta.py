@@ -2,10 +2,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-from common_ingester_utils import Issue, get_file_mod_time, get_file_size
 from pyscicat.client import ScicatClient
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable)
+
+from common_ingester_utils import Issue, get_file_mod_time, get_file_size
 
 ingest_spec = "als_11012_ccd_theta"
 
