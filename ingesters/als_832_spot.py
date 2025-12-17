@@ -2,21 +2,19 @@ import os
 import sys
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from turtle import st
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from numpy import append
 from pymongo import MongoClient
-
-from pyscicat.client import (ScicatClient, from_token, get_file_mod_time,
-                             get_file_size)
+from pyscicat.client import ScicatClient
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
-from scicat_beamline.common_ingester_utils import Issue
-from scicat_beamline.scicat_utils import (build_search_terms, build_thumbnail,
-                                          calculate_access_controls)
+
+from common_ingester_utils import (Issue, build_search_terms,
+                                   calculate_access_controls,
+                                   get_file_mod_time)
+from thumbnail_utils import build_thumbnail
 
 
 @dataclass
@@ -148,7 +146,7 @@ def upload_raw_dataset(
 ) -> str:
     "Creates a dataset object"
     file = Path(fs_doc.get("phyloc"))
-    file_mod_time = 0
+    file_mod_time = "0"
     file_name = file.stem
     if file.exists():
         file_mod_time = get_file_mod_time(file)

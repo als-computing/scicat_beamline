@@ -1,25 +1,32 @@
 [project]
 name = "scicat-beamline-ingestion"
-version = "0.1.0"
+version = "0.2.0"
 description = "SciCat Beamline ingestion scripts"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "dotenv>=0.9.9",
     "astropy",
+    "dotenv>=0.9.9",
     "fabio",
     "h5py",
-    "pydantic",
-    "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
-    "pymongo",
-    "python-dotenv",
-    "requests",
-    "numpy",
-    "Pillow",
-    "pandas",
-    "typer",
     "matplotlib",
-    "PyHyperScattering"
+    "numpy",
+    "pandas",
+    "Pillow",
+    "prefect>=3.4.2",
+    "pydantic==2.12.5",
+    "PyHyperScattering",
+    "pymongo",
+    "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
+    "python-dotenv>=1.2.1",
+    "requests",
+    "typer",
+]
+
+[project.optional-dependencies]
+dev = [
+    "docker>=7.0.0",
+    "prefect>=3.4.2",
 ]
 
 [build-system]
@@ -28,4 +35,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["scicat_beamline*"]
+include = ["common_ingester_utils*", "thumbnail_utils*", "ingesters*", "scicat_beamline_ingestion*"]

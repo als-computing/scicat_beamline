@@ -5,15 +5,15 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import h5py
-
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
-from scicat_beamline.common_ingester_utils import Issue, Severity
-from scicat_beamline.scicat_utils import (NPArrayEncoder, build_search_terms,
-                                          build_thumbnail,
-                                          calculate_access_controls,
-                                          encode_image_2_thumbnail)
+
+from common_ingester_utils import (Issue, NPArrayEncoder, Severity,
+                                   build_search_terms,
+                                   calculate_access_controls,
+                                   get_file_mod_time, get_file_size)
+from thumbnail_utils import build_thumbnail, encode_image_2_thumbnail
 
 # Note: This spec should be considered obsolete. Use als_832_dx_4 instead.
 
@@ -150,14 +150,6 @@ def upload_attachment(
         **ownable.model_dump(),
     )
     return scicat_client.datasets_attachment_create(attachment)
-
-
-def get_file_size(file_path: Path) -> int:
-    return file_path.lstat().st_size
-
-
-def get_file_mod_time(file_path: Path) -> str:
-    return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
 
 
 def _extract_fields(file, keys, issues) -> Dict[str, Any]:

@@ -1,19 +1,18 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, OrderedDict, Tuple, Optional
+from typing import Dict, List, Optional, OrderedDict
 
 import numpy as np
 from astropy.io import fits
 from astropy.io.fits.header import _HeaderCommentaryCards
 from PIL import Image, ImageOps
+from pyscicat.client import ScicatClient, encode_thumbnail
+from pyscicat.model import (Attachment, Dataset, DatasetType, OrigDatablock,
+                            Ownable, RawDataset)
 
-from pyscicat.client import (ScicatClient, encode_thumbnail, get_file_mod_time,
-                             get_file_size)
-from pyscicat.model import (Attachment, DataFile, Dataset, DatasetType,
-                            OrigDatablock, Ownable, RawDataset)
-from scicat_beamline.common_ingester_utils import (
-    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list,
-    glob_non_hidden_in_folder)
+from common_ingester_utils import (Issue, add_to_sci_metadata_from_bad_headers,
+                                   create_data_files_list, get_file_mod_time,
+                                   glob_non_hidden_in_folder)
 
 ingest_spec = "als_11012_scattering"
 
@@ -57,7 +56,9 @@ class Scattering11012Reader:
     def create_data_block(self, datafiles, size) -> OrigDatablock:
         "Creates a datablock of fits files"
 
-        assert self.dataset_id is not None, "dataset_id must be set before creating data block"
+        assert (
+            self.dataset_id is not None
+        ), "dataset_id must be set before creating data block"
 
         return OrigDatablock(
             datasetId=self.dataset_id,

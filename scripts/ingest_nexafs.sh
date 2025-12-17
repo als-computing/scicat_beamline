@@ -26,4 +26,4 @@ fi
 #PASSWORD=password
 
 # Will not run if no directories are available
-python scicat_beamline/ingest.py --username "$USERNAME" --password "$PASSWORD" "als_11012_nexafs" "$ROOT_FOLDER" "$INGEST_USER" "$SCICAT_URL"
+python scicat_beamline_ingestion/ingest.py --username "$USERNAME" --password "$PASSWORD" "als_11012_nexafs" "$ROOT_FOLDER" "$INGEST_USER" "$SCICAT_URL"

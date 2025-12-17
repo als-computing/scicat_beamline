@@ -11,7 +11,6 @@ from pathlib import Path
 import h5py
 # flake8: noqa: F401
 import hdf5plugin  # ESRF's library that extends the read functionality of HDF5 files
-
 from pyscicat.hdf5.h5tools import h5py_casting
 
 

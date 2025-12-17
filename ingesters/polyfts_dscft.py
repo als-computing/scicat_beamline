@@ -2,17 +2,15 @@ import logging
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
-import fabio
+from pyscicat.client import ScicatClient
+from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
+                            Ownable, RawDataset)
 
-from pyscicat.client import ScicatClient, encode_thumbnail
-from pyscicat.model import (Attachment, DataFile, DatasetType, DerivedDataset,
-                            OrigDatablock, Ownable, RawDataset)
-from scicat_beamline.common_ingester_utils import (
-    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list)
-from scicat_beamline.scicat_utils import (build_search_terms,
-                                          encode_image_2_thumbnail)
+from common_ingester_utils import (Issue, build_search_terms,
+                                   get_file_mod_time, get_file_size)
+from thumbnail_utils import encode_image_2_thumbnail
 
 ingest_spec = "polyfts_dscft"
 
@@ -182,14 +180,6 @@ def upload_attachment(
         **ownable.model_dump(),
     )
     scicat_client.datasets_attachment_create(attachment)
-
-
-def get_file_size(file_path: Path) -> int:
-    return file_path.lstat().st_size
-
-
-def get_file_mod_time(file_path: Path) -> str:
-    return str(datetime.fromtimestamp(file_path.lstat().st_mtime))
 
 
 def _get_dataset_value(data_set):

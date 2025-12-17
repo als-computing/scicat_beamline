@@ -17,12 +17,12 @@ def read_requirements(filename):
 
 
 setup(
-    name="Scicat Dataset",
-    version="1.0.0",
+    name="scicat-beamline-ingestion",
+    version="0.2.0",
     url="https://github.com/mypackage.git",
     author="Author Name",
     author_email="author@gmail.com",
-    description="Description of my package",
+    description="SciCat Beamline ingestion scripts",
     install_requires=read_requirements("requirements.txt"),
     packages=find_packages(),
 )

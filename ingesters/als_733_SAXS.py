@@ -5,16 +5,15 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import fabio
-
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
-from scicat_beamline.common_ingester_utils import (
-    Issue, add_to_sci_metadata_from_bad_headers, create_data_files_list)
-from scicat_beamline.scicat_utils import (build_search_terms,
-                                          build_waxs_saxs_thumb_733,
-                                          encode_image_2_thumbnail)
+
+from common_ingester_utils import (Issue, add_to_sci_metadata_from_bad_headers,
+                                   build_search_terms, create_data_files_list,
+                                   get_file_mod_time, get_file_size)
+from thumbnail_utils import build_waxs_saxs_thumb_733, encode_image_2_thumbnail
 
 ingest_spec = "als733_saxs"
 
@@ -330,14 +329,6 @@ def upload_attachment(
     )
     logger.info(f'Created attachment for dataset {dataset_id} with caption "{caption}"')
     return result
-
-
-def get_file_size(file_path: Path) -> int:
-    return file_path.lstat().st_size
-
-
-def get_file_mod_time(file_path: Path) -> str:
-    return datetime.fromtimestamp(file_path.lstat().st_mtime).isoformat() + "Z"
 
 
 def _get_dataset_value(data_set):

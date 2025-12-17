@@ -5,11 +5,12 @@ from typing import List
 
 import numpy
 import pandas
-
-from pyscicat.client import ScicatClient, get_file_mod_time, get_file_size
+from pyscicat.client import ScicatClient
 from pyscicat.model import DatasetType, OrigDatablock, Ownable, RawDataset
-from scicat_beamline.common_ingester_utils import (
-    Issue, add_to_sci_metadata_from_bad_headers, create_data_file)
+
+from common_ingester_utils import (Issue, add_to_sci_metadata_from_bad_headers,
+                                   create_data_file, get_file_mod_time,
+                                   get_file_size)
 
 ingest_spec = "als_11012_nexafs"
 
@@ -24,8 +25,6 @@ def ingest(
     "Ingest a nexafs folder"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
-        owner="MWET",
-        contactEmail="dmcreynolds@lbl.gov",
         createdBy="dylan",
         updatedBy="dylan",
         updatedAt=now_str,

@@ -1,0 +1,60 @@
+services:
+  prefect_server:
+    image: prefecthq/prefect:3.4.2-python3.12
+    container_name: prefect_server
+    command: prefect server start --host 0.0.0.0
+    env_file:
+      # Pass in the entire .env file contents
+      - ./../../.env
+    environment:
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+    ports:
+      - "4200:4200"            # UI/API at http://localhost:4200
+    restart: unless-stopped
+    networks:
+      - prenet
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('${PREFECT_API_URL}/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+ # Workers (one per pool/queue)
+  ingest_worker:
+    build:
+      context: ./../../
+      dockerfile: testing/docker/Dockerfile.worker
+    image: prefect-ingest-worker:latest
+    container_name: ingest_worker
+    command: >
+      prefect worker start
+      --pool "ingest_worker_pool"
+      --work-queue "ingest_worker_queue"
+    env_file:
+      # Pass in the entire .env file contents
+      - ./../../.env
+    environment:
+      # Override the server location to point to the internal docker network
+      - PREFECT_API_URL=http://prefect_server:4200/api
+    depends_on:
+      prefect_server:
+        condition: service_healthy  # Wait for healthcheck to pass
+    restart: unless-stopped
+    networks:
+      - prenet
+    # Run worker as specified user for file permissions
+    # Linux: Set HOST_UID/HOST_GID/DOCKER_GID in .env to your user/group IDs
+    # macOS: Set to 0:0 (root) - Docker Desktop handles file permissions automatically
+    user: "0:0"
+    volumes:
+      # Mount data directory (with write access to emit an ingest log)
+      - ${BASE_FOLDER:-./}:${INTERNAL_BASE_FOLDER:-/opt/prefect/ingest_folder}:rw
+    logging:
+      options:
+        max-size: "1m"
+        max-file: "3"
+
+networks:
+  prenet:
+    driver: bridge
