@@ -3,7 +3,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import typer
 from common_ingester_utils import Issue
@@ -21,25 +21,38 @@ def standard_iterator(pattern: str):
 
 
 def ingest(
-    ingester_spec: str = typer.Argument(..., help="Spec to ingest"),
+    ingester_spec: str = typer.Argument(
+        default="blTEST",
+        envvar="INGEST_SPEC",
+        help="Spec to ingest with"),
     dataset_path: Path = typer.Argument(
         ...,
+        file_okay=True,
+        dir_okay=True,
         help=(
-            "Path of the asset to ingest. "
-            "May be file or directory depending on the spec "
-            "and its ingester"
+            "Path of the asset to ingest. May be file or directory depending on the spec."
         ),
     ),
     ingest_user: str = typer.Argument(
         "ingester",
+        envvar="INGEST_USER",
         help="User doing the ingesting. May be different from the user_name.",
     ),
     base_url: str = typer.Argument(
         "http://localhost:3000/api/v3",
+        envvar="SCICAT_URL",
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    username: str = typer.Option(None, help="Scicat server username"),
-    password: str = typer.Option(None, help="Scicat server password"),
+    username: str = typer.Option(
+        None, 
+        envvar="SCICAT_USERNAME",
+        help="Scicat server username"
+    ),
+    password: str = typer.Option(
+        None, 
+        envvar="SCICAT_PASSWORD", 
+        help="Scicat server password"
+    ),
     logger: logging.Logger = typer.Option(None, help="Logger to use"),
 ):
 
@@ -136,7 +149,7 @@ def ingest(
             return results
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            issues = []
+            issues: List[Issue] = []
             dataset_id = None
             for ingest_file_str in ingest_files_iter:
                 ingest_file_path = Path(ingest_file_str)

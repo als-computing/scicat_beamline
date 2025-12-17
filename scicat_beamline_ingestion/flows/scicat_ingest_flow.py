@@ -14,23 +14,38 @@ from scicat_beamline_ingestion.ingest import ingest
 
 @flow(name="scicat-ingest-flow")
 def scicat_ingest_flow(
-    ingester_spec: str = typer.Argument(..., help="Spec to ingest with"),
+    ingester_spec: str = typer.Argument(
+        default="blTEST",
+        envvar="INGEST_SPEC",
+        help="Spec to ingest with"),
     dataset_path: Path = typer.Argument(
         ...,
+        file_okay=True,
+        dir_okay=True,
         help=(
             "Path of the asset to ingest. May be file or directory depending on the spec."
         ),
     ),
     ingest_user: str = typer.Argument(
         "ingester",
+        envvar="INGEST_USER",
         help="User doing the ingesting. May be different from the user_name.",
     ),
     base_url: str = typer.Argument(
         "http://localhost:3000/api/v3",
+        envvar="SCICAT_URL",
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    username: str = typer.Option(None, help="Scicat server username"),
-    password: str = typer.Option(None, help="Scicat server password"),
+    username: str = typer.Option(
+        None, 
+        envvar="SCICAT_USERNAME",
+        help="Scicat server username"
+    ),
+    password: str = typer.Option(
+        None, 
+        envvar="SCICAT_PASSWORD", 
+        help="Scicat server password"
+    )
 ) -> Dict[str, Any]:
     """
     Flow that runs the SciCat ingestion process implemented for the given spec identifier,

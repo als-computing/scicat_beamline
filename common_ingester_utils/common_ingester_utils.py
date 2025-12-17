@@ -2,6 +2,7 @@ import glob
 import json
 import logging
 import re
+import numpy as np
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -29,14 +30,14 @@ logger = logging.getLogger("scicat_ingest")
 
 
 class NPArrayEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        if isinstance(obj, np.floating):
-            return float(obj)
-        if isinstance(obj, np.ndarray):
-            return [None if np.isnan(item) or np.isinf(item) else item for item in obj]
-        return json.JSONEncoder.default(self, obj)
+    def default(self, o):
+        if isinstance(o, np.integer):
+            return int(o)
+        if isinstance(o, np.floating):
+            return float(o)
+        if isinstance(o, np.ndarray):
+            return [None if np.isnan(item) or np.isinf(item) else item for item in o]
+        return json.JSONEncoder.default(self, o)
 
 
 def get_file_size(file_path: Path) -> int:
