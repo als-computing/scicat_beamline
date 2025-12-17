@@ -6,15 +6,15 @@ You can configure necessary settings by creating an `.env` based on `.env-exampl
 
 ```
 BASE_FOLDER=/home/j/programming/work/October_data
-IMPORT_SUBFOLDER=733/2025-12/latest
+INGEST_SUBFOLDER=733/2025-12/latest
 SCICAT_URL=https://dataportal-staging.als.lbl.gov/api/v3
 INGEST_USER=datasetIngestor
 SCICAT_USERNAME=datasetIngestor
 SCICAT_PASSWORD=PASSWORD
 INGEST_SPEC=als_11012_igor OR als_11012_scattering OR als_11012_nexafs, etc
 
-# For when we're running inside our "import_worker" Docker container
-INTERNAL_BASE_FOLDER=/opt/prefect/import_folder
+# For when we're running inside our "ingest_worker" Docker container
+INTERNAL_BASE_FOLDER=/opt/prefect/ingest_folder
 
 # For local testing with Prefect server
 PREFECT_API_URL=http://localhost:4200/api

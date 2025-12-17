@@ -52,7 +52,7 @@ def ingest(
 
     logger.info(f"Setting up ingester logfile.")
 
-    logfile = Path(dataset_path, "scicat_ingester_log.log")
+    logfile = Path(dataset_path, "scicat_ingest_log.log")
     formatter = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
     )

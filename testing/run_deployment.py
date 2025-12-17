@@ -13,13 +13,13 @@ Safe to run on:
 """
 import asyncio
 import sys
+from pathlib import Path
 from typing import Optional
 
 from docker_toolkit import check_docker
-from prefect import get_client
-from prefect.client.schemas.filters import (DeploymentFilter,
-                                            DeploymentFilterName)
-from prefect_toolkit import check_prefect_server
+
+
+BASE_DIR = Path(__file__).parent.parent.absolute()
 
 
 def print_header(text):
@@ -27,20 +27,6 @@ def print_header(text):
     print("\n" + "=" * 70)
     print(text)
     print("=" * 70)
-
-
-def load_env_file():
-    """Load .env file if it exists."""
-    from pathlib import Path
-
-    from dotenv import load_dotenv
-
-    env_file = Path(__file__).parent / '.env'
-    if env_file.exists():
-        print("  ℹ️  Loading .env file...")
-        load_dotenv(env_file)
-        return True
-    return False
 
 
 async def trigger_flow(
@@ -61,26 +47,33 @@ async def trigger_flow(
     print(f"   Deployment: {deployment_name}")
     print(f"   Flow: {flow_name}")
 
-    dname:DeploymentFilterName = DeploymentFilterName()
-    dname.any_ = [deployment_name]
+    from prefect import get_client
+    from prefect.client.schemas.filters import (DeploymentFilter,
+                                                DeploymentFilterName)
 
     async with get_client() as client:
         # Find the deployment
         print(f"🔍 Looking for deployment '{deployment_name}'...")
-        
-        deployments = await client.read_deployments(
-            deployment_filter=DeploymentFilter(
-                name=dname
-            )
-        )
 
-        if not deployments:
+        deployment = await client.read_deployment_by_name(f"{flow_name}/{deployment_name}")
+        if deployment is None:
             print(f"❌ Deployment '{deployment_name}' not found!")
-            print(f"\n💡 Make sure you've deployed the flow:")
-            print(f"   python deployments/deployment_experiments.py --branch <your-branch>")
             return None
-        
-        deployment = deployments[0]
+
+        #dname:DeploymentFilterName = DeploymentFilterName()
+        #dname.any_ = [deployment_name]
+
+        #deployments = await client.read_deployments(
+        #    deployment_filter=DeploymentFilter(
+        #        name=dname
+        #    )
+        #)
+
+        #if not deployments:
+        #    print(f"❌ Deployment '{deployment_name}' not found!")
+        #    return None
+        #deployment = deployments[0]
+
         print(f"✅ Found deployment: {deployment.id}")
         print()
         
@@ -104,8 +97,13 @@ def main():
     print_header("SCICAT INGEST PREFECT FLOW TESTER")
     
     # Load .env file if it exists
-    load_env_file()
-    
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    # This must be loaded AFTER we load_dotenv or Prefect's settings will be based on
+    # the 'ephemeral' local installation, which can be quite vexing.
+    from prefect_toolkit import check_prefect_server
+
     # Check prerequisites
     print("🔍 Checking prerequisites...")
     
@@ -116,10 +114,6 @@ def main():
     # Check Docker
     if not check_docker():
         return 1
-    
-    # Platform info
-    import platform
-    print(f"  ℹ️  Platform: {platform.system()} {platform.machine()}")
     
     # Run tests
     print_header("RUNNING TEST")

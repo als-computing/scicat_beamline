@@ -21,16 +21,16 @@ services:
       start_period: 20s
 
  # Workers (one per pool/queue)
-  import_worker:
+  ingest_worker:
     build:
       context: ./../../
       dockerfile: testing/docker/Dockerfile.worker
-    image: prefect-import-worker:latest
-    container_name: import_worker
+    image: prefect-ingest-worker:latest
+    container_name: ingest_worker
     command: >
       prefect worker start
-      --pool "import_worker_pool"
-      --work-queue "import_worker_queue"
+      --pool "ingest_worker_pool"
+      --work-queue "ingest_worker_queue"
     env_file:
       # Pass in the entire .env file contents
       - ./../../.env
@@ -48,8 +48,8 @@ services:
     # macOS: Set to 0:0 (root) - Docker Desktop handles file permissions automatically
     user: "0:0"
     volumes:
-      # Mount data directory (with write access to emit an import log)
-      - ${BASE_FOLDER:-./}:${INTERNAL_BASE_FOLDER:-/opt/prefect/import_folder}:rw
+      # Mount data directory (with write access to emit an ingest log)
+      - ${BASE_FOLDER:-./}:${INTERNAL_BASE_FOLDER:-/opt/prefect/ingest_folder}:rw
     logging:
       options:
         max-size: "1m"

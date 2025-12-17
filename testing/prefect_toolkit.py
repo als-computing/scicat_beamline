@@ -2,7 +2,7 @@
 """
 Create a Prefect work pool for GPU resource-aware deployments.
 
-This script creates a "import_worker_pool" work pool that can be used for
+This script creates a "ingest_worker_pool" work pool that can be used for
 running deployments that need to check GPU resources.
 """
 
@@ -25,7 +25,6 @@ def print_section(title):
 
 def check_prefect_server():
     """Check if Prefect server is running."""
-    print_section("Checking Prefect server status")
     url = os.environ.get('PREFECT_API_URL', 'http://localhost:4200/api')
     try:
         # Use the direct health endpoint
@@ -38,7 +37,7 @@ def check_prefect_server():
         )
         
         if health_result.returncode == 0 and health_result.stdout.strip() == "true":
-            print("Server is running and healthy!")
+            print("✅ Prefect server is running and healthy!")
             return True
         else:
             print("Server not responding or not healthy")
@@ -53,7 +52,7 @@ def check_prefect_server():
         return False
 
 
-def create_work_pool(name="import_worker_pool", pool_type="process", base_job_template={}):
+def create_work_pool(name="ingest_worker_pool", pool_type="process", base_job_template={}):
     """
     Create a Prefect work pool.
     
@@ -66,17 +65,13 @@ def create_work_pool(name="import_worker_pool", pool_type="process", base_job_te
     """
     # Note: We can't use the Prefect client to do this until we upgrade to Prefect 3,
     # and splash_flows is currently on Prefect 2.
-    import json
-
-    job_template_str = json.dumps(base_job_template)
-
     command = f"""
         prefect work-pool create \
-            --type "{pool_type}" \
-            --paused false "{name}" || \
+            --type {pool_type} \
+            --paused false {name} || \
         prefect work-pool update \
             --description "Process-based work pool for running flows from GitHub storage" \
-            "{name}"
+            {name}
     """
     print_section(f"Creating work pool '{name}' (type: {pool_type})")
     try:
@@ -94,7 +89,7 @@ def create_work_pool(name="import_worker_pool", pool_type="process", base_job_te
     return True
     
 
-def create_work_pool_prefect3(name="import_worker_pool", pool_type="process", base_job_template={}):
+def create_work_pool_prefect3(name="ingest_worker_pool", pool_type="process", base_job_template={}):
     """
     Create a Prefect work pool.
     
@@ -136,7 +131,7 @@ def create_work_pool_prefect3(name="import_worker_pool", pool_type="process", ba
     return True
 
 
-def start_worker(pool_name="import_worker_pool", wait_seconds=5):
+def start_worker(pool_name="ingest_worker_pool", wait_seconds=5):
     """Start a Prefect worker in the background."""
     print_section(f"Starting worker for pool '{pool_name}'")
     
@@ -180,7 +175,7 @@ def main():
         print(f"⚠️ Using default URL for prefect: {os.environ['PREFECT_API_URL']}")
 
     if args.create_work_pool:
-        return create_work_pool(name="import_worker_pool")
+        return create_work_pool(name="ingest_worker_pool")
 
     return True
 

@@ -16,7 +16,7 @@ load_dotenv()
 # INGEST_SPEC=als_11012_igor OR als_11012_scattering OR als_11012_nexafs
 
 BASE_FOLDER = os.getenv("BASE_FOLDER")
-IMPORT_SUBFOLDER = os.getenv("IMPORT_SUBFOLDER", ".")
+INGEST_SUBFOLDER = os.getenv("INGEST_SUBFOLDER", ".")
 SCICAT_URL = os.getenv("SCICAT_URL")
 USERNAME = os.getenv("USERNAME")
 INGEST_USER = os.getenv("INGEST_USER")
@@ -30,7 +30,7 @@ assert type(PASSWORD) == str and len(PASSWORD) != 0
 assert type(INGEST_USER) == str and len(INGEST_USER) != 0
 assert type(INGEST_SPEC) == str and len(INGEST_SPEC) != 0
 
-dataset_path = pathlib.Path(BASE_FOLDER, IMPORT_SUBFOLDER).resolve()
+dataset_path = pathlib.Path(BASE_FOLDER, INGEST_SUBFOLDER).resolve()
 
 ingest(
     ingester_spec=INGEST_SPEC,

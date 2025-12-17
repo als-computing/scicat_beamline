@@ -79,14 +79,14 @@ if [ $CLEAN_SETUP -eq 1 ]; then
     docker compose -f testing/docker/compose.yml down
 
     echo "❎ Clean: Deleting any existing worker image..."
-    if docker rmi prefect-import-worker:latest &> /dev/null; then
+    if docker rmi prefect-ingest-worker:latest &> /dev/null; then
         echo "   Image removed"
     fi
 fi
 
 # Build custom worker image with GPU support (Doing this in advance avoids a fetch warning)
-echo "🔨 Building custom worker image for SciCat import testing..."
-docker compose -f testing/docker/compose.yml build import_worker
+echo "🔨 Building custom worker image for SciCat ingest testing..."
+docker compose -f testing/docker/compose.yml build ingest_worker
 
 # Start Docker Compose services
 echo "🚀 Starting Prefect server and workers..."
@@ -116,10 +116,10 @@ echo ""
 echo "✅ Setup complete!"
 echo ""
 echo "📋 Next steps:"
-echo "   1. Check status: docker compose -f docker/compose.yml ps"
-echo "   2. View logs: docker compose -f docker/compose.yml logs -f"
+echo "   1. Check status: docker compose -f testing/docker/compose.yml ps"
+echo "   2. View logs: docker compose -f testing/docker/compose.yml logs -f"
 echo "   3. View UI: http://localhost:4200"
 echo "   4. Create deployment: ${PYTHON} testing/create_deployment.py"
 echo "   5. Run deployment: ${PYTHON} testing/run_deployment.py"
 echo ""
-echo "🛑 To stop: docker compose -f docker/compose.yml down"
+echo "🛑 To stop: docker compose -f testing/docker/compose.yml down"

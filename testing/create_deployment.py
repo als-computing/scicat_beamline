@@ -7,8 +7,8 @@ This file creates a Prefect deployment that can be scheduled and executed by a P
 import os
 from pathlib import Path
 
-from scicat_beamline_ingestion.flows.scicat_ingest_flow import \
-    scicat_ingest_flow
+#from prefect.deployments.runner import DeploymentImage
+
 
 BASE_DIR = Path(__file__).parent.parent.absolute()
 
@@ -24,10 +24,14 @@ if __name__ == "__main__":
         os.environ['PREFECT_API_URL'] = 'http://localhost:4200/api'
         print(f"⚠️ Using default URL for prefect: {os.environ['PREFECT_API_URL']}")
 
+    from prefect.runner.storage import GitRepository
+    from prefect.blocks.system import Secret
+
+    from scicat_beamline_ingestion.flows.scicat_ingest_flow import \
+        scicat_ingest_flow
+
     print("Creating deployment...")
     print(f"Flow code location: {BASE_DIR}\n")
-
-    from prefect.runner.storage import GitRepository
 
     source_url = "https://github.com/als-computing/scicat_beamline_ingestion.git"
 
@@ -51,7 +55,6 @@ if __name__ == "__main__":
     github_token = os.getenv("GITHUB_TOKEN")
     
     if github_token:
-        from prefect.blocks.system import Secret
         #from pydantic import SecretStr
 
         print("   Using GitHub token for authentication")
@@ -80,7 +83,7 @@ if __name__ == "__main__":
 
     parameters = {
         "ingester_spec": os.getenv("INGEST_SPEC", "blTEST"),
-        "dataset_path": os.getenv("IMPORT_SUBFOLDER", "bltest"),
+        "dataset_path": os.getenv("INGEST_SUBFOLDER", "bltest"),
         "ingest_user": os.getenv("INGEST_USER", "datasetIngestor"),
         "base_url": os.getenv("SCICAT_URL", "https://dataportal-staging.als.lbl.gov/api/v3"),
         "username": os.getenv("SCICAT_USERNAME", None),
@@ -91,17 +94,27 @@ if __name__ == "__main__":
 
     try:
         # Create deployment with chosen source
-        deployment_id = scicat_ingest_flow.from_source(
+
+        #deployment_image:DeploymentImage = DeploymentImage(
+        #    dockerfile = str(BASE_DIR / "testing" / "docker" / "Dockerfile.worker"),
+        #    name="prefect-ingest-worker:latest",
+        #    build_kwargs={}
+        #)
+
+        scicat_ingest_flow_from_source = scicat_ingest_flow.from_source(
             source=source,
             entrypoint="scicat_beamline_ingestion/flows/scicat_ingest_flow.py:scicat_ingest_flow"
-        ).deploy(
+        )
+
+        deployment_id = scicat_ingest_flow_from_source.deploy(
             name="scicat-ingest-deployment",
-            work_pool_name="import_worker_pool",
-            work_queue_name="import_worker_queue",
+            #image=deployment_image,
+            work_pool_name="ingest_worker_pool",
+            work_queue_name="ingest_worker_queue",
             parameters=parameters,
             tags=tags,
         )
-        
+
         print(f"✅ Deployment 'scicat-ingest-deployment' created successfully!")
         print(f"   Deployment ID: {deployment_id}")
         print(f"   Source: {source_url} branch {source_branch}")
