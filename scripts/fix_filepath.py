@@ -10,18 +10,18 @@ from pyscicat.model import Dataset
 
 load_dotenv()
 
-SCICAT_URL = os.getenv("SCICAT_URL")
-USERNAME = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
+SCICAT_INGEST_URL = os.getenv("SCICAT_INGEST_URL")
+SCICAT_INGEST_USERNAME = os.getenv("SCICAT_INGEST_USERNAME")
+SCICAT_INGEST_PASSWORD = os.getenv("SCICAT_INGEST_PASSWORD")
 
-if not SCICAT_URL:
-    raise ValueError("SCICAT_URL environment variable is required")
-if not USERNAME:
-    raise ValueError("USERNAME environment variable is required")
-if not PASSWORD:
-    raise ValueError("PASSWORD environment variable is required")
+if not SCICAT_INGEST_URL:
+    raise ValueError("SCICAT_INGEST_URL environment variable is required")
+if not SCICAT_INGEST_USERNAME:
+    raise ValueError("SCICAT_INGEST_USERNAME environment variable is required")
+if not SCICAT_INGEST_PASSWORD:
+    raise ValueError("SCICAT_INGEST_PASSWORD environment variable is required")
 
-client = from_credentials(SCICAT_URL, USERNAME, PASSWORD)
+client = from_credentials(SCICAT_INGEST_URL, SCICAT_INGEST_USERNAME, SCICAT_INGEST_PASSWORD)
 
 datasets = client.datasets_get_many()
 

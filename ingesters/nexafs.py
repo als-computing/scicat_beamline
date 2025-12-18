@@ -17,7 +17,7 @@ ingest_spec = "als_11012_nexafs"
 
 def ingest(
     scicat_client: ScicatClient,
-    username: str,
+    owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],

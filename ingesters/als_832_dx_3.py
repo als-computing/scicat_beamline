@@ -24,7 +24,7 @@ logger = logging.getLogger("scicat_ingest")
 
 def ingest(
     scicat_client: ScicatClient,
-    username: str,
+    owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
@@ -37,7 +37,7 @@ def ingest(
             json.dumps(scientific_metadata, cls=NPArrayEncoder)
         )
         access_controls = calculate_access_controls(
-            username,
+            owner_username,
             scicat_metadata.get("/measurement/sample/experiment/beamline"),
             scicat_metadata.get("/measurement/sample/experiment/proposal"),
         )

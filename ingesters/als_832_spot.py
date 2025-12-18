@@ -54,7 +54,7 @@ def build_scientific_metadata(app_metadata_doc: Dict, spot_fields: Dict) -> Dict
 
 def ingest(
     scicat_client: ScicatClient,
-    username: str,
+    owner_username: str,
     file_path: Path,
     temp_path: Path,
     issues: List[Issue],
@@ -72,7 +72,7 @@ def ingest(
 
     # now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     access_controls = calculate_access_controls(
-        username,
+        owner_username,
         "8.3.2",
         "",
     )
@@ -394,7 +394,7 @@ spot_fields = {
 if __name__ == "__main__":
     spot_url = sys.argv[1]
     token = sys.argv[2]
-    username = sys.argv[3]
+    owner_username = sys.argv[3]
     scicat_url = sys.argv[4]
 
     scicat_client = from_token(scicat_url, token)

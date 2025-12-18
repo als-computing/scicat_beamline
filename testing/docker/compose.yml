@@ -49,7 +49,7 @@ services:
     user: "0:0"
     volumes:
       # Mount data directory (with write access to emit an ingest log)
-      - ${BASE_FOLDER:-./}:${INTERNAL_BASE_FOLDER:-/opt/prefect/ingest_folder}:rw
+      - ${SCICAT_INGEST_BASE_FOLDER:-./}:${SCICAT_INGEST_INTERNAL_BASE_FOLDER:-/opt/prefect/ingest_folder}:rw
     logging:
       options:
         max-size: "1m"

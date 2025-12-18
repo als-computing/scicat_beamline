@@ -26,7 +26,7 @@ logger = logging.getLogger("scicat_ingest")
 
 def ingest(
     scicat_client: ScicatClient,
-    username: str,
+    owner_username: str,
     file_path: Path,
     temp_path: Path,
     issues: List[Issue],
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     #         # "http://localhost:3000/api/v3",
     #         os.environ.get("SCICAT_API_URL"),
     #         None,
-    #         os.environ.get("SCICAT_INGEST_USER"),
+    #         os.environ.get("SCICAT_INGEST_OWNER_USERNAME"),
     #         os.environ.get("SCICAT_INGEST_PASSWORD"),
     #     ),
     #     "/Users/dylanmcreynolds/data/beamlines/8.3.2/raw/"

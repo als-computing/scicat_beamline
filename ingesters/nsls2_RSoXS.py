@@ -138,7 +138,7 @@ class ScatteringNsls2Sst1Reader:
 # def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
-    username: str,
+    owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
@@ -146,13 +146,11 @@ def ingest(
     "Ingest a folder of 11012 scattering folders"
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
-        owner="MWET",
-        contactEmail="dmcreynolds@lbl.gov",
         createdBy="dylan",
         updatedBy="dylan",
         updatedAt=now_str,
         createdAt=now_str,
-        ownerGroup="MWET",
+        ownerGroup="MWET", # Shouldn't this be owner_username with a default of MWET?
         accessGroups=["MWET", "ingestor"],
     )
     reader = ScatteringNsls2Sst1Reader(file_path, ownable)

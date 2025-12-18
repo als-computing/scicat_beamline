@@ -56,7 +56,7 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
 
 def ingest(
     scicat_client: ScicatClient,
-    username: str,
+    owner_username: str,
     file_path: str,
     thumbnail_dir: Path,
     issues: List[Issue],

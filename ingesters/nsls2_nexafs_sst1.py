@@ -17,7 +17,7 @@ ingest_spec = "nsls2_nexafs_sst1"
 
 def ingest(
     scicat_client: ScicatClient,
-    username: str,
+    owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],

@@ -31,7 +31,7 @@ global_keywords = [
 
 def ingest(
     scicat_client: ScicatClient,
-    username: str,
+    owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],

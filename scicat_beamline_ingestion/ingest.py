@@ -24,7 +24,7 @@ def standard_iterator(pattern: str):
 def ingest(
     ingester_spec: str = typer.Argument(
         default="blTEST",
-        envvar="INGEST_SPEC",
+        envvar="SCICAT_INGEST_SPEC",
         help="Spec to ingest with"),
     dataset_path: Path = typer.Argument(
         ...,
@@ -34,24 +34,24 @@ def ingest(
             "Path of the asset to ingest. May be file or directory depending on the spec."
         ),
     ),
-    ingest_user: str = typer.Argument(
+    owner_username: str = typer.Argument(
         "ingester",
-        envvar="INGEST_USER",
+        envvar="SCICAT_INGEST_OWNER_USERNAME",
         help="User doing the ingesting. May be different from the user_name.",
     ),
     base_url: str = typer.Argument(
         "http://localhost:3000/api/v3",
-        envvar="SCICAT_URL",
+        envvar="SCICAT_INGEST_URL",
         help="Scicat server base url. If not provided, will try localhost default",
     ),
     username: str = typer.Option(
         None, 
-        envvar="SCICAT_USERNAME",
+        envvar="SCICAT_INGEST_USERNAME",
         help="Scicat server username"
     ),
     password: str = typer.Option(
         None, 
-        envvar="SCICAT_PASSWORD", 
+        envvar="SCICAT_INGEST_PASSWORD", 
         help="Scicat server password"
     ),
     logger: logging.Logger = typer.Option(None, help="Logger to use"),
@@ -158,7 +158,7 @@ def ingest(
                 if ingest_file_path.exists():
                     logger.info(f"Ingesting {ingest_file_path}")
                     dataset_id = ingestion_function(
-                        pyscicat_client, ingest_user, ingest_file_path, temp_path, issues
+                        pyscicat_client, owner_username, ingest_file_path, temp_path, issues
                     )
                 else:
                     logger.warning(

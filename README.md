@@ -5,16 +5,16 @@ One can manually invoke these through the `manual_ingest.py` script in the root 
 You can configure necessary settings by creating an `.env` based on `.env-example` like so:
 
 ```
-BASE_FOLDER=/home/j/programming/work/October_data
+SCICAT_INGEST_BASE_FOLDER=/home/j/programming/work/October_data
 INGEST_SUBFOLDER=733/2025-12/latest
-SCICAT_URL=https://dataportal-staging.als.lbl.gov/api/v3
-INGEST_USER=datasetIngestor
-SCICAT_USERNAME=datasetIngestor
-SCICAT_PASSWORD=PASSWORD
-INGEST_SPEC=als_11012_igor OR als_11012_scattering OR als_11012_nexafs, etc
+SCICAT_INGEST_URL=https://dataportal-staging.als.lbl.gov/api/v3
+SCICAT_INGEST_OWNER_USERNAME=datasetIngestor
+SCICAT_INGEST_USERNAME=datasetIngestor
+SCICAT_INGEST_PASSWORD=PASSWORD
+SCICAT_INGEST_SPEC=als_11012_igor OR als_11012_scattering OR als_11012_nexafs, etc
 
 # For when we're running inside our "ingest_worker" Docker container
-INTERNAL_BASE_FOLDER=/opt/prefect/ingest_folder
+SCICAT_INGEST_INTERNAL_BASE_FOLDER=/opt/prefect/ingest_folder
 
 # For local testing with Prefect server
 PREFECT_API_URL=http://localhost:4200/api
