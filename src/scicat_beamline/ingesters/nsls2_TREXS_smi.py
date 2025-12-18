@@ -8,7 +8,7 @@ from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
 
-from common_ingester_utils import (Issue, create_data_files_list,
+from scicat_beamline.utils import (Issue, create_data_files_list,
                                    get_file_mod_time,
                                    glob_non_hidden_in_folder)
 

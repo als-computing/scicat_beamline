@@ -19,8 +19,8 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # This script is meant to be run from the repo root.
-if [ ! -d "testing" ]; then
-  echo "This script is meant to be run from the repo root, e.g. ./scripts/setup.sh"
+if [ ! -d "src" ]; then
+  echo "This script is meant to be run from the repo root, e.g. ./src/scicat_beamline/testing/setup.sh"
   exit 1
 fi
 
@@ -76,7 +76,7 @@ echo ""
 
 if [ $CLEAN_SETUP -eq 1 ]; then
     echo "❎ Clean: Taking down any current Docker deployment..."
-    docker compose -f testing/docker/compose.yml down
+    docker compose -f ./src/scicat_beamline/testing/docker/compose.yml down
 
     echo "❎ Clean: Deleting any existing worker image..."
     if docker rmi prefect-ingest-worker:latest &> /dev/null; then
@@ -86,12 +86,11 @@ fi
 
 # Build custom worker image with GPU support (Doing this in advance avoids a fetch warning)
 echo "🔨 Building custom worker image for SciCat ingest testing..."
-docker compose -f testing/docker/compose.yml build ingest_worker
+docker compose -f ./src/scicat_beamline/testing/docker/compose.yml build ingest_worker
 
 # Start Docker Compose services
 echo "🚀 Starting Prefect server and workers..."
-docker compose -f testing/docker/compose.yml up -d
-
+docker compose -f ./src/scicat_beamline/testing/docker/compose.yml up -d
 # Wait for server to be ready
 echo "⏳ Waiting for Prefect server to start..."
 for i in {1..30}; do
@@ -110,16 +109,20 @@ done
 # Create work pool if it doesn't exist
 echo ""
 echo "🏊 Creating work pool..."
-$PYTHON testing/prefect_toolkit.py --create_work_pool
+$PYTHON ./src/scicat_beamline/testing/prefect_toolkit.py --create_work_pool
+
+# Create deployment if it doesn't exist
+echo ""
+echo "📦 Creating deployment..."
+$PYTHON ./src/scicat_beamline/testing/prefect_toolkit.py --create_deployment
 
 echo ""
 echo "✅ Setup complete!"
 echo ""
 echo "📋 Next steps:"
-echo "   1. Check status: docker compose -f testing/docker/compose.yml ps"
-echo "   2. View logs: docker compose -f testing/docker/compose.yml logs -f"
+echo "   1. Check status: docker compose -f ./src/scicat_beamline/testing/docker/compose.yml ps"
+echo "   2. View logs: docker compose -f ./src/scicat_beamline/testing/docker/compose.yml logs -f"
 echo "   3. View UI: http://localhost:4200"
-echo "   4. Create deployment: ${PYTHON} testing/create_deployment.py"
-echo "   5. Run deployment: ${PYTHON} testing/run_deployment.py"
+echo "   4. Run deployment: ${PYTHON} ./src/scicat_beamline/testing/run_deployment.py"
 echo ""
-echo "🛑 To stop: docker compose -f testing/docker/compose.yml down"
+echo "🛑 To stop: docker compose -f ./src/scicat_beamline/testing/docker/compose.yml down"

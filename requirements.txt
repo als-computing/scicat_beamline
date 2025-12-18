@@ -6,7 +6,6 @@ matplotlib
 numpy
 pandas
 Pillow
-prefect>=3.4.2
 pydantic>=2.11
 PyHyperScattering
 pymongo

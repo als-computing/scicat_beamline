@@ -8,7 +8,7 @@ import pandas
 from pyscicat.client import ScicatClient
 from pyscicat.model import DatasetType, OrigDatablock, Ownable, RawDataset
 
-from common_ingester_utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
                                    create_data_file, get_file_mod_time,
                                    get_file_size)
 

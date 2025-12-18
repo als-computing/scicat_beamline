@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -10,10 +10,11 @@ from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
 
-from common_ingester_utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
+                                        encode_image_2_thumbnail)
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
                                    build_search_terms, create_data_files_list,
                                    get_file_mod_time, get_file_size)
-from thumbnail_utils import build_waxs_saxs_thumb_733, encode_image_2_thumbnail
 
 ingest_spec = "als733_saxs"
 
@@ -116,10 +117,8 @@ def create_derived(
     # TODO: change job parameters depending on the parameters given to the script which creates the derived data
     jobParams = {"method": "pyFAI integrate1d", "npt": 2000}
 
-    now_str = datetime.isoformat(datetime.utcnow()) + "Z"
+    now_str = datetime.isoformat(datetime.now(timezone.utc)) + "Z"
     ownable = Ownable(
-        owner="MWET",
-        contactEmail="dmcreynolds@lbl.gov",
         createdBy="dylan",
         updatedBy="dylan",
         updatedAt=now_str,
@@ -283,7 +282,6 @@ def create_data_files(txt_file_path: Path) -> Tuple[int, List[DataFile]]:
             path=file.name,
             size=file_size,
             time=get_file_mod_time(file),
-            type="RawDatasets",
         )
         total_size += file_size
         data_files.append(datafile)

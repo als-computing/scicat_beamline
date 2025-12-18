@@ -12,9 +12,9 @@ from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
 
-from common_ingester_utils import (Issue, create_data_files_list,
+from scicat_beamline.thumbnails import build_RSoXS_thumb_SST1
+from scicat_beamline.utils import (Issue, create_data_files_list,
                                    glob_non_hidden_in_folder)
-from thumbnail_utils import build_RSoXS_thumb_SST1
 
 ingest_spec = "nsls2_rsoxs_sst1"
 

@@ -24,8 +24,7 @@ if __name__ == "__main__":
     from prefect.blocks.system import Secret
     from prefect.runner.storage import GitRepository
 
-    from scicat_beamline_ingestion.flows.scicat_ingest_flow import \
-        scicat_ingest_flow
+    from scicat_beamline.flows.scicat_ingest_flow import scicat_ingest_flow
 
     print("Creating deployment...")
     print(f"Flow code location: {BASE_DIR}\n")
@@ -99,7 +98,7 @@ if __name__ == "__main__":
 
         scicat_ingest_flow_from_source = scicat_ingest_flow.from_source(
             source=source,
-            entrypoint="scicat_beamline_ingestion/flows/scicat_ingest_flow.py:scicat_ingest_flow"
+            entrypoint="scicat_beamline/testing/flow.py:scicat_ingest_flow"
         )
 
         deployment_id = scicat_ingest_flow_from_source.deploy(

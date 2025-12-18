@@ -8,13 +8,17 @@ from typing import Any, Dict, List
 import typer
 from pyscicat.client import from_credentials
 
-from common_ingester_utils import Issue
-from ingesters import (als_733_saxs_ingest, als_832_dx_4_ingest,
-                       als_11012_ccd_theta_ingest, als_11012_igor_ingest,
-                       als_11012_scattering_ingest, als_test_ingest,
-                       nexafs_ingest, nsls2_nexafs_sst1_ingest,
-                       nsls2_rsoxs_sst1_ingest, nsls2_TREXS_smi_ingest,
-                       polyfts_dscft_ingest)
+from scicat_beamline.ingesters import (als_733_saxs_ingest,
+                                       als_832_dx_4_ingest,
+                                       als_11012_ccd_theta_ingest,
+                                       als_11012_igor_ingest,
+                                       als_11012_scattering_ingest,
+                                       als_test_ingest, nexafs_ingest,
+                                       nsls2_nexafs_sst1_ingest,
+                                       nsls2_rsoxs_sst1_ingest,
+                                       nsls2_TREXS_smi_ingest,
+                                       polyfts_dscft_ingest)
+from scicat_beamline.utils import Issue
 
 
 def standard_iterator(pattern: str):
@@ -22,34 +26,34 @@ def standard_iterator(pattern: str):
 
 
 def ingest(
-    ingester_spec: str = typer.Argument(
-        default="bltest",
-        envvar="SCICAT_INGEST_SPEC",
-        help="Spec to ingest with"),
     dataset_path: Path = typer.Argument(
         ...,
         file_okay=True,
         dir_okay=True,
         help=(
-            "Path of the asset to ingest. May be file or directory depending on the spec."
+            "Path or sub-path of the asset to ingest. May be file or directory depending on the spec. Prepended with SCICAT_INGEST_INTERNAL_BASE_FOLDER or SCICAT_INGEST_BASE_FOLDER if set."
         ),
     ),
-    owner_username: str = typer.Argument(
+    ingester_spec: str = typer.Option(
+        default="bltest",
+        envvar="SCICAT_INGEST_SPEC",
+        help="Spec to ingest with"),
+    owner_username: str = typer.Option(
         "ingester",
         envvar="SCICAT_INGEST_OWNER_USERNAME",
         help="User doing the ingesting. May be different from the user_name.",
     ),
-    base_url: str = typer.Argument(
+    scicat_url: str = typer.Option(
         "http://localhost:3000/api/v3",
         envvar="SCICAT_INGEST_URL",
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    username: str = typer.Option(
+    scicat_username: str = typer.Option(
         None, 
         envvar="SCICAT_INGEST_USERNAME",
         help="Scicat server username"
     ),
-    password: str = typer.Option(
+    scicat_password: str = typer.Option(
         None, 
         envvar="SCICAT_INGEST_PASSWORD", 
         help="Scicat server password"
@@ -60,13 +64,15 @@ def ingest(
     # At the same time we're streaming logs to the console,
     # we'll write them to a file in the dataset folder.
 
+    dataset_full_path = Path(os.getenv("SCICAT_INGEST_INTERNAL_BASE_FOLDER", os.getenv("SCICAT_INGEST_BASE_FOLDER", ".")), dataset_path).resolve()
+
     if logger is None:
         logger = logging.getLogger("scicat_ingest")
         logger.setLevel("INFO")
 
     logger.info(f"Setting up ingester logfile.")
 
-    logfile = Path(dataset_path, "scicat_ingest_log.log")
+    logfile = Path(dataset_full_path, "scicat_ingest_log.log")
     formatter = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
     )
@@ -85,33 +91,33 @@ def ingest(
         ingest_files_iter = []
 
         if ingester_spec == "bltest":
-            temp_iter = standard_iterator(f"{dataset_path}/*.txt")
+            temp_iter = standard_iterator(f"{dataset_full_path}/*.txt")
             for file_str in temp_iter:
                 ingest_files_iter.append(file_str)
             ingestion_function = als_test_ingest
 
         elif ingester_spec == "als_11012_igor":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/dat/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/CCD/*/dat/")
             ingestion_function = als_733_saxs_ingest
 
         elif ingester_spec == "als_832_dx_4":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/*/")
             ingestion_function = als_832_dx_4_ingest
 
         elif ingester_spec == "als_11012_scattering":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/CCD/*/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/CCD/*/")
             ingestion_function = als_11012_scattering_ingest
 
         elif ingester_spec == "als_11012_nexafs":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/Nexafs/*")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/Nexafs/*")
             ingestion_function = nexafs_ingest
 
         elif ingester_spec == "nsls2_rsoxs_sst1":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/*/")
             ingestion_function = nsls2_rsoxs_sst1_ingest
 
         elif ingester_spec == "nsls2_nexafs_sst1":
-            temp_iter = standard_iterator(f"{dataset_path}/*")
+            temp_iter = standard_iterator(f"{dataset_full_path}/*")
             for file_str in temp_iter:
                 if (
                     file_str.endswith(".log")
@@ -123,7 +129,7 @@ def ingest(
             ingestion_function = nsls2_nexafs_sst1_ingest
 
         elif ingester_spec == "als733_saxs":
-            temp_iter = standard_iterator(f"{dataset_path}/*.txt")
+            temp_iter = standard_iterator(f"{dataset_full_path}/*.txt")
             for file_str in temp_iter:
                 # Matt Landsman said not to include these in ingestion
                 if "autoexpose" in file_str or "beamstop_test" in file_str:
@@ -132,19 +138,19 @@ def ingest(
             ingestion_function = als_733_saxs_ingest
 
         elif ingester_spec == "nsls2_trexs_smi":
-            ingest_files_iter = standard_iterator("{dataset_path}/*/")
+            ingest_files_iter = standard_iterator("{dataset_full_path}/*/")
             ingestion_function = nsls2_TREXS_smi_ingest
 
         elif ingester_spec == "polyfts_dscft":
-            ingest_files_iter = standard_iterator(f"{dataset_path}/*/")
+            ingest_files_iter = standard_iterator(f"{dataset_full_path}/*/")
             ingestion_function = polyfts_dscft_ingest
 
         else:
             logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
             return results
 
-        if username and password:
-            pyscicat_client = from_credentials(base_url, username, password)
+        if scicat_username and scicat_password:
+            pyscicat_client = from_credentials(scicat_url, scicat_username, scicat_password)
         else:
             typer.echo("Must provide a SciCat username and password")
             return results

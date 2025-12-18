@@ -11,10 +11,10 @@ from pyscicat.client import ScicatClient
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
 
-from common_ingester_utils import (Issue, build_search_terms,
+from scicat_beamline.thumbnails import build_thumbnail
+from scicat_beamline.utils import (Issue, build_search_terms,
                                    calculate_access_controls,
                                    get_file_mod_time)
-from thumbnail_utils import build_thumbnail
 
 
 @dataclass

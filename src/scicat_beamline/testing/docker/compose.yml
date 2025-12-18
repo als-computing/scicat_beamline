@@ -5,7 +5,7 @@ services:
     command: prefect server start --host 0.0.0.0
     env_file:
       # Pass in the entire .env file contents
-      - ./../../.env
+      - ./../../../../.env
     environment:
       - PREFECT_SERVER_API_HOST=0.0.0.0
     ports:
@@ -23,8 +23,8 @@ services:
  # Workers (one per pool/queue)
   ingest_worker:
     build:
-      context: ./../../
-      dockerfile: testing/docker/Dockerfile.worker
+      context: ./../../../../
+      dockerfile: src/scicat_beamline/testing/docker/Dockerfile.worker
     image: prefect-ingest-worker:latest
     container_name: ingest_worker
     command: >
@@ -33,7 +33,7 @@ services:
       --work-queue "ingest_worker_queue"
     env_file:
       # Pass in the entire .env file contents
-      - ./../../.env
+      - ./../../../../.env
     environment:
       # Override the server location to point to the internal docker network
       - PREFECT_API_URL=http://prefect_server:4200/api
