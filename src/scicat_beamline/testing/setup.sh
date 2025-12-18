@@ -34,14 +34,14 @@ else
     exit 1
 fi
 
-# Check Python version is 3.12 or greater
+# Check Python version is 3.11 or greater
 if ! $PYTHON -c 'import sys
-if sys.version_info >= (3,12):
+if sys.version_info >= (3,11):
     pass
 else:
     raise SystemExit(1)
 ' >/dev/null 2>&1; then
-    echo "⚠️  Python 3.12 or greater is required. Found:"
+    echo "⚠️  Python 3.11 or greater is required. Found:"
     $PYTHON -V
     exit 1
 fi

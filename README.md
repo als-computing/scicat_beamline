@@ -24,7 +24,7 @@ GITHUB_TOKEN=TOKEN
 If you're developing locally, install dependencies and work in a virtual environment like so:
 
 ```
-uv venv --python 3.12 # or greater
+uv venv --python 3.11 # or greater
 source .venv/bin/activate
 uv pip install --all-extras -r pyproject.toml -e .
 ```
