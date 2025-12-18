@@ -125,7 +125,6 @@ def start_worker(pool_name="ingest_worker_pool", wait_seconds=5):
 
 def create_deployment():
 
-
     from prefect.blocks.system import Secret
     from prefect.runner.storage import GitRepository
 
