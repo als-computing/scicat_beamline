@@ -23,7 +23,7 @@ def standard_iterator(pattern: str):
 
 def ingest(
     ingester_spec: str = typer.Argument(
-        default="blTEST",
+        default="bltest",
         envvar="SCICAT_INGEST_SPEC",
         help="Spec to ingest with"),
     dataset_path: Path = typer.Argument(

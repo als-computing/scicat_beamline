@@ -15,7 +15,7 @@ from scicat_beamline_ingestion.ingest import ingest
 @flow(name="scicat-ingest-flow")
 def scicat_ingest_flow(
     ingester_spec: str = typer.Argument(
-        default="blTEST",
+        default="bltest",
         envvar="SCICAT_INGEST_SPEC",
         help="Spec to ingest with"),
     dataset_path: Path = typer.Argument(
