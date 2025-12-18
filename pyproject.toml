@@ -1,9 +1,9 @@
 [project]
-name = "scicat-beamline-ingestion"
+name = "scicat-beamline"
 version = "0.2.0"
-description = "SciCat Beamline ingestion scripts"
+description = "SciCat Beamline support code"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "astropy",
     "dotenv>=0.9.9",
@@ -13,7 +13,6 @@ dependencies = [
     "numpy",
     "pandas",
     "Pillow",
-    "prefect>=3.4.2",
     "pydantic>=2.11",
     "PyHyperScattering",
     "pymongo",
@@ -30,9 +29,13 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = [
+    "setuptools>=61.0",
+    "pytest",
+    "pytest-mock",
+]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["common_ingester_utils*", "thumbnail_utils*", "ingesters*", "scicat_beamline_ingestion*"]
+where = [".", "src"]
+include = ["scicat_beamline*"]

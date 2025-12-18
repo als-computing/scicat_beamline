@@ -24,17 +24,17 @@ GITHUB_TOKEN=TOKEN
 If you're developing locally, install dependencies and work in a virtual environment like so:
 
 ```
-uv venv --python 3.12 # or greater
+uv venv --python 3.11 # or greater
 source .venv/bin/activate
-uv pip install -e .
+uv pip install --all-extras -r pyproject.toml -e .
 ```
 
 Then try running the tests:
 
 ```
-./testing/setup.sh --clean
-python3 testing/create_deployment.py
-python3 testing/run_deployment.py
+./src/scicat_beamline/testing/setup.sh --clean
+python3 ./src/scicat_beamline/testing/create_deployment.py
+python3 ./src/scicat_beamline/testing/run_deployment.py
 ```
 
 And go to http://localhost:4200/runs/ in Chrome. (Safari is too strict with domains to let the front end reach the API)

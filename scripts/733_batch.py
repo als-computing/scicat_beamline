@@ -3,10 +3,9 @@ import tempfile
 from pathlib import Path
 from typing import List
 
-from pyscicat.client import from_token
-
 from common_ingester_utils import Issue
 from ingesters import als_733_SAXS
+from pyscicat.client import from_token
 
 folder = Path(sys.argv[1])
 token = sys.argv[2]

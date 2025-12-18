@@ -1,0 +1,31 @@
+FROM prefecthq/prefect:3.4.2-python3.11
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv (fast Python package installer)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Set working directory to a temporary location for package installation
+RUN mkdir -p /opt/prefect/temp
+WORKDIR /opt/prefect/temp
+
+# Copy package source and dependencies
+COPY src ./src
+COPY pyproject.toml README.md ./
+
+# Install dependencies from pyproject.toml using uv
+# --system: install into system Python (no venv needed in container)
+# Note that we need a Prefect 3 or higher image to run uv
+RUN uv pip install --system --no-cache .
+
+# Now that packages are installed, remove what we copied
+RUN cd /opt/prefect && rm -rf temp
+
+# The flow code will be cloned from GitHub at runtime
+# Dependencies are already installed from pyproject.toml
+WORKDIR /opt/prefect
