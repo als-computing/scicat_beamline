@@ -34,28 +34,22 @@ def ingest(
             "Path or sub-path of the asset to ingest. May be file or directory depending on the spec. Prepended with SCICAT_INGEST_INTERNAL_BASE_FOLDER or SCICAT_INGEST_BASE_FOLDER if set."
         ),
     ),
-    ingester_spec: str = typer.Option(
-        optional=True,
+    ingester_spec: str = typer.Option(None,
         help="Spec to ingest with"
     ),
-    owner_username: str = typer.Option(
-        optional=True,
+    owner_username: str = typer.Option(None,
         help="User doing the ingesting. May be different from the user_name.",
     ),
-    scicat_url: str = typer.Option(
-        optional=True,
+    scicat_url: str = typer.Option(None,
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    scicat_username: str = typer.Option(
-        optional=True,
+    scicat_username: str = typer.Option(None,
         help="Scicat server username"
     ),
-    scicat_password: str = typer.Option(
-        optional=True,
+    scicat_password: str = typer.Option(None,
         help="Scicat server password"
     ),
     logger: logging.Logger = typer.Option(None,
-        optional=True,
         help="Logger to use"
     ),
 ):
