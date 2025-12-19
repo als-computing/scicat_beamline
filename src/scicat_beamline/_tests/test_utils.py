@@ -1,11 +1,5 @@
 import json
 import numpy as np
-import os
-import sys
-import types
-from typing import List
-from pathlib import Path
-from pytest_mock import MockFixture
 
 from scicat_beamline.utils import NPArrayEncoder, clean_email, UNKNOWN_EMAIL, build_search_terms, calculate_access_controls, Issue
 

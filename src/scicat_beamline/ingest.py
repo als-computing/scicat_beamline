@@ -3,7 +3,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import typer
 from pyscicat.client import from_credentials
@@ -34,41 +34,73 @@ def ingest(
             "Path or sub-path of the asset to ingest. May be file or directory depending on the spec. Prepended with SCICAT_INGEST_INTERNAL_BASE_FOLDER or SCICAT_INGEST_BASE_FOLDER if set."
         ),
     ),
-    ingester_spec: str = typer.Option(
-        default="bltest",
-        envvar="SCICAT_INGEST_SPEC",
-        help="Spec to ingest with"),
-    owner_username: str = typer.Option(
-        "ingester",
-        envvar="SCICAT_INGEST_OWNER_USERNAME",
+    ingester_spec: str | None = typer.Option(None,
+        help="Spec to ingest with"
+    ),
+    owner_username: str | None = typer.Option(None,
         help="User doing the ingesting. May be different from the user_name.",
     ),
-    scicat_url: str = typer.Option(
-        "http://localhost:3000/api/v3",
-        envvar="SCICAT_INGEST_URL",
+    scicat_url: str | None = typer.Option(None,
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    scicat_username: str = typer.Option(
-        None, 
-        envvar="SCICAT_INGEST_USERNAME",
+    scicat_username: str | None = typer.Option(None,
         help="Scicat server username"
     ),
-    scicat_password: str = typer.Option(
-        None, 
-        envvar="SCICAT_INGEST_PASSWORD", 
+    scicat_password: str | None = typer.Option(None,
         help="Scicat server password"
     ),
-    logger: logging.Logger = typer.Option(None, help="Logger to use"),
+    logger: logging.Logger | None = typer.Option(None,
+        help="Logger to use"
+    ),
 ):
-
-    # At the same time we're streaming logs to the console,
-    # we'll write them to a file in the dataset folder.
-
-    dataset_full_path = Path(os.getenv("SCICAT_INGEST_INTERNAL_BASE_FOLDER", os.getenv("SCICAT_INGEST_BASE_FOLDER", ".")), dataset_path).resolve()
+    results:Dict[str, Any] = {}
 
     if logger is None:
         logger = logging.getLogger("scicat_ingest")
         logger.setLevel("INFO")
+
+    if not ingester_spec:
+        scicat_url = os.getenv("SCICAT_INGEST_SPEC", "")
+        if not ingester_spec:
+            logger.exception(f"Cannot resolve ingester spec.")
+            return results
+
+    if not scicat_url:
+        scicat_url = os.getenv("SCICAT_INGEST_URL", "")
+        if not scicat_url:
+            scicat_url = "http://localhost:3000/api/v3"
+            logger.warning(f"Using default SciCat URL {scicat_url}")
+
+    if not scicat_username:
+        scicat_username = os.getenv("SCICAT_INGEST_USERNAME", "")
+        if not scicat_username:
+            logger.exception(f"Cannot resolve SciCat username.")
+            return results
+
+    if not scicat_password:
+        scicat_password = os.getenv("SCICAT_INGEST_PASSWORD", "")
+        if not scicat_password:
+            logger.exception(f"Cannot resolve SciCat password.")
+            return results
+
+    if not owner_username:
+        owner_username = os.getenv("SCICAT_INGEST_OWNER_USERNAME", "")
+        if not owner_username:
+            logger.info(f"Using SciCat username as owner username.")
+            owner_username = scicat_username
+
+    if "SCICAT_INGEST_INTERNAL_BASE_FOLDER" in os.environ:
+        dataset_full_path = Path(os.getenv("SCICAT_INGEST_INTERNAL_BASE_FOLDER", "."), dataset_path).resolve()
+        logger.info(f"Using internal base folder; resolved dataset path: {dataset_full_path}") 
+    elif "SCICAT_INGEST_BASE_FOLDER" in os.environ:
+        dataset_full_path = Path(os.getenv("SCICAT_INGEST_BASE_FOLDER", "."), dataset_path).resolve()
+        logger.info(f"Using base folder; resolved dataset path: {dataset_full_path}") 
+    else:
+        dataset_full_path = Path(dataset_path).resolve()
+        logger.info(f"No base folder set; resolved dataset path: {dataset_full_path}")
+
+    # At the same time we're streaming logs to the console,
+    # we'll write them to a file in the dataset folder.
 
     logger.info(f"Setting up ingester logfile.")
 
@@ -83,8 +115,6 @@ def ingest(
     logger.addHandler(fileHandler)
 
     logger.info(f"Using ingester spec {ingester_spec}")
-
-    results:Dict[str, Any] = {}
 
     try:
         ingestion_function = None
@@ -149,11 +179,7 @@ def ingest(
             logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
             return results
 
-        if scicat_username and scicat_password:
-            pyscicat_client = from_credentials(scicat_url, scicat_username, scicat_password)
-        else:
-            typer.echo("Must provide a SciCat username and password")
-            return results
+        pyscicat_client = from_credentials(scicat_url, scicat_username, scicat_password)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             issues: List[Issue] = []

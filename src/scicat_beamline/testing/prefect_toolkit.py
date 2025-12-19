@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """
-Create a Prefect work pool for GPU resource-aware deployments.
+Prefers tools for test runs
 
-This script creates a "ingest_worker_pool" work pool that can be used for
-running deployments that need to check GPU resources.
+This script can create a work pool and a deployment.
 """
 
 import argparse
@@ -180,12 +179,8 @@ def create_deployment():
         )
 
     parameters = {
-        "ingester_spec": os.getenv("SCICAT_INGEST_SPEC", "bltest"),
-        "dataset_path": os.getenv("SCICAT_INGEST_SUBFOLDER", "bltest"), # Base folder will come from the environment
-        "owner_username": os.getenv("SCICAT_INGEST_OWNER_USERNAME", "datasetIngestor"),
-        "base_url": os.getenv("SCICAT_INGEST_URL", "https://dataportal-staging.als.lbl.gov/api/v3"),
-        "username": os.getenv("SCICAT_INGEST_USERNAME", None),
-        "password": os.getenv("SCICAT_INGEST_PASSWORD", None)
+        "ingester_spec": "bltest",
+        "dataset_path": "bltest", # Base folder will come from the environment
     }
 
     tags = ["scicat", "beamline", "ingest"]
@@ -193,7 +188,7 @@ def create_deployment():
     try:
         scicat_ingest_flow_from_source = scicat_ingest_flow.from_source(
             source=source,
-            entrypoint="scicat_beamline/testing/flow.py:scicat_ingest_flow"
+            entrypoint="src/scicat_beamline/testing/flow.py:scicat_ingest_flow"
         )
 
         deployment_id = scicat_ingest_flow_from_source.deploy(
