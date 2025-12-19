@@ -18,17 +18,22 @@ def scicat_ingest_flow(
         ),
     ),
     ingester_spec: str = typer.Option(
+        optional=True,
         help="Spec to ingest with"),
     owner_username: str = typer.Option(
+        optional=True,
         help="User doing the ingesting. May be different from the user_name.",
     ),
     scicat_url: str = typer.Option(
+        optional=True,
         help="Scicat server base url. If not provided, will try localhost default",
     ),
     scicat_username: str = typer.Option(
+        optional=True,
         help="Scicat server username"
     ),
     scicat_password: str = typer.Option(
+        optional=True,
         help="Scicat server password"
     ),
 ) -> Dict[str, Any]:

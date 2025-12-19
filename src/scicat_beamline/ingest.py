@@ -35,20 +35,29 @@ def ingest(
         ),
     ),
     ingester_spec: str = typer.Option(
-        help="Spec to ingest with"),
+        optional=True,
+        help="Spec to ingest with"
+    ),
     owner_username: str = typer.Option(
+        optional=True,
         help="User doing the ingesting. May be different from the user_name.",
     ),
     scicat_url: str = typer.Option(
+        optional=True,
         help="Scicat server base url. If not provided, will try localhost default",
     ),
     scicat_username: str = typer.Option(
+        optional=True,
         help="Scicat server username"
     ),
     scicat_password: str = typer.Option(
+        optional=True,
         help="Scicat server password"
     ),
-    logger: logging.Logger = typer.Option(None, help="Logger to use"),
+    logger: logging.Logger = typer.Option(None,
+        optional=True,
+        help="Logger to use"
+    ),
 ):
     results:Dict[str, Any] = {}
 
@@ -176,11 +185,7 @@ def ingest(
             logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
             return results
 
-        if scicat_username and scicat_password:
-            pyscicat_client = from_credentials(scicat_url, scicat_username, scicat_password)
-        else:
-            typer.echo("Must provide a SciCat username and password")
-            return results
+        pyscicat_client = from_credentials(scicat_url, scicat_username, scicat_password)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             issues: List[Issue] = []
