@@ -3,7 +3,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import typer
 from pyscicat.client import from_credentials
@@ -34,22 +34,22 @@ def ingest(
             "Path or sub-path of the asset to ingest. May be file or directory depending on the spec. Prepended with SCICAT_INGEST_INTERNAL_BASE_FOLDER or SCICAT_INGEST_BASE_FOLDER if set."
         ),
     ),
-    ingester_spec: str = typer.Option(None,
+    ingester_spec: Optional[str] = typer.Option(None,
         help="Spec to ingest with"
     ),
-    owner_username: str = typer.Option(None,
+    owner_username: Optional[str] = typer.Option(None,
         help="User doing the ingesting. May be different from the user_name.",
     ),
-    scicat_url: str = typer.Option(None,
+    scicat_url: Optional[str] = typer.Option(None,
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    scicat_username: str = typer.Option(None,
+    scicat_username: Optional[str] = typer.Option(None,
         help="Scicat server username"
     ),
-    scicat_password: str = typer.Option(None,
+    scicat_password: Optional[str] = typer.Option(None,
         help="Scicat server password"
     ),
-    logger: logging.Logger = typer.Option(None,
+    logger: Optional[logging.Logger] = typer.Option(None,
         help="Logger to use"
     ),
 ):
