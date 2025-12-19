@@ -179,12 +179,8 @@ def create_deployment():
         )
 
     parameters = {
-        "ingester_spec": os.getenv("SCICAT_INGEST_SPEC", "bltest"),
-        "dataset_path": os.getenv("SCICAT_INGEST_SUBFOLDER", "bltest"), # Base folder will come from the environment
-        "owner_username": os.getenv("SCICAT_INGEST_OWNER_USERNAME", "datasetIngestor"),
-        "base_url": os.getenv("SCICAT_INGEST_URL", "https://dataportal-staging.als.lbl.gov/api/v3"),
-        "username": os.getenv("SCICAT_INGEST_USERNAME", None),
-        "password": os.getenv("SCICAT_INGEST_PASSWORD", None)
+        "ingester_spec": "bltest",
+        "dataset_path": "bltest", # Base folder will come from the environment
     }
 
     tags = ["scicat", "beamline", "ingest"]

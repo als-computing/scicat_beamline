@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
+import typer
 
 from prefect import flow, get_run_logger
 
@@ -8,12 +9,28 @@ from scicat_beamline import ingest
 
 @flow(name="scicat-ingest-flow")
 def scicat_ingest_flow(
-    dataset_path: Path,
-    ingester_spec: Optional[str],
-    owner_username: Optional[str],
-    scicat_url: Optional[str],
-    scicat_username: Optional[str],
-    scicat_password: Optional[str],
+    dataset_path: Path = typer.Argument(
+        ...,
+        file_okay=True,
+        dir_okay=True,
+        help=(
+            "Path or sub-path of the asset to ingest. May be file or directory depending on the spec. Prepended with SCICAT_INGEST_INTERNAL_BASE_FOLDER or SCICAT_INGEST_BASE_FOLDER if set."
+        ),
+    ),
+    ingester_spec: str = typer.Option(
+        help="Spec to ingest with"),
+    owner_username: str = typer.Option(
+        help="User doing the ingesting. May be different from the user_name.",
+    ),
+    scicat_url: str = typer.Option(
+        help="Scicat server base url. If not provided, will try localhost default",
+    ),
+    scicat_username: str = typer.Option(
+        help="Scicat server username"
+    ),
+    scicat_password: str = typer.Option(
+        help="Scicat server password"
+    ),
 ) -> Dict[str, Any]:
     """
     Runs the SciCat ingestion process implemented for the given spec identifier,
