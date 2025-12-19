@@ -17,19 +17,19 @@ def scicat_ingest_flow(
             "Path or sub-path of the asset to ingest. May be file or directory depending on the spec. Prepended with SCICAT_INGEST_INTERNAL_BASE_FOLDER or SCICAT_INGEST_BASE_FOLDER if set."
         ),
     ),
-    ingester_spec: Optional[str] = typer.Option(None,
+    ingester_spec: str | None = typer.Option(None,
         help="Spec to ingest with"
     ),
-    owner_username: Optional[str] = typer.Option(None,
+    owner_username: str | None = typer.Option(None,
         help="User doing the ingesting. May be different from the user_name.",
     ),
-    scicat_url: Optional[str] = typer.Option(None,
+    scicat_url: str | None = typer.Option(None,
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    scicat_username: Optional[str] = typer.Option(None,
+    scicat_username: str | None = typer.Option(None,
         help="Scicat server username"
     ),
-    scicat_password: Optional[str] = typer.Option(None,
+    scicat_password: str | None = typer.Option(None,
         help="Scicat server password"
     ),
 ) -> Dict[str, Any]:
