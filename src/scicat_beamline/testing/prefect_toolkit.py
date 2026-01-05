@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Prefers tools for test runs
+Prefect tools for test runs
 
 This script can create a work pool and a deployment.
 """
@@ -129,7 +129,7 @@ def create_deployment():
 
     from scicat_beamline.testing.flow import scicat_ingest_flow
 
-    print("Creating deployment...")
+    print_section("Creating deployment...")
 
     source_url = "https://github.com/als-computing/scicat_beamline_ingestion.git"
 
