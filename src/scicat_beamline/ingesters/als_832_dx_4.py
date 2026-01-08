@@ -21,7 +21,7 @@ from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
 DEFAULT_USER = "8.3.2"  # In case there's not proposal number
 ingest_spec = "als832_dx_4"  # "als832_dx_3"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 def ingest(

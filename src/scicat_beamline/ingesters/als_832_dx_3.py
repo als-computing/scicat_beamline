@@ -20,7 +20,7 @@ from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
 
 ingest_spec = "als832_dx_3"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 def ingest(

@@ -26,7 +26,7 @@ class Issue:
     exception: Optional[Union[str, None]] = None
 
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 class NPArrayEncoder(json.JSONEncoder):

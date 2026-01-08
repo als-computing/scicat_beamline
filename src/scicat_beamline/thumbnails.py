@@ -14,7 +14,7 @@ from matplotlib.colors import LogNorm
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from PIL import Image, ImageOps
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 can_debug = logger.isEnabledFor(logging.DEBUG)
 
 

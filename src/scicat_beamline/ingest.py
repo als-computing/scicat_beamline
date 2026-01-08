@@ -56,7 +56,7 @@ def ingest(
     results:Dict[str, Any] = {}
 
     if logger is None:
-        logger = logging.getLogger("scicat_ingest")
+        logger = logging.getLogger("scicat_operation")
         logger.setLevel("INFO")
 
     if not ingester_spec:

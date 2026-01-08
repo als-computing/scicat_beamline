@@ -18,7 +18,7 @@ from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
 
 ingest_spec = "als733_saxs"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 global_keywords = [

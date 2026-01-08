@@ -14,7 +14,7 @@ from scicat_beamline.utils import (Issue, build_search_terms,
 
 ingest_spec = "polyfts_dscft"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 global_keywords = [
