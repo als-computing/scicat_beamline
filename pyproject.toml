@@ -17,6 +17,7 @@ dependencies = [
     "PyHyperScattering",
     "pymongo",
     "pyscicat @ git+https://github.com/SciCatProject/pyscicat.git@main",
+    "dataset_metadata_schemas @ git+https://github.com/als-computing/dataset_metadata_schemas.git@main",
     "python-dotenv>=1.2.1",
     "requests",
     "typer",

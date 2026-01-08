@@ -10,6 +10,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from pyscicat.model import DataFile
+from pydantic import TypeAdapter
+
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
 
 UNKNOWN_EMAIL = "unknown@example.com"
 
@@ -146,6 +149,25 @@ def add_to_sci_metadata_from_bad_headers(
                 continue
             sci_md[f"unknown_field{unknown_cnt}"] = line
             unknown_cnt += 1
+
+
+def read_als_metadata_file(
+    file_path: Path
+) -> DatasetMetadataContainer:
+    """Reads an ALS-style metadata file and parses it into a DatasetMetadataContainer object."""
+
+    with open(file_path, "r") as f:
+        file_content = f.read()
+
+        adapter = TypeAdapter(DatasetMetadataContainer)
+        result = adapter.validate_json(file_content)
+        if not isinstance(result, list):
+            logger.info(
+                "Could not parse file '%s' into ALS metadata structure"
+            )
+            raise ValueError("Invalid ALS metadata file format")
+
+        return result
 
 
 def build_search_terms(sample_name):
