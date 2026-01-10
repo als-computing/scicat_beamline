@@ -161,9 +161,10 @@ def ingest(
         elif ingester_spec == "als733_saxs":
             temp_iter = standard_iterator(f"{dataset_full_path}/*.txt")
             for file_str in temp_iter:
-                # Matt Landsman said not to include these in ingestion
-                if "autoexpose" in file_str or "beamstop_test" in file_str:
-                    continue
+                # Matt Landsman said not to include these in ingestion,
+                # but we're ignoring this now since we intend to import everything and mark/remove it later.
+                #if "autoexpose" in file_str or "beamstop_test" in file_str:
+                #    continue
                 ingest_files_iter.append(file_str)
             ingestion_function = als_733_saxs_ingest
 
