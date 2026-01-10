@@ -7,6 +7,7 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import importlib.util
 
 import numpy as np
 from pyscicat.model import DataFile
@@ -154,20 +155,82 @@ def add_to_sci_metadata_from_bad_headers(
 def read_als_metadata_file(
     file_path: Path
 ) -> DatasetMetadataContainer:
-    """Reads an ALS-style metadata file and parses it into a DatasetMetadataContainer object."""
+    """Reads an ALS-style metadata file (typically named als-dataset-metadata.json)
+    and parses it into a DatasetMetadataContainer object.
+    Handles versioning by attempting to dynamically import the appropriate schema module
+    based on the "version" field in the JSON file."""
 
-    with open(file_path, "r") as f:
-        file_content = f.read()
+    adapter = TypeAdapter(DatasetMetadataContainer)
 
-        adapter = TypeAdapter(DatasetMetadataContainer)
-        result = adapter.validate_json(file_content)
-        if not isinstance(result, list):
-            logger.info(
-                "Could not parse file '%s' into ALS metadata structure"
+    try:
+        with open(file_path, "r") as f:
+            file_content = f.read()
+    except Exception as e:
+        logger.info("Could not read file '%s'", file_path)
+        raise ValueError("Could not read file")
+
+    try:
+        as_object = json.loads(file_content)
+    except Exception as e:
+        logger.info("Could not parse file '%s' into valid JSON", file_path)
+        raise ValueError("Could not parse JSON")
+
+    if "version" in as_object:
+        object_version = as_object["version"]
+        latest_version = DatasetMetadataContainer.model_fields["version"].default
+        if object_version != latest_version:
+            logger.warning(
+                "File schema version: '%s', will validate and then try to re-parse as schema version: '%s'." % (object_version, latest_version)
             )
-            raise ValueError("Invalid ALS metadata file format")
+            version_as_string = "v" + ("_".join(object_version.split(".")))
+            old_adapter = None
+            module_name = f"dataset_metadata_schemas.{version_as_string}.dataset_metadata"
 
-        return result
+            try:
+                # Attempt to dynamically import the module
+                dm_module = importlib.import_module(module_name)
+                DatasetMetadataContainerVersioned = getattr(dm_module, "Container")
+                old_adapter = TypeAdapter(DatasetMetadataContainerVersioned)
+            except ModuleNotFoundError as e:
+                logger.exception(f"Could not find old schema module: {e}")
+                raise ValueError(f"Could not find old schema module for '{object_version}'")
+            except ImportError as e:
+                logger.exception(f"Could not import old schema module: {e}")
+                raise ValueError(f"Could not import old schema module for '{object_version}'")
+            except Exception as e:
+                logger.exception(f"Exception importing old schema module: {e}")
+                raise ValueError(f"Exception importing old schema module for '{object_version}'")
+
+            result_old_version = None
+            try:
+                result_old_version = old_adapter.validate_python(as_object)
+            except Exception as e:
+                logger.error(
+                    "Could not parse object in '%s' as DatasetMetadataContainer version '%s'", file_path, object_version
+                )
+                raise ValueError(f"Could not parse DatasetMetadataContainer version '{object_version}' object")
+
+            # Attempt to auto-convert to latest version.
+            # Note that we'll probably need more finesse here in the future.
+            result = adapter.validate_python(result_old_version.model_dump())
+            result.version = latest_version
+            return result
+
+    # Relatively happy path: No version given, or version matches latest.
+    try:
+        result = adapter.validate_python(as_object)
+    except Exception as e:
+        logger.info("Could not parse object in '%s' as DatasetMetadataContainer object", file_path)
+        raise ValueError("Could not parse DatasetMetadataContainer object")
+    return result
+
+
+def write_als_metadata_file(metadata: DatasetMetadataContainer, file_path: Path) -> None:
+    """Writes an ALS-style metadata file from a DatasetMetadataContainer object."""
+    adapter = TypeAdapter(DatasetMetadataContainer)
+    json_content = adapter.dump_json(metadata, indent=2, exclude_unset=True, exclude_defaults=True)
+    with open(file_path, "wb") as f:
+        f.write(json_content)
 
 
 def build_search_terms(sample_name):
