@@ -10,8 +10,8 @@ from pyscicat.client import from_credentials
 
 from scicat_beamline.ingesters import (als_733_saxs_ingest,
                                        als_832_dx_4_ingest,
-                                       als_11012_ccd_theta_ingest,
-                                       als_11012_igor_ingest,
+                                       #    als_11012_ccd_theta_ingest,
+                                       #    als_11012_igor_ingest,
                                        als_11012_scattering_ingest,
                                        als_test_ingest, nexafs_ingest,
                                        nsls2_nexafs_sst1_ingest,
@@ -26,7 +26,7 @@ def standard_iterator(pattern: str):
 
 
 def ingest(
-    dataset_path: Path = typer.Argument(
+    dataset_path: Path | list[Path] = typer.Argument(
         ...,
         file_okay=True,
         dir_okay=True,
@@ -61,6 +61,10 @@ def ingest(
     ),
 ):
     results: Dict[str, Any] = {}
+
+    # Normalize to single path (list support for specific ingesters coming later)
+    if isinstance(dataset_path, list):
+        dataset_path = dataset_path[0]
 
     if logger is None:
         logger = logging.getLogger("scicat_ingest")
