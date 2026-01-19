@@ -52,6 +52,8 @@ def build_scientific_metadata(app_metadata_doc: Dict, spot_fields: Dict) -> Dict
     return OrderedDict(sorted(sci_meta.items()))
 
 
+# Note: This appears to run an ingestion process based on a document pulled from SciCat, not a file.
+# This will need to be adapted.
 def ingest(
     scicat_client: ScicatClient,
     owner_username: str,
