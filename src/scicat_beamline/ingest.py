@@ -3,15 +3,15 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import typer
 from pyscicat.client import from_credentials
 
 from scicat_beamline.ingesters import (als_733_saxs_ingest,
                                        als_832_dx_4_ingest,
-                                       als_11012_ccd_theta_ingest,
-                                       als_11012_igor_ingest,
+                                       #    als_11012_ccd_theta_ingest,
+                                       #    als_11012_igor_ingest,
                                        als_11012_scattering_ingest,
                                        als_test_ingest, nexafs_ingest,
                                        nsls2_nexafs_sst1_ingest,
@@ -26,34 +26,45 @@ def standard_iterator(pattern: str):
 
 
 def ingest(
-    dataset_path: Path = typer.Argument(
+    dataset_path: Path | list[Path] = typer.Argument(
         ...,
         file_okay=True,
         dir_okay=True,
         help=(
-            "Path or sub-path of the asset to ingest. May be file or directory depending on the spec. Prepended with SCICAT_INGEST_INTERNAL_BASE_FOLDER or SCICAT_INGEST_BASE_FOLDER if set."
+            "Path or sub-path of the asset to ingest. May be file or directory depending on the spec."
+            "Prepended with SCICAT_INGEST_INTERNAL_BASE_FOLDER or SCICAT_INGEST_BASE_FOLDER if set."
         ),
     ),
-    ingester_spec: str | None = typer.Option(None,
+    ingester_spec: str | None = typer.Option(
+        None,
         help="Spec to ingest with"
     ),
-    owner_username: str | None = typer.Option(None,
+    owner_username: str | None = typer.Option(
+        None,
         help="User doing the ingesting. May be different from the user_name.",
     ),
-    scicat_url: str | None = typer.Option(None,
+    scicat_url: str | None = typer.Option(
+        None,
         help="Scicat server base url. If not provided, will try localhost default",
     ),
-    scicat_username: str | None = typer.Option(None,
+    scicat_username: str | None = typer.Option(
+        None,
         help="Scicat server username"
     ),
-    scicat_password: str | None = typer.Option(None,
+    scicat_password: str | None = typer.Option(
+        None,
         help="Scicat server password"
     ),
-    logger: logging.Logger | None = typer.Option(None,
+    logger: logging.Logger | None = typer.Option(
+        None,
         help="Logger to use"
     ),
 ):
-    results:Dict[str, Any] = {}
+    results: Dict[str, Any] = {}
+
+    # Normalize to single path (list support for specific ingesters coming later)
+    if isinstance(dataset_path, list):
+        dataset_path = dataset_path[0]
 
     if logger is None:
         logger = logging.getLogger("scicat_operation")
@@ -62,7 +73,7 @@ def ingest(
     if not ingester_spec:
         scicat_url = os.getenv("SCICAT_INGEST_SPEC", "")
         if not ingester_spec:
-            logger.exception(f"Cannot resolve ingester spec.")
+            logger.exception("Cannot resolve ingester spec.")
             return results
 
     if not scicat_url:
@@ -74,27 +85,27 @@ def ingest(
     if not scicat_username:
         scicat_username = os.getenv("SCICAT_INGEST_USERNAME", "")
         if not scicat_username:
-            logger.exception(f"Cannot resolve SciCat username.")
+            logger.exception("Cannot resolve SciCat username.")
             return results
 
     if not scicat_password:
         scicat_password = os.getenv("SCICAT_INGEST_PASSWORD", "")
         if not scicat_password:
-            logger.exception(f"Cannot resolve SciCat password.")
+            logger.exception("Cannot resolve SciCat password.")
             return results
 
     if not owner_username:
         owner_username = os.getenv("SCICAT_INGEST_OWNER_USERNAME", "")
         if not owner_username:
-            logger.info(f"Using SciCat username as owner username.")
+            logger.info("Using SciCat username as owner username.")
             owner_username = scicat_username
 
     if "SCICAT_INGEST_INTERNAL_BASE_FOLDER" in os.environ:
         dataset_full_path = Path(os.getenv("SCICAT_INGEST_INTERNAL_BASE_FOLDER", "."), dataset_path).resolve()
-        logger.info(f"Using internal base folder; resolved dataset path: {dataset_full_path}") 
+        logger.info(f"Using internal base folder; resolved dataset path: {dataset_full_path}")
     elif "SCICAT_INGEST_BASE_FOLDER" in os.environ:
         dataset_full_path = Path(os.getenv("SCICAT_INGEST_BASE_FOLDER", "."), dataset_path).resolve()
-        logger.info(f"Using base folder; resolved dataset path: {dataset_full_path}") 
+        logger.info(f"Using base folder; resolved dataset path: {dataset_full_path}")
     else:
         dataset_full_path = Path(dataset_path).resolve()
         logger.info(f"No base folder set; resolved dataset path: {dataset_full_path}")
@@ -102,7 +113,7 @@ def ingest(
     # At the same time we're streaming logs to the console,
     # we'll write them to a file in the dataset folder.
 
-    logger.info(f"Setting up ingester logfile.")
+    logger.info("Setting up ingester logfile.")
 
     logfile = Path(dataset_full_path, "scicat_ingest_log.log")
     formatter = logging.Formatter(
@@ -206,14 +217,15 @@ def ingest(
                 results["dataset_id"] = dataset_id
                 logger.info(f"Dataset ID: {dataset_id}")
             else:
-                logger.warning(f"No dataset ID returned.")
+                logger.warning("No dataset ID returned.")
 
-            logger.info(f"Ingestion finished.")
+            logger.info("Ingestion finished.")
 
     except Exception:
         logger.exception(f" Error running ingester {ingester_spec}")
 
     return results
+
 
 if __name__ == "__main__":
     typer.run(ingest)
