@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 import typer
 
+from dataset_metadata_schemas.utilities import (read_als_metadata_file, write_als_metadata_file)
+from dataset_tracker_client.client import DatasettrackerClient
 from pyscicat.client import from_credentials
 
 from scicat_beamline.ingesters import (als_733_saxs_ingest,
@@ -55,6 +57,18 @@ def ingest(
         None,
         help="Scicat server password"
     ),
+    datasettracker_url: str | None = typer.Option(
+        None,
+        help="Dataset Tracker server base url. Using the Dataset Tracker is optional."
+    ),
+    datasettracker_username: str | None = typer.Option(
+        None,
+        help="Dataset Tracker server username. Using the Dataset Tracker is optional."
+    ),
+    datasettracker_password: str | None = typer.Option(
+        None,
+        help="Dataset Tracker server password. Using the Dataset Tracker is optional."
+    ),
     logger: logging.Logger | None = typer.Option(
         None,
         help="Logger to use"
@@ -90,11 +104,27 @@ def ingest(
             logger.exception("Cannot resolve SciCat password.")
             return results
 
+    # (Must attempt to resolve scicat_username first above)
     if not owner_username:
         owner_username = os.getenv("SCICAT_INGEST_OWNER_USERNAME", "")
         if not owner_username:
             logger.info("Using SciCat username as owner username.")
             owner_username = scicat_username
+
+    if not datasettracker_url:
+        datasettracker_url = os.getenv("DATASETTRACKER_URL", "")
+        if not datasettracker_url:
+            logger.info("Dataset Tracker URL not set. Dataset Tracker will not be used.")
+
+    if not datasettracker_username:
+        datasettracker_username = os.getenv("DATASETTRACKER_USERNAME", "")
+        if not datasettracker_username:
+            logger.warning("Cannot resolve Dataset Tracker username.")
+
+    if not datasettracker_password:
+        datasettracker_password = os.getenv("DATASETTRACKER_PASSWORD", "")
+        if not datasettracker_password:
+            logger.warning("Cannot resolve Dataset Tracker password.")
 
     logger.info(f"Using ingester spec {ingester_spec}")
 
@@ -124,22 +154,29 @@ def ingest(
         logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
         return results
 
+    internal_base_folder = os.getenv("SCICAT_INGEST_INTERNAL_BASE_FOLDER", "")
+    base_folder = os.getenv("SCICAT_INGEST_BASE_FOLDER", "")
+
     prepend_path = None
-    if "SCICAT_INGEST_INTERNAL_BASE_FOLDER" in os.environ:
-        prepend_path = os.getenv("SCICAT_INGEST_INTERNAL_BASE_FOLDER", ".")
+    # If an internal base folder is set (because we're accessing a mounted volume inside a container),
+    # use that.
+    if internal_base_folder:
+        prepend_path = internal_base_folder
         logger.info(f"Using internal base folder: {prepend_path}")
-    elif "SCICAT_INGEST_BASE_FOLDER" in os.environ:
-        prepend_path = os.getenv("SCICAT_INGEST_BASE_FOLDER", ".")
+    # If there's no internal base folder set, look for a regular base folder.
+    elif base_folder:
+        prepend_path = base_folder
         logger.info(f"Using base folder: {prepend_path}")
     else:
         logger.info(f"No base folder set.")
 
-    if not isinstance(dataset_path, list):
-        dataset_path = [dataset_path]
+    # Sort the given paths into files and folders, and validate them.
 
     folders = []
     files = []
 
+    if not isinstance(dataset_path, list):
+        dataset_path = [dataset_path]
     for one_path in dataset_path:
         if prepend_path:
             full_path = Path(prepend_path, one_path).resolve()
@@ -158,6 +195,9 @@ def ingest(
         elif full_path.is_dir():
             folders.append(full_path)
 
+    als_dataset_metadata = None
+    ingestion_search_path = None
+
     if len(folders) + len(files) == 0:
         logger.error("No valid files or folders to ingest.")
         return results
@@ -169,6 +209,15 @@ def ingest(
     elif len(folders) == 0: # Only files given
         # We're going to assume that every file handed directly to the ingester
         # is valid for the ingester spec.
+
+        # This is not a good path, because it means there is no base folder to look in,
+        # so we can't:
+        #  * Look for an als-dataset-metadata.json file
+        #  * Create a logfile in the folder being ingested
+        #  * Make a share sublocation record in the Dataset Tracker,
+        #    which means we can't use the Dataset Tracker at all.
+        # This path should be avoided.  It will get files into SciCat but not in a way
+        # where we can track them.
         ingest_files_iter = files
 
     else: # One folder given
@@ -188,6 +237,12 @@ def ingest(
         )
         fileHandler.setFormatter(formatter)
         logger.addHandler(fileHandler)
+
+        # Since we have a folder, we'll check for an existing als-dataset-metadata.json file.
+        try:
+            als_dataset_metadata = read_als_metadata_file(file_path="/Users/gwbirkel/Documents/scicat_beamline/src/scicat_beamline/testing/test_data/bltest/als-dataset-metadata.json")
+        except Exception as e:
+            logger.warning("Did not find a als-dataset-metadata.json file.")
 
         # Since we haven't been handed a list of files, we need to walk the folder
         # and make our own.  The criteria vary based on the ingester spec.
@@ -231,7 +286,7 @@ def ingest(
                 ingest_files_iter.append(file_str)
 
         elif ingester_spec == "nsls2_trexs_smi":
-            ingest_files_iter = standard_iterator("{ingestion_search_path}/*/")
+            ingest_files_iter = standard_iterator(f"{ingestion_search_path}/*/")
 
         elif ingester_spec == "polyfts_dscft":
             ingest_files_iter = standard_iterator(f"{ingestion_search_path}/*/")
@@ -242,17 +297,28 @@ def ingest(
 
     try:
         pyscicat_client = from_credentials(scicat_url, scicat_username, scicat_password)
+        datasettracker_client = None
+        if datasettracker_username and datasettracker_password and datasettracker_url:
+            try:
+                datasettracker_client = DatasettrackerClient(
+                    base_url=datasettracker_url,
+                    username=datasettracker_username,
+                    password=datasettracker_password,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Cannot connect to Dataset Tracker client. Dataset Tracker will not be used. Error: {e}"
+                )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             issues: List[Issue] = []
-            dataset_id = None
             for ingest_file_str in ingest_files_iter:
                 ingest_file_path = Path(ingest_file_str)
                 if ingest_file_path.exists():
                     logger.info(f"Ingesting {ingest_file_path}")
-                    dataset_id = ingestion_function(
-                        pyscicat_client, owner_username, ingest_file_path, temp_path, issues
+                    als_dataset_metadata = ingestion_function(
+                        pyscicat_client, datasettracker_client, owner_username, als_dataset_metadata, ingest_file_path, temp_path, issues
                     )
                 else:
                     logger.warning(
@@ -267,11 +333,35 @@ def ingest(
                     else:
                         logger.warning(f"{issue.msg}")
 
-            if dataset_id is not None:
-                results["dataset_id"] = dataset_id
-                logger.info(f"Dataset ID: {dataset_id}")
-            else:
-                logger.warning("No dataset ID returned.")
+            if als_dataset_metadata is not None:
+
+                dataset_id = None
+                try:
+                    dataset_id = als_dataset_metadata.scicat_dataset_id
+                except Exception:
+                    pass
+
+                if dataset_id is not None:
+                    logger.info(f"Dataset ID: {dataset_id}")
+                else:
+                    logger.warning("No dataset ID returned.")
+
+                results = als_dataset_metadata.model_dump(mode="json")
+
+                if ingestion_search_path is not None:
+                    # Write back the ALS dataset metadata file with any updates.
+                    try:
+                        write_als_metadata_file(
+                            metadata=als_dataset_metadata,
+                            file_path=Path(ingestion_search_path, "als-dataset-metadata.json"),
+                        )
+                        logger.info(
+                            "Wrote updated als-dataset-metadata.json file."
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not write updated als-dataset-metadata.json file. Error: {e}"
+                        )
 
             logger.info("Ingestion finished.")
 
