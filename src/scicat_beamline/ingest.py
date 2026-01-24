@@ -318,7 +318,13 @@ def ingest(
                 if ingest_file_path.exists():
                     logger.info(f"Ingesting {ingest_file_path}")
                     als_dataset_metadata = ingestion_function(
-                        pyscicat_client, datasettracker_client, owner_username, als_dataset_metadata, ingest_file_path, temp_path, issues
+                        scicat_client=pyscicat_client,
+                        datasettracker_client=datasettracker_client,
+                        als_dataset_metadata=als_dataset_metadata,
+                        owner_username=owner_username,
+                        file_path=ingest_file_path,
+                        thumbnail_dir=temp_path,
+                        issues=issues,
                     )
                 else:
                     logger.warning(
@@ -335,18 +341,19 @@ def ingest(
 
             if als_dataset_metadata is not None:
 
+                # Our ingestion results are in the form of an ALS Dataset metadata file.
+                results = als_dataset_metadata.model_dump(mode="json")
+
+                # Attempt to exctract the dataset ID so we can log it.
                 dataset_id = None
                 try:
                     dataset_id = als_dataset_metadata.scicat_dataset_id
                 except Exception:
                     pass
-
                 if dataset_id is not None:
                     logger.info(f"Dataset ID: {dataset_id}")
                 else:
                     logger.warning("No dataset ID returned.")
-
-                results = als_dataset_metadata.model_dump(mode="json")
 
                 if ingestion_search_path is not None:
                     # Write back the ALS dataset metadata file with any updates.

@@ -56,12 +56,15 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
 
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
-    file_path: str,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
+) -> Dict:
     "Ingest a folder of 11012 CCD Theta scan files"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         owner="MWET",

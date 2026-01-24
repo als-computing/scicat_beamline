@@ -26,11 +26,13 @@ logger = logging.getLogger("scicat_operation")
 
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
     file_path: Path,
-    temp_path: Path,
+    thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
+) -> Dict:
     """Ingests a file into scicat
 
     Ingestion to takes a "best effort" stance to ingestion. Along the way,

@@ -56,11 +56,14 @@ def build_scientific_metadata(app_metadata_doc: Dict, spot_fields: Dict) -> Dict
 # This will need to be adapted.
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
     file_path: Path,
-    temp_path: Path,
+    thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
+) -> Dict:
+
     # TODO: Needs updated error handling
     status = IngestionStatus(spot_doc.get("_id"))
     fs_doc = spot_doc.get("fs")

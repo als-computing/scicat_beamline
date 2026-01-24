@@ -94,12 +94,15 @@ class TREXSNsls2SMIReader:
 # def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
-) -> Tuple[str, List[Issue]]:
+) -> Dict:
     "Ingest a TREXS folder"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         createdBy="dylan",

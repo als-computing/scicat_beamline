@@ -139,12 +139,15 @@ class Scattering11012Reader:
 
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
+) -> Dict:
     "Ingest a folder of 11012 scattering folders"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         createdBy="dylan",

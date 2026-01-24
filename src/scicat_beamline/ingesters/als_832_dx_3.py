@@ -25,11 +25,14 @@ logger = logging.getLogger("scicat_operation")
 
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
+) -> Dict:
+
     with h5py.File(file_path, "r") as file:
         scicat_metadata = _extract_fields(file, scicat_metadata_keys, issues)
         scientific_metadata = _extract_fields(file, scientific_metadata_keys, issues)

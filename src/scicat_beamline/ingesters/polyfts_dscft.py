@@ -25,11 +25,13 @@ global_keywords = [
 
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
-    folder: Path,
+    file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
+) -> Dict:
 
     scientific_metadata = OrderedDict()
 

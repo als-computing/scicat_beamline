@@ -17,12 +17,15 @@ ingest_spec = "als_11012_nexafs"
 
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
+) -> Dict:
     "Ingest a nexafs folder"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         createdBy="dylan",

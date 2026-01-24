@@ -182,12 +182,15 @@ def create_scientific_metadata(folder: Path) -> Dict:
 # def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
+    datasettracker_client: ScicatClient,
+    als_dataset_metadata: Dict,
     owner_username: str,
     file_path: Path,
     thumbnail_dir: Path,
     issues: List[Issue],
-) -> str:
+) -> Dict:
     "Ingest a folder of 11012 Igor analysis"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         owner="MWET",
