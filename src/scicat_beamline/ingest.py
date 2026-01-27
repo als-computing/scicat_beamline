@@ -3,16 +3,19 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from xmlrpc import client
 import typer
 
 from dataset_metadata_schemas.utilities import (read_als_metadata_file, write_als_metadata_file, get_nested)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
 from dataset_tracker_client.client import DatasettrackerClient
 from dataset_tracker_client.model import (DatasetCreateDto,
                                           DatasetInstanceCreateDto,
                                           BeamlineCreateDto,
-                                          ProposalCreateDto)
+                                          ProposalCreateDto,
+                                          DatasetInstanceFile,
+                                          DatasetInstanceFileCreateDto)
 
 from pyscicat.client import from_credentials
 
@@ -240,7 +243,7 @@ def ingest(
 
     # Since we have a folder, we'll check for an existing als-dataset-metadata.json file.
 
-    als_dataset_metadata = None
+    als_dataset_metadata:Optional[DatasetMetadataContainer] = None
     try:
         als_dataset_metadata = read_als_metadata_file(file_path=Path(full_dataset_path, "als-dataset-metadata.json"))
     except Exception as e:
@@ -258,21 +261,22 @@ def ingest(
                 "The als-dataset-metadata.json file already has a SciCat dataset ID. Stopping."
             )
             return results
-        # If there is a file_manifest, ensure that all the files listed there are part of the given dataset_files.
+        # If there is a file_manifest, ensure that it contains all the files in our given ingest list.
         existing_manifest_files = get_nested(als_dataset_metadata, "als.file_manifest.files")
         if existing_manifest_files is not None:
             seen_files = set()
-            for manifest_file in existing_manifest_files:
-                seen_files.add(manifest_file.path)
             for given_file in valid_files:
-                if given_file in seen_files:
-                    seen_files.remove(given_file)
-            # It is conceivable that we would want to re-ingest a Dataset with files removed, but we should not
-            # allow that unless the metadata file has been updated in advance to reflect the changed manifest.
+                seen_files.add(given_file)
+            for manifest_file in existing_manifest_files:
+                if manifest_file.path in seen_files:
+                    seen_files.remove(manifest_file.path)
+            # It is conceivable that we would want to re-ingest a Dataset with files removed, or with files
+            # ignored due to their being supplemental.  But we should not allow an ingest with added files
+            # unless the manifest has been updated in advance to reflect the changes.
             # Otherwise we risk allowing an ingestion on top of an entirely different SciCat Dataset.
             if len(seen_files) > 0:
                 logger.error(
-                    "The als-dataset-metadata file manifest contains files that are not in the dataset_files list. Possible metadata mismatch. Stopping."
+                    "The given dataset_files list containes files that are not in the existing als-dataset-metadata file. Possible metadata mismatch. Stopping."
                 )
                 for missing_file in seen_files:
                     logger.error(f" - {missing_file}")
@@ -357,6 +361,7 @@ def ingest(
             temp_path = Path(temp_dir)
             als_dataset_metadata = ingestion_function(
                 scicat_client=pyscicat_client,
+                temp_dir=temp_path,
                 datasettracker_client=datasettracker_client,
                 als_dataset_metadata=als_dataset_metadata,
                 owner_username=owner_username,
@@ -387,7 +392,13 @@ def ingest(
         logger.error("Ingestion did not return a SciCat dataset ID. Cannot proceed.")
         return results
 
-    if datasettracker_client is not None:
+    if datasettracker_client is None:
+        logger.info("Dataset Tracker client not available. Skipping Dataset Tracker records updates.")
+    else:
+        file_manifest = get_nested(als_dataset_metadata, "als.file_manifest.files")
+        if file_manifest is None or len(file_manifest) == 0:
+            logger.error("No file manifest present in ALS Dataset metadata. Cannot proceed with Dataset Tracker records updates.")
+            return results
 
         # The metadata file should use an id as the User Office defines it, e.g. "bl8.3.2",
         # not a Dataset Tracker slug, e.g. "bl8-3-2".
@@ -439,64 +450,133 @@ def ingest(
         existing_dataset_id = get_nested(als_dataset_metadata, "als.dataset_tracker.dataset_tracker_id")
         if existing_dataset_id is not None:
             logger.info("Dataset Tracker ID already present in metadata. Using existing record.")
-            dataset = datasettracker_client.dataset_get_one(existing_dataset_id)
-            if dataset is None:
+            dataset_record = datasettracker_client.dataset_get_one(existing_dataset_id)
+            if dataset_record is None:
                 logger.error(
                     f"Dataset Tracker ID {existing_dataset_id} present in metadata but record not found. Something odd is going on."
                 )
                 return results
             else:
                 # Since we found an existing record, assume we're updating it.
-                dataset.scicat_dataset_id = scicat_dataset_id
-                dataset.scicat_ingestion_date = get_nested(als_dataset_metadata, "als.scicat.date_ingested")
-                dataset.scicat_ingestion_flow_run_id = prefect_flow_run_id
-                dataset = datasettracker_client.dataset_update(dataset)
+                dataset_record.scicat_dataset_id = scicat_dataset_id
+                dataset_record.scicat_date_ingested = get_nested(als_dataset_metadata, "als.scicat.date_ingested")
+                dataset_record.scicat_ingestion_flow_run_id = prefect_flow_run_id
+                dataset_record = datasettracker_client.dataset_update(dataset_record)
         else:
-            dataset = datasettracker_client.dataset_create(
+            dataset_record = datasettracker_client.dataset_create(
                 DatasetCreateDto(
                     name=get_nested(als_dataset_metadata, "als.name"),
                     description=get_nested(als_dataset_metadata, "als.description"),
                     slug_beamline=get_nested(als_dataset_metadata, "als.beamline_id"),
                     slug_proposal=get_nested(als_dataset_metadata, "als.proposal_id"),
-                    acquisition_date=get_nested(als_dataset_metadata, "als.acquisition_date"),
+                    date_of_acquisition=get_nested(als_dataset_metadata, "als.date_of_acquisition"),
                     scicat_dataset_id=scicat_dataset_id,
-                    scicat_ingestion_date=get_nested(als_dataset_metadata, "als.scicat.date_ingested"),
+                    scicat_date_ingested=get_nested(als_dataset_metadata, "als.scicat.date_ingested"),
                     scicat_ingestion_flow_run_id=prefect_flow_run_id
                 )
             )
 
         # Now we have an existing Dataset record that's been either created or updated.
+        # Time to look for a Dataset Instance record.
 
-        existing_instance = datasettracker_client.dataset_instance_get_many(
+        # A re-ingestion where files differ is an interesting situation because it's not
+        # a copy or move: Files aren't going anywhere.  So the situation doesn't warrant a new
+        # Instance record.  If one exists, we're going to assume the instance was changed
+        # in place deliberately by a scientist correcting something that now requires a re-ingestion.
+        # If there are downstream copies made from the old files (not likely), their record
+        # creation dates will at least provide some clue to the order of operations.
+
+        instance_record = datasettracker_client.dataset_instance_get_many(
             filter_fields={
-                "slug_dataset": dataset.slug,
+                "slug_dataset": dataset_record.slug,
                 "slug_share_sublocation": share_sublocation.slug,
+                # There should only ever be one of these, but if there are more,
+                # we "solve" the problem by taking the latest.
+                # (The default sort on this API call is date created descending.)
+                "date_files_deleted__isnull": True,
                 "path": str(dataset_path)
             }
         )
-        if len(existing_instance) > 0:
-            existing_instance = existing_instance[0]
+        if len(instance_record) > 0:
+            instance_record = instance_record[0]
             logger.info("Dataset Instance record with this path already exists. Using existing.")
         else:
-            existing_instance = datasettracker_client.dataset_instance_create(
+            instance_record = datasettracker_client.dataset_instance_create(
                 DatasetInstanceCreateDto(
-                    slug_dataset=dataset.slug,
+                    slug_dataset=dataset_record.slug,
                     slug_share_sublocation=share_sublocation.slug,
+                    # The path _within_ the share sublocation
                     path=str(dataset_path),
                     # We technically don't know what run put these files here, so we'll use this.
                     prefect_flow_run_id=prefect_flow_run_id,
-                    # We assume that a manifest existed, or was just made by the ingester module above.
+                    # We can assume a manifest exists at this point.
                     files_size_bytes=get_nested(als_dataset_metadata, "als.file_manifest.total_size_bytes"),
                 )
             )
 
+        # Remember that above, we compared the incoming list of files to the manifest of a
+        # (potentially) pre-existing metadata file.
+        # Now we're assuming that the incoming list and the metadata file have been reconciled.
+        # Our concern now is any discrepancy between the manifest and the existing
+        # Dataset Instance File records.
+
+        manifest_files_by_path = {f.path: f for f in file_manifest}
+        file_records:List[DatasetInstanceFile] = datasettracker_client.dataset_instance_files_get_many(
+            filter_fields={"id_dataset_instance": instance_record.id}
+        )
+        record_files_by_path = {f.path: f for f in file_records}
+
         # How we handle files is a bit tricky, because if we're using an existing Dataset Instance
         # record then old File records may exist.  Should we delete them, or update them?
-        # One possible problem is the old records will have a "copied_from" value we should preserve.
-        # Another is that files may have been deleted from the Dataset prior to re-running ingestion,
-        # so we should remove any that aren't in the current manifest.
+        # One possible problem is the old records will have 'local_path' values indicating they
+        # were renamed.  Another is that files may have been deleted from the manifest prior to
+        # re-running ingestion, but before syncing with the Dataset Tracker.
 
-        # Will deal with this tomorrow. :D
+        not_in_manifest = []
+        for path in record_files_by_path.keys():
+            if path not in manifest_files_by_path:
+                not_in_manifest.append(path)
+
+        not_in_records = []
+        in_records = []
+        for path in manifest_files_by_path.keys():
+            if path not in record_files_by_path:
+                not_in_records.append(path)
+            else:
+                in_records.append(path)
+
+        # The current solution is:  Delete anything not in the manifest,
+        # create anything not in the records, and update anything that matches.
+
+        # Delete what's missing
+        for missing_file_path in not_in_manifest:
+            datasettracker_client.dataset_instance_file_delete(
+                record_files_by_path[missing_file_path].id
+            )
+        
+        # Create what's new
+        for new_file_path in not_in_records:
+            manifest_file = manifest_files_by_path[new_file_path]
+            datasettracker_client.dataset_instance_file_create(
+                DatasetInstanceFileCreateDto(
+                    id_dataset_instance=instance_record.id,
+                    file_path=new_file_path,
+                    file_size_bytes=manifest_file.size_bytes,
+                    date_file_last_modified=manifest_file.date_last_modified,
+                    is_supplemental=manifest_file.is_supplemental,
+                )
+            )
+
+        # Update what's changed
+        for existing_file_path in in_records:
+            manifest_file = manifest_files_by_path[existing_file_path]
+            record_file = record_files_by_path[existing_file_path]
+            record_file.file_size_bytes = manifest_file.size_bytes
+            record_file.date_file_last_modified = manifest_file.date_last_modified
+            record_file.is_supplemental = manifest_file.is_supplemental
+            datasettracker_client.dataset_instance_file_update(
+                record_file
+            )
 
     # Write back the ALS dataset metadata file with any updates.
 
