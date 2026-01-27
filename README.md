@@ -26,7 +26,7 @@ If you're developing locally, install dependencies and work in a virtual environ
 ```
 uv venv --python 3.11 # or greater
 source .venv/bin/activate
-uv pip install --all-extras -r pyproject.toml -e .
+uv sync --all-extras
 ```
 
 Then try running the tests:
