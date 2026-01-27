@@ -1,13 +1,16 @@
 import glob
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy
 import pandas
 from pyscicat.client import ScicatClient
 from pyscicat.model import (DataFile, DatasetType, OrigDatablock, Ownable,
                             RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
                                    get_file_mod_time, get_file_size)
@@ -16,15 +19,15 @@ ingest_spec = "nsls2_nexafs_sst1"
 
 
 def ingest(
-    scicat_client=pyscicat_client,
-    datasettracker_client=datasettracker_client,
-    als_dataset_metadata=als_dataset_metadata,
-    owner_username=owner_username,
-    dataset_path=full_dataset_path,
-    dataset_files=valid_files,
-    temp_dir=temp_path,
-    issues=issues,
-) -> Dict:
+    scicat_client: ScicatClient,
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
     "Ingest a folder of nsls-ii sst-1 nexafs files"
 
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"

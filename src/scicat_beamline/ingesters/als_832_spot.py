@@ -3,13 +3,16 @@ import sys
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from numpy import append
 from pymongo import MongoClient
 from pyscicat.client import ScicatClient
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import build_thumbnail
 from scicat_beamline.utils import (Issue, build_search_terms,
@@ -55,15 +58,15 @@ def build_scientific_metadata(app_metadata_doc: Dict, spot_fields: Dict) -> Dict
 # Note: This appears to run an ingestion process based on a document pulled from SciCat, not a file.
 # This will need to be adapted.
 def ingest(
-    scicat_client=pyscicat_client,
-    datasettracker_client=datasettracker_client,
-    als_dataset_metadata=als_dataset_metadata,
-    owner_username=owner_username,
-    dataset_path=full_dataset_path,
-    dataset_files=valid_files,
-    temp_dir=temp_path,
-    issues=issues,
-) -> Dict:
+    scicat_client: ScicatClient,
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
 
     # TODO: Needs updated error handling
     status = IngestionStatus(spot_doc.get("_id"))

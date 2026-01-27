@@ -1,12 +1,15 @@
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import numpy as np
 from PIL import Image, ImageOps
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.utils import (Issue, create_data_files_list,
                                    get_file_mod_time,
@@ -93,15 +96,15 @@ class TREXSNsls2SMIReader:
 
 # def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
-    scicat_client=pyscicat_client,
-    datasettracker_client=datasettracker_client,
-    als_dataset_metadata=als_dataset_metadata,
-    owner_username=owner_username,
-    dataset_path=full_dataset_path,
-    dataset_files=valid_files,
-    temp_dir=temp_path,
-    issues=issues,
-) -> Dict:
+    scicat_client: ScicatClient,
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
     "Ingest a TREXS folder"
 
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"

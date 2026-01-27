@@ -2,13 +2,16 @@ import logging
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import fabio
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
@@ -31,15 +34,15 @@ global_keywords = [
 
 
 def ingest(
-    scicat_client=pyscicat_client,
-    datasettracker_client=datasettracker_client,
-    als_dataset_metadata=als_dataset_metadata,
-    owner_username=owner_username,
-    dataset_path=full_dataset_path,
-    dataset_files=valid_files,
-    temp_dir=temp_path,
-    issues=issues,
-) -> Dict:
+    scicat_client: ScicatClient,
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
 
     scientific_metadata = OrderedDict()
     edf_file = edf_from_txt(file_path)
@@ -90,7 +93,7 @@ def ingest(
     upload_data_block(scicat_client, file_path, dataset_id, ownable)
     if edf_file:
         thumbnail_file = build_waxs_saxs_thumb_733(
-            image_data, thumbnail_dir, edf_file.name
+            image_data, temp_dir, edf_file.name
         )
         encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
         upload_attachment(
