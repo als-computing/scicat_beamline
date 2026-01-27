@@ -55,13 +55,14 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
 
 
 def ingest(
-    scicat_client: ScicatClient,
-    datasettracker_client: ScicatClient,
-    als_dataset_metadata: Dict,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
+    scicat_client=pyscicat_client,
+    datasettracker_client=datasettracker_client,
+    als_dataset_metadata=als_dataset_metadata,
+    owner_username=owner_username,
+    dataset_path=full_dataset_path,
+    dataset_files=valid_files,
+    temp_dir=temp_path,
+    issues=issues,
 ) -> Dict:
     "Ingest a folder of 11012 CCD Theta scan files"
 

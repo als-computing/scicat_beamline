@@ -55,13 +55,14 @@ def build_scientific_metadata(app_metadata_doc: Dict, spot_fields: Dict) -> Dict
 # Note: This appears to run an ingestion process based on a document pulled from SciCat, not a file.
 # This will need to be adapted.
 def ingest(
-    scicat_client: ScicatClient,
-    datasettracker_client: ScicatClient,
-    als_dataset_metadata: Dict,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
+    scicat_client=pyscicat_client,
+    datasettracker_client=datasettracker_client,
+    als_dataset_metadata=als_dataset_metadata,
+    owner_username=owner_username,
+    dataset_path=full_dataset_path,
+    dataset_files=valid_files,
+    temp_dir=temp_path,
+    issues=issues,
 ) -> Dict:
 
     # TODO: Needs updated error handling
