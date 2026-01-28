@@ -367,7 +367,6 @@ def ingest(
                 owner_username=owner_username,
                 dataset_path=full_dataset_path,
                 dataset_files=valid_files,
-                temp_dir=temp_path,
                 issues=issues,
             )
 
