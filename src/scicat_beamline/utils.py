@@ -122,7 +122,7 @@ def create_data_file(file: Path, relativePath=None) -> Tuple[DataFile, int]:
     return datafile, get_file_size(file)
 
 
-def add_to_sci_metadata_from_bad_headers(
+def add_to_sci_metadata_from_key_value_text(
     sci_md: dict, file_path: Path, when_to_stop: Optional[Callable[[str], bool]] = None
 ) -> None:
     """This function will scan through the lines within the file given by `file_path` and attempt to create key value pairs using : or = as a delimiter.
@@ -130,6 +130,14 @@ def add_to_sci_metadata_from_bad_headers(
     It will also do this if the text before the delimiter is empty.
     It will add these to the dict passed in through `sci_md`. Finally it will stop when the lambda `when_to_stop` returns True.
     If `when_to_stop` is None then it will go through the entire file."""
+
+    def set_value(k, v):
+        value = sci_md.setdefault(k, v)
+        if value != v:
+            if type(sci_md[k]) is list:
+                sci_md[k].append(v)
+            sci_md[k] = [sci_md[k], v]
+
     unknown_cnt = 0
     with open(file_path) as txt_file:
         for line in txt_file.read().splitlines():
@@ -137,13 +145,13 @@ def add_to_sci_metadata_from_bad_headers(
                 continue
             if when_to_stop is not None and when_to_stop(line) is True:
                 return
-            parts = line.replace("=", ":").split(":")
-            if len(parts) == 2 and parts[0] != "":
-                value = sci_md.setdefault(parts[0], parts[1])
-                if value != parts[1]:
-                    if type(sci_md[parts[0]]) is list:
-                        sci_md[parts[0]].append(parts[1])
-                    sci_md[parts[0]] = [sci_md[parts[0]], parts[1]]
+            parts = line.split("=")
+            if len(parts) == 2 and (not parts[0].isspace()) and parts[0] != "":
+                set_value(parts[0], parts[1])
+                continue
+            parts = line.split(":")
+            if len(parts) == 2 and (not parts[0].isspace()) and parts[0] != "":
+                set_value(parts[0], parts[1])
                 continue
             sci_md[f"unknown_field{unknown_cnt}"] = line
             unknown_cnt += 1

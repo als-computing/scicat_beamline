@@ -13,7 +13,7 @@ from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetada
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
                                    create_data_files_list, get_file_mod_time,
                                    glob_non_hidden_in_folder)
 
@@ -124,7 +124,7 @@ class Scattering11012Reader:
         metadata = {}
         # Headers from AI file
         ai_file_name = next(glob_non_hidden_in_folder(self._folder, "*.txt"))
-        add_to_sci_metadata_from_bad_headers(
+        add_to_sci_metadata_from_key_value_text(
             metadata, ai_file_name, when_to_stop=lambda line: line.startswith("Time")
         )
         for fits_file in fits_files:

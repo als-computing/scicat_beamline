@@ -12,7 +12,7 @@ from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetada
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
                                    get_file_mod_time, get_file_size)
 
 ingest_spec = "nsls2_nexafs_sst1"
@@ -64,7 +64,7 @@ def ingest(
     table = table.replace({numpy.nan: None})
 
     scientific_metadata = {}
-    add_to_sci_metadata_from_bad_headers(
+    add_to_sci_metadata_from_key_value_text(
         scientific_metadata,
         file_path,
         when_to_stop=lambda line: line.startswith("----"),

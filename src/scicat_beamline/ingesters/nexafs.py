@@ -11,7 +11,7 @@ from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetada
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
                                    create_data_file, get_file_mod_time,
                                    get_file_size)
 
@@ -49,7 +49,7 @@ def ingest(
                 lines_to_skip = line_num - 1
                 break
 
-    add_to_sci_metadata_from_bad_headers(
+    add_to_sci_metadata_from_key_value_text(
         scientific_metadata,
         file_path,
         when_to_stop=lambda line: line.startswith("Time of"),

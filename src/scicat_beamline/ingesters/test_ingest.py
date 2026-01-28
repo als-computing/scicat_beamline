@@ -15,7 +15,7 @@ from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
                                    build_search_terms, create_data_files_list,
                                    get_file_mod_time, get_file_size)
 
@@ -50,7 +50,7 @@ def ingest(
         with fabio.open(edf_file) as fabio_obj:
             image_data = fabio_obj.data
             scientific_metadata["edf headers"] = fabio_obj.header
-    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
+    add_to_sci_metadata_from_key_value_text(scientific_metadata, file_path)
 
     # TODO: change this before ingestion depending on how the institution is marked. Sometimes it's in the name and sometimes it's not.
     basic_scientific_md = OrderedDict()
