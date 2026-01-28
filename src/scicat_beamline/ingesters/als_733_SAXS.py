@@ -15,7 +15,7 @@ from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
                                    build_search_terms, create_data_files_list,
                                    get_file_mod_time, get_file_size)
 
@@ -44,17 +44,39 @@ def ingest(
     issues: Optional[List[Issue]] = None,
 ) -> DatasetMetadataContainer:
 
+    if dataset_path is None:
+        raise ValueError("Must provide a dataset_path for this ingester")
+    # If we got no list of files, we grab a listing from dataset_path
+    if dataset_files is None:
+        dataset_files = list(dataset_path.iterdir())
+
+    # We expect to encounter one .txt file.
+    # If we don't find exactly one, we raise an error.
+    txt_files = []
+    for file_path in dataset_files:
+        if file_path.suffix.lower() == ".txt":
+            txt_files.append(file_path)    
+    if len(txt_files) != 1:
+        raise ValueError(f"Expected one .txt file, found {len(txt_files)}")
+    txt_file = Path(dataset_path, txt_files[0])
+
+    # We look through dataset_files for an .edf file with the same base name as the .txt file
+    edf_file = None
+    for f in dataset_files:
+        if f.suffix.lower() == ".edf" and f.stem == txt_file.stem:
+            edf_file = f
+            break
+
     scientific_metadata = OrderedDict()
-    edf_file = edf_from_txt(file_path)
     if edf_file:
         with fabio.open(edf_file) as fabio_obj:
             image_data = fabio_obj.data
             scientific_metadata["edf headers"] = fabio_obj.header
-    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
+    add_to_sci_metadata_from_key_value_text(scientific_metadata, txt_file)
 
     # TODO: change this before ingestion depending on how the institution is marked. Sometimes it's in the name and sometimes it's not.
     basic_scientific_md = OrderedDict()
-    if "cal" in file_path.name:
+    if "cal" in txt_file.name:
         basic_scientific_md["institution"] = "lbnl"
     else:
         basic_scientific_md["institution"] = "texas"
@@ -83,14 +105,14 @@ def ingest(
         accessGroups=["ingestor", "MWET"],
     )
 
-    dataset_id = upload_raw_dataset(
+    dataset_id = create_raw_dataset(
         scicat_client,
-        file_path,
+        txt_file,
         scicat_metadata,
         scientific_metadata,
         ownable,
     )
-    upload_data_block(scicat_client, file_path, dataset_id, ownable)
+    upload_data_block(scicat_client, txt_file, dataset_id, ownable)
     if edf_file:
         thumbnail_file = build_waxs_saxs_thumb_733(
             image_data, temp_dir, edf_file.name
@@ -103,6 +125,10 @@ def ingest(
             caption="scattering image",
             ownable=ownable,
         )
+
+    #
+    # TODO: This presents problems:
+    #
 
     create_derived(
         scicat_client, edf_file, dataset_id, basic_scientific_md, scicat_metadata
@@ -229,7 +255,7 @@ def edf_from_txt(txt_file_path: Path):
     return Path(txt_file_path.parent, txt_file_path.stem + ".edf")
 
 
-def upload_raw_dataset(
+def create_raw_dataset(
     scicat_client: ScicatClient,
     file_path: Path,
     scicat_metadata: Dict,
