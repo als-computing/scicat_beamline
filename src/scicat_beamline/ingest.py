@@ -115,15 +115,23 @@ def ingest(
 
     logger.info("Setting up ingester logfile.")
 
-    logfile = Path(dataset_full_path, "scicat_ingest_log.log")
-    formatter = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
-    )
-    fileHandler = logging.FileHandler(
-        logfile, mode="a", encoding=None, delay=False, errors=None
-    )
-    fileHandler.setFormatter(formatter)
-    logger.addHandler(fileHandler)
+    try:
+        # if it is a file, get the parent path
+        if dataset_full_path.is_file():
+            log_dir = dataset_full_path.parent
+        else:
+            log_dir = dataset_full_path
+        logfile = Path(log_dir, "scicat_ingest_log.log")
+        formatter = logging.Formatter(
+            fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
+        )
+        fileHandler = logging.FileHandler(
+            logfile, mode="a", encoding=None, delay=False, errors=None
+        )
+        fileHandler.setFormatter(formatter)
+        logger.addHandler(fileHandler)
+    except Exception as e:
+        logger.warning(f"Could not set up logfile: {e}")
 
     logger.info(f"Using ingester spec {ingester_spec}")
 
@@ -142,7 +150,7 @@ def ingest(
             ingestion_function = als_733_saxs_ingest
 
         elif ingester_spec == "als_832_dx_4":
-            ingest_files_iter = standard_iterator(f"{dataset_full_path}/*/")
+            ingest_files_iter = [str(dataset_full_path)]
             ingestion_function = als_832_dx_4_ingest
 
         elif ingester_spec == "als_11012_scattering":
