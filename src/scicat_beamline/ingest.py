@@ -364,7 +364,7 @@ def ingest(
         share_sublocation_record = datasettracker_client.sharesublocation_get_one(datasettracker_share_identifier)
         if share_sublocation_record is None:
             logger.error(
-                f"Dataset Tracker share sublocation with slug identifier {datasettracker_share_identifier} does not exist. Cannot proceed with Dataset Tracker record creation."
+                f"Dataset Tracker share sublocation with slug identifier {datasettracker_share_identifier} does not exist."
             )
             return results
 
@@ -464,7 +464,7 @@ def ingest(
             dataset_record = datasettracker_client.dataset_get_one(existing_dataset_id)
             if dataset_record is None:
                 logger.error(
-                    f"Dataset Tracker ID {existing_dataset_id} present in metadata but record not found. Something odd is going on."
+                    f"Dataset Tracker ID {existing_dataset_id} present in metadata but record not found.  Something odd is going on.  Wrong server?"
                 )
                 return results
             else:
