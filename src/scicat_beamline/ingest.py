@@ -343,6 +343,9 @@ def ingest(
     # but we pass it anyway for now.
 
     datasettracker_client = None
+    # We should look for this as soon as we connect,
+    # otherwise we won't know it's wrong until after an ingestion.
+    share_sublocation_record = None
     if datasettracker_username and datasettracker_password and datasettracker_url:
         try:
             datasettracker_client = DatasettrackerClient(
@@ -353,6 +356,15 @@ def ingest(
         except Exception as e:
             logger.exception(
                 f"Credentials were given, but cannot connect to Dataset Tracker client. Error: {e}"
+            )
+            return results
+
+        # Make sure the share sublocation we intend to use exists.
+
+        share_sublocation_record = datasettracker_client.sharesublocation_get_one(datasettracker_share_identifier)
+        if share_sublocation_record is None:
+            logger.error(
+                f"Dataset Tracker share sublocation with slug identifier {datasettracker_share_identifier} does not exist. Cannot proceed with Dataset Tracker record creation."
             )
             return results
 
@@ -444,15 +456,6 @@ def ingest(
                 )
             )
 
-        # Make sure the share sublocation we intend to use exists.
-
-        share_sublocation = datasettracker_client.sharesublocation_get_one(datasettracker_share_identifier)
-        if share_sublocation is None:
-            logger.error(
-                f"Dataset Tracker share sublocation with slug identifier {datasettracker_share_identifier} does not exist. Cannot proceed with Dataset Tracker record creation."
-            )
-            return results
-
         # Now we finally have what we need to create a new Dataset.
 
         existing_dataset_id = get_nested(als_dataset_metadata, "als.dataset_tracker.dataset_tracker_id")
@@ -497,7 +500,7 @@ def ingest(
         instance_record = datasettracker_client.dataset_instance_get_many(
             filter_fields={
                 "slug_dataset": dataset_record.slug,
-                "slug_share_sublocation": share_sublocation.slug,
+                "slug_share_sublocation": share_sublocation_record.slug,
                 # There should only ever be one of these, but if there are more,
                 # we "solve" the problem by taking the latest.
                 # (The default sort on this API call is date created descending.)
@@ -512,7 +515,7 @@ def ingest(
             instance_record = datasettracker_client.dataset_instance_create(
                 DatasetInstanceCreateDto(
                     slug_dataset=dataset_record.slug,
-                    slug_share_sublocation=share_sublocation.slug,
+                    slug_share_sublocation=share_sublocation_record.slug,
                     # The path _within_ the share sublocation
                     path=str(dataset_path),
                     # We technically don't know what run put these files here, so we'll use this.
