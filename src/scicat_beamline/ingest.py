@@ -2,13 +2,14 @@ import glob
 import logging
 import os
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from xmlrpc import client
 import typer
 
 from dataset_metadata_schemas.utilities import (read_als_metadata_file, write_als_metadata_file, get_nested)
-from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.dataset_metadata import SciCat, DatasetTracker, Container as DatasetMetadataContainer
 from dataset_tracker_client.client import DatasettrackerClient
 from dataset_tracker_client.model import (DatasetCreateDto,
                                           DatasetInstanceCreateDto,
@@ -391,6 +392,14 @@ def ingest(
         logger.error("Ingestion did not return a SciCat dataset ID. Cannot proceed.")
         return results
 
+    als_dataset_metadata.als.scicat = SciCat(
+        scicat_dataset_id = scicat_dataset_id,
+        scicat_instance = scicat_url,
+        date_ingested = datetime.now(timezone.utc).isoformat(),
+        ingester_used = ingester_spec,
+        ingestion_logfile = str(logfile.relative_to(full_dataset_path))
+    )
+
     if datasettracker_client is None:
         logger.info("Dataset Tracker client not available. Skipping Dataset Tracker records updates.")
     else:
@@ -577,12 +586,30 @@ def ingest(
                 record_file
             )
 
+        existing_comments = get_nested(als_dataset_metadata, "als.dataset_tracker.instance_comments")
+
+        als_dataset_metadata.als.dataset_tracker = DatasetTracker(
+            dataset_tracker_id=dataset_record.slug,
+            dataset_tracker_instance=datasettracker_url,
+            instance_record_id=instance_record.id,
+            instance_comments=existing_comments or []
+        )
+
     # Write back the ALS dataset metadata file with any updates.
+
+    # TODO: Add a reference to the metadata file to the manifest inside itself?
+
+    # TODO: Remember if an old version of the file existed without a slug, and delete it.
+
+    metadata_file_name = "als-dataset-metadata.json"
+    slug = get_nested(als_dataset_metadata, "als.dataset_tracker.dataset_tracker_id")
+    if slug is not None:
+        metadata_file_name = f"als-dataset-metadata-{slug}.json"
 
     try:
         write_als_metadata_file(
             metadata=als_dataset_metadata,
-            file_path=Path(full_dataset_path, "als-dataset-metadata.json"),
+            file_path=Path(full_dataset_path, metadata_file_name),
         )
         logger.info(
             "Wrote updated als-dataset-metadata.json file."
