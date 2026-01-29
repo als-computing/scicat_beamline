@@ -256,7 +256,7 @@ def ingest(
 
     if als_dataset_metadata is not None:
         # Ensure that there is no SciCat dataset ID already present in the metadata.
-        # In the future we may allow this to be overriden, to force a re-ingestion.
+        # In the future we may allow this to be overridden, to force a re-ingestion.
         if get_nested(als_dataset_metadata, "als.scicat.scicat_dataset_id") is not None:
             logger.error(
                 "The als-dataset-metadata.json file already has a SciCat dataset ID. Stopping."
@@ -289,7 +289,7 @@ def ingest(
     # It's kept here as a reference so we can refer to it as we adapt the ingesters
     # to deal with a common folder and a standard list of files.
     # The preferred approach now is to let the ingester choose which files are most
-    # improtant, and that the whole set always constitutes only one Dataset.
+    # important, and that the whole set always constitutes only one Dataset.
 
     # ingest_files_iter = []
     # if ingester_spec == "bltest":

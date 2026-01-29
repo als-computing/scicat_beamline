@@ -52,6 +52,7 @@ def ingest(
     else:
         file_manifest = file_manifest_from_files(dataset_path, dataset_files)
 
+    # Easier to work directly with the full Path objects in the code below.
     dataset_files = [Path(dataset_path, f.path) for f in file_manifest.files]
 
     # We expect to encounter one .txt file.
