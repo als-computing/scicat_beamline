@@ -157,7 +157,7 @@ def add_to_sci_metadata_from_key_value_text(
             unknown_cnt += 1
 
 
-def build_search_terms(sample_name):
+def search_terms_from_name(sample_name):
     """extract search terms from sample name to provide something pleasing to search on"""
     terms = re.split("[^a-zA-Z0-9]", sample_name)
     description = [term.lower() for term in terms if len(term) > 0]

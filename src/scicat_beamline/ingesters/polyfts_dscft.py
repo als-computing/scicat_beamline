@@ -12,7 +12,7 @@ from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import encode_image_2_thumbnail
-from scicat_beamline.utils import (Issue, build_search_terms,
+from scicat_beamline.utils import (Issue, search_terms_from_name,
                                    get_file_mod_time, get_file_size)
 
 ingest_spec = "polyfts_dscft"
@@ -102,7 +102,7 @@ def upload_raw_dataset(
 
     # sampleId = get_sample_id_oct_2022(file_name)
 
-    description = build_search_terms(folder_name)
+    description = search_terms_from_name(folder_name)
     # sample_keywords = find_sample_keywords_oct_2022(folder.name)
     dataset = RawDataset(
         owner=scicat_metadata.get("owner"),

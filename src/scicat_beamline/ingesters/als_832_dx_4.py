@@ -17,7 +17,7 @@ from dataset_tracker_client.client import DatasettrackerClient
 from scicat_beamline.thumbnails import (build_thumbnail_as_filebuffer,
                                         encode_filebuffer_image_2_thumbnail)
 from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
-                                   build_search_terms,
+                                   search_terms_from_name,
                                    calculate_access_controls, clean_email,
                                    get_file_mod_time, get_file_size)
 
@@ -107,7 +107,7 @@ def upload_raw_dataset(
     file_size = get_file_size(file_path)
     file_mod_time = get_file_mod_time(file_path)
     file_name = scicat_metadata.get("/measurement/sample/file_name")
-    description = build_search_terms(file_name)
+    description = search_terms_from_name(file_name)
     appended_keywords = description.split()
     logger.info(
         f"email: {scicat_metadata.get('/measurement/sample/experimenter/email')}"

@@ -16,7 +16,7 @@ from dataset_tracker_client.client import DatasettrackerClient
 from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
 from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
-                                   build_search_terms, create_data_files_list,
+                                   search_terms_from_name, create_data_files_list, file_manifest_from_folder, file_manifest_from_files,
                                    get_file_mod_time, get_file_size)
 
 ingest_spec = "als733_saxs"

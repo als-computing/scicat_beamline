@@ -15,7 +15,7 @@ from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import build_thumbnail
-from scicat_beamline.utils import (Issue, build_search_terms,
+from scicat_beamline.utils import (Issue, search_terms_from_name,
                                    calculate_access_controls,
                                    get_file_mod_time)
 
@@ -160,7 +160,7 @@ def upload_raw_dataset(
     if file.exists():
         file_mod_time = get_file_mod_time(file)
 
-    description = build_search_terms(file_name)
+    description = search_terms_from_name(file_name)
     appended_keywords = description.split()
     appended_keywords.append("spot")
     dataset = RawDataset(

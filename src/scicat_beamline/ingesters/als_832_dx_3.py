@@ -15,7 +15,7 @@ from dataset_tracker_client.client import DatasettrackerClient
 from scicat_beamline.thumbnails import (build_thumbnail,
                                         encode_image_2_thumbnail)
 from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
-                                   build_search_terms,
+                                   search_terms_from_name,
                                    calculate_access_controls,
                                    get_file_mod_time, get_file_size)
 
@@ -84,7 +84,7 @@ def upload_raw_dataset(
     "Creates a dataset object"
     file_mod_time = get_file_mod_time(file_path)
     file_name = scicat_metadata.get("/measurement/sample/file_name")
-    description = build_search_terms(file_name)
+    description = search_terms_from_name(file_name)
     appended_keywords = description.split()
 
     dataset = RawDataset(
