@@ -2,23 +2,26 @@ import logging
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import fabio
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
                                    build_search_terms, create_data_files_list,
                                    get_file_mod_time, get_file_size)
 
 ingest_spec = "als733_saxs"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 global_keywords = [
@@ -32,11 +35,14 @@ global_keywords = [
 
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
 
     scientific_metadata = OrderedDict()
     edf_file = edf_from_txt(file_path)
@@ -44,7 +50,7 @@ def ingest(
         with fabio.open(edf_file) as fabio_obj:
             image_data = fabio_obj.data
             scientific_metadata["edf headers"] = fabio_obj.header
-    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
+    add_to_sci_metadata_from_key_value_text(scientific_metadata, file_path)
 
     # TODO: change this before ingestion depending on how the institution is marked. Sometimes it's in the name and sometimes it's not.
     basic_scientific_md = OrderedDict()

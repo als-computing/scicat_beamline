@@ -1,14 +1,17 @@
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy
 import pandas
 from pyscicat.client import ScicatClient
 from pyscicat.model import DatasetType, OrigDatablock, Ownable, RawDataset
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
                                    create_data_file, get_file_mod_time,
                                    get_file_size)
 
@@ -17,12 +20,16 @@ ingest_spec = "als_11012_nexafs"
 
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
     "Ingest a nexafs folder"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         createdBy="dylan",
@@ -42,7 +49,7 @@ def ingest(
                 lines_to_skip = line_num - 1
                 break
 
-    add_to_sci_metadata_from_bad_headers(
+    add_to_sci_metadata_from_key_value_text(
         scientific_metadata,
         file_path,
         when_to_stop=lambda line: line.startswith("Time of"),

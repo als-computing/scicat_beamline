@@ -3,34 +3,40 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import h5py
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, OrigDatablock, Ownable,
                             RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import (build_thumbnail_as_filebuffer,
                                         encode_filebuffer_image_2_thumbnail)
 from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
-                                   build_search_terms,
+                                   search_terms_from_name,
                                    calculate_access_controls, clean_email,
                                    get_file_mod_time, get_file_size)
 
 DEFAULT_USER = "8.3.2"  # In case there's not proposal number
 ingest_spec = "als832_dx_4"  # "als832_dx_3"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    temp_path: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
     """Ingests a file into scicat
 
     Ingestion to takes a "best effort" stance to ingestion. Along the way,
@@ -101,7 +107,7 @@ def upload_raw_dataset(
     file_size = get_file_size(file_path)
     file_mod_time = get_file_mod_time(file_path)
     file_name = scicat_metadata.get("/measurement/sample/file_name")
-    description = build_search_terms(file_name)
+    description = search_terms_from_name(file_name)
     appended_keywords = description.split()
     logger.info(
         f"email: {scicat_metadata.get('/measurement/sample/experimenter/email')}"

@@ -7,9 +7,11 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
 import numpy as np
+
+from dataset_metadata_schemas.dataset_metadata import FileManifest, FileManifestEntry
 from pyscicat.model import DataFile
+
 
 UNKNOWN_EMAIL = "unknown@example.com"
 
@@ -26,7 +28,7 @@ class Issue:
     exception: Optional[Union[str, None]] = None
 
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 class NPArrayEncoder(json.JSONEncoder):
@@ -81,6 +83,56 @@ def glob_non_hidden_in_folder(folder: Path, pattern: str, recursive=False):
     return map(Path, glob.iglob(str(folder) + "/" + pattern, recursive=recursive))
 
 
+
+def file_manifest_from_folder(
+    folder: Path, excludeCheck: Optional[Callable[[Path], bool]] = None, recursive=False
+) -> FileManifest:
+    """Iterates over files in a directory and creates a FileManifest object (part of the ALS Metadata file schema).
+    It will exclude hidden files and symlinks.  It will also exclude directories.
+    If the `excludeCheck` is passed in then it will check if it evaluates to true for each file in the directory
+    and if it does, then that file will be excluded from the list. If `recursive` is set to true it will recursively iterate
+    over all subdirectories, except hidden ones."""
+
+    files = []
+
+    for file in glob.iglob(str(folder) + "/**", recursive=recursive):
+        file_path = Path(file)
+        if file_path.is_file() is False:
+            continue
+        if file_path.is_symlink():
+            continue
+        if (excludeCheck is not None) and excludeCheck(file_path):
+            continue
+        relative_path = file_path.relative_to(folder)
+        files.append(relative_path)
+
+    return file_manifest_from_files(folder=folder, files=files)
+
+
+def file_manifest_from_files(
+    folder: Path, files: List[Path]
+) -> FileManifest:
+    """Iterates over the given files (assumed to all be relative to the given folder) and
+    creates a FileManifest object (part of the ALS Metadata file schema)."""
+
+    total_size = 0
+    entries: List[FileManifestEntry] = []
+
+    for relative_path in files:
+        file_path = Path(folder, relative_path)
+        ls = file_path.lstat()
+        entry = FileManifestEntry(
+            path=str(relative_path),
+            size_bytes=ls.st_size,
+            date_last_modified=datetime.fromtimestamp(ls.st_mtime).isoformat() + "Z",
+            is_supplemental=False,
+        )
+        entries.append(entry)
+        total_size += ls.st_size
+            
+    return FileManifest(files=entries, total_size_bytes=total_size)
+
+
 def create_data_files_list(
     folder: Path, excludeCheck: Optional[Callable[[Path], bool]] = None, recursive=False
 ) -> Tuple[List[DataFile], int]:
@@ -121,7 +173,7 @@ def create_data_file(file: Path, relativePath=None) -> Tuple[DataFile, int]:
     return datafile, get_file_size(file)
 
 
-def add_to_sci_metadata_from_bad_headers(
+def add_to_sci_metadata_from_key_value_text(
     sci_md: dict, file_path: Path, when_to_stop: Optional[Callable[[str], bool]] = None
 ) -> None:
     """This function will scan through the lines within the file given by `file_path` and attempt to create key value pairs using : or = as a delimiter.
@@ -129,6 +181,14 @@ def add_to_sci_metadata_from_bad_headers(
     It will also do this if the text before the delimiter is empty.
     It will add these to the dict passed in through `sci_md`. Finally it will stop when the lambda `when_to_stop` returns True.
     If `when_to_stop` is None then it will go through the entire file."""
+
+    def set_value(k, v):
+        value = sci_md.setdefault(k, v)
+        if value != v:
+            if type(sci_md[k]) is list:
+                sci_md[k].append(v)
+            sci_md[k] = [sci_md[k], v]
+
     unknown_cnt = 0
     with open(file_path) as txt_file:
         for line in txt_file.read().splitlines():
@@ -136,19 +196,15 @@ def add_to_sci_metadata_from_bad_headers(
                 continue
             if when_to_stop is not None and when_to_stop(line) is True:
                 return
-            parts = line.replace("=", ":").split(":")
-            if len(parts) == 2 and parts[0] != "":
-                value = sci_md.setdefault(parts[0], parts[1])
-                if value != parts[1]:
-                    if type(sci_md[parts[0]]) is list:
-                        sci_md[parts[0]].append(parts[1])
-                    sci_md[parts[0]] = [sci_md[parts[0]], parts[1]]
+            parts = re.split(r"\s*[\=\:]\s*", line, maxsplit=1)
+            if len(parts) == 2 and (not parts[0].isspace()) and parts[0] != "":
+                set_value(parts[0].lstrip(), parts[1].rstrip())
                 continue
-            sci_md[f"unknown_field{unknown_cnt}"] = line
+            sci_md[f"unknown_field_{unknown_cnt}"] = line
             unknown_cnt += 1
 
 
-def build_search_terms(sample_name):
+def search_terms_from_name(sample_name):
     """extract search terms from sample name to provide something pleasing to search on"""
     terms = re.split("[^a-zA-Z0-9]", sample_name)
     description = [term.lower() for term in terms if len(term) > 0]

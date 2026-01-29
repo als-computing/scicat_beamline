@@ -3,16 +3,19 @@ import sys
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from numpy import append
 from pymongo import MongoClient
 from pyscicat.client import ScicatClient
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import build_thumbnail
-from scicat_beamline.utils import (Issue, build_search_terms,
+from scicat_beamline.utils import (Issue, search_terms_from_name,
                                    calculate_access_controls,
                                    get_file_mod_time)
 
@@ -52,13 +55,19 @@ def build_scientific_metadata(app_metadata_doc: Dict, spot_fields: Dict) -> Dict
     return OrderedDict(sorted(sci_meta.items()))
 
 
+# Note: This appears to run an ingestion process based on a document pulled from SciCat, not a file.
+# This will need to be adapted.
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    temp_path: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
+
     # TODO: Needs updated error handling
     status = IngestionStatus(spot_doc.get("_id"))
     fs_doc = spot_doc.get("fs")
@@ -151,7 +160,7 @@ def upload_raw_dataset(
     if file.exists():
         file_mod_time = get_file_mod_time(file)
 
-    description = build_search_terms(file_name)
+    description = search_terms_from_name(file_name)
     appended_keywords = description.split()
     appended_keywords.append("spot")
     dataset = RawDataset(

@@ -2,23 +2,26 @@ import logging
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import fabio
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Als, SciCat, FileManifest, Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import get_nested
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
-                                   build_search_terms, create_data_files_list,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
+                                   search_terms_from_name, create_data_files_list, file_manifest_from_folder, file_manifest_from_files,
                                    get_file_mod_time, get_file_size)
 
 ingest_spec = "als733_saxs"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 global_keywords = [
@@ -32,79 +35,168 @@ global_keywords = [
 
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
+
+    if dataset_path is None:
+        raise ValueError("Must provide a dataset_path for this ingester")
+    # If we got no list of files, we grab a listing from dataset_path
+    if dataset_files is None:
+        file_manifest = file_manifest_from_folder(dataset_path, recursive=True)
+    else:
+        file_manifest = file_manifest_from_files(dataset_path, dataset_files)
+
+    # Easier to work directly with the full Path objects in the code below.
+    dataset_files = [Path(dataset_path, f.path) for f in file_manifest.files]
+
+    # We expect to encounter one .txt file.
+    # If we don't find exactly one, we raise an error.
+    txt_files: List[Path] = []
+    for file_path in dataset_files:
+        if file_path.suffix.lower() == ".txt":
+            txt_files.append(file_path)    
+    if len(txt_files) != 1:
+        raise ValueError(f"Expected one .txt file, found {len(txt_files)}")
+    txt_file = txt_files[0]
+
+    # We look through dataset_files for an .edf file with the same base name as the .txt file
+    edf_file = None
+    for f in dataset_files:
+        if f.suffix.lower() == ".edf" and f.stem == txt_file.stem:
+            edf_file = f
+            break
 
     scientific_metadata = OrderedDict()
-    edf_file = edf_from_txt(file_path)
     if edf_file:
         with fabio.open(edf_file) as fabio_obj:
             image_data = fabio_obj.data
             scientific_metadata["edf headers"] = fabio_obj.header
-    add_to_sci_metadata_from_bad_headers(scientific_metadata, file_path)
+    add_to_sci_metadata_from_key_value_text(scientific_metadata, txt_file)
 
-    # TODO: change this before ingestion depending on how the institution is marked. Sometimes it's in the name and sometimes it's not.
     basic_scientific_md = OrderedDict()
-    if "cal" in file_path.name:
-        basic_scientific_md["institution"] = "lbnl"
-    else:
-        basic_scientific_md["institution"] = "texas"
 
-    # TODO: change based on project name before ingestion
+    # This used to account for another institution, "texas", but now we assume LBNL.
+    basic_scientific_md["institution"] = "lbnl"
+
+    # TODO: This is very sus.  We need a better way to get a project name.
     basic_scientific_md["project_name"] = "SNIPS membranes"
 
-    # TODO: change to transmission or grazing before ingestion
+    # TODO: Change to transmission or grazing before ingestion?
     basic_scientific_md["geometry"] = "transmission"
     # raise Exception("MUST SPECIFY GEOMETRY")
 
     scientific_metadata.update(basic_scientific_md)
 
-    # TODO: change PI before ingestion
+    # TODO: Very sus. Just matching lines in the text file.
+    proposal_name = scientific_metadata.get("ALS Proposal #", "UNKNOWN")
+    principal_investigator = scientific_metadata.get("PI", "UNKNOWN")
+
     scicat_metadata = {
-        "owner": "Garrett Birkel",
-        "email": "gwbirkel@lbl.gov",
-        "instrument_name": "ALS 7.3.3",
-        "proposal": "UNKNOWN",
-        "pi": "Garrett Birkel",
+        "owner": "Garrett Birkel",      # TODO: Definitely not correct!
+        "email": "gwbirkel@lbl.gov",    # TODO: Definitely not correct!
+        "instrument_name": "7.3.3",     # TODO: Is this correct?
+        "proposal": proposal_name,
+        "pi": principal_investigator,
     }
 
     # temporary access controls setup
     ownable = Ownable(
-        ownerGroup="MWET",
-        accessGroups=["ingestor", "MWET"],
+        ownerGroup = proposal_name.replace(" ", "_"), # TODO: Also hella sus.
+        accessGroups=["ingestor", proposal_name.replace(" ", "_")],
     )
 
-    dataset_id = upload_raw_dataset(
-        scicat_client,
-        file_path,
-        scicat_metadata,
-        scientific_metadata,
-        ownable,
+    sci_md_keywords = [
+        scientific_metadata["project_name"],
+        scientific_metadata["institution"],
+        scientific_metadata["geometry"],
+    ]
+    sci_md_keywords = [x for x in sci_md_keywords if x is not None]
+
+    file_mod_time = get_file_mod_time(txt_file)
+    file_name = txt_file.stem
+
+    sampleId = get_sample_id_oct_2022(file_name)
+
+    description = search_terms_from_name(txt_file.parent.name + "_" + file_name)
+    sample_keywords = find_sample_keywords_oct_2022(txt_file.name)
+    dataset = RawDataset(
+        owner=scicat_metadata.get("owner"),
+        contactEmail=scicat_metadata.get("email"),
+        creationLocation=scicat_metadata.get("instrument_name"),
+        datasetName=file_name,
+        type=DatasetType.raw,
+        instrumentId=scicat_metadata.get("instrument_name"),
+        proposalId=scicat_metadata.get("proposal"),
+        dataFormat="733",
+        principalInvestigator=scicat_metadata.get("pi"),
+        sourceFolder=str(txt_file.parent),
+        scientificMetadata=scientific_metadata,
+        sampleId=sampleId,
+        isPublished=False,
+        description=description,
+        keywords=global_keywords + sci_md_keywords + sample_keywords,
+        creationTime=file_mod_time,
+        **ownable.model_dump(),
     )
-    upload_data_block(scicat_client, file_path, dataset_id, ownable)
+    scicat_dataset_id = scicat_client.datasets_create(dataset)
+    logger.info(f"Created dataset with id {scicat_dataset_id} for file {txt_file.name}")
+    
+    datafiles = data_file_dtos_from_manifest(file_manifest)
+
+    datablock = CreateDatasetOrigDatablockDto(
+        size=file_manifest.total_size_bytes,
+        dataFileList=datafiles,
+    )
+    _ = scicat_client.datasets_origdatablock_create(scicat_dataset_id, datablock)
+    logger.info(
+        f"Created datablock for dataset id {scicat_dataset_id} for file {txt_file.name}"
+    )
+
     if edf_file:
         thumbnail_file = build_waxs_saxs_thumb_733(
-            image_data, thumbnail_dir, edf_file.name
+            image_data, temp_dir, edf_file.name
         )
         encoded_thumbnail = encode_image_2_thumbnail(thumbnail_file)
         upload_attachment(
             scicat_client,
             encoded_thumbnail,
-            dataset_id=dataset_id,
+            dataset_id=scicat_dataset_id,
             caption="scattering image",
             ownable=ownable,
         )
 
-    create_derived(
-        scicat_client, edf_file, dataset_id, basic_scientific_md, scicat_metadata
-    )
+    #
+    # TODO: This presents problems, but luckily we aren't expecting derived data.
+    #
+    #create_derived(
+    #    scicat_client, edf_file, scicat_dataset_id, basic_scientific_md, scicat_metadata
+    #)
 
-    return dataset_id
+    # In the SciCat object, the only thing we'll set in here is the scicat_dataset_id.
+    # The rest is set by the main ingester function we return to.
+
+    if not als_dataset_metadata:
+        als_dataset_metadata = DatasetMetadataContainer(als=Als())
+
+    als_dataset_metadata.als.beamline_id = "7.3.3"
+    als_dataset_metadata.als.proposal_id = proposal_name
+    als_dataset_metadata.als.principal_investigator = principal_investigator
+    als_dataset_metadata.als.file_manifest = file_manifest
+
+    if get_nested(als_dataset_metadata, "als.scicat") is None:
+        als_dataset_metadata.als.scicat = SciCat()
+
+    als_dataset_metadata.als.scicat.scicat_dataset_id = scicat_dataset_id
+    return als_dataset_metadata
 
 
+# Not used
 def create_derived(
     scicat_client: ScicatClient,
     raw_file_path: Path,
@@ -223,90 +315,19 @@ def edf_from_txt(txt_file_path: Path):
     return Path(txt_file_path.parent, txt_file_path.stem + ".edf")
 
 
-def upload_raw_dataset(
-    scicat_client: ScicatClient,
-    file_path: Path,
-    scicat_metadata: Dict,
-    scientific_metadata: Dict,
-    ownable: Ownable,
-) -> str:
-    "Creates a dataset object"
-    sci_md_keywords = [
-        scientific_metadata["project_name"],
-        scientific_metadata["institution"],
-        scientific_metadata["geometry"],
-    ]
-    sci_md_keywords = [x for x in sci_md_keywords if x is not None]
-
-    file_mod_time = get_file_mod_time(file_path)
-    file_name = file_path.stem
-
-    sampleId = get_sample_id_oct_2022(file_name)
-
-    description = build_search_terms(file_path.parent.name + "_" + file_name)
-    sample_keywords = find_sample_keywords_oct_2022(file_path.name)
-    dataset = RawDataset(
-        owner=scicat_metadata.get("owner"),
-        contactEmail=scicat_metadata.get("email"),
-        creationLocation=scicat_metadata.get("instrument_name"),
-        datasetName=file_name,
-        type=DatasetType.raw,
-        instrumentId=scicat_metadata.get("instrument_name"),
-        proposalId=scicat_metadata.get("proposal"),
-        dataFormat="733",
-        principalInvestigator=scicat_metadata.get("pi"),
-        sourceFolder=str(file_path.parent),
-        scientificMetadata=scientific_metadata,
-        sampleId=sampleId,
-        isPublished=False,
-        description=description,
-        keywords=global_keywords + sci_md_keywords + sample_keywords,
-        creationTime=file_mod_time,
-        **ownable.model_dump(),
-    )
-    dataset_id = scicat_client.datasets_create(dataset)
-    logger.info(f"Created dataset with id {dataset_id} for file {file_path.name}")
-    return dataset_id
-
-
-def collect_files(txt_file_path: Path) -> List[Path]:
-    return [txt_file_path, edf_from_txt(txt_file_path)]
-
-
-def create_data_files(txt_file_path: Path) -> Tuple[int, List[DataFile]]:
+def data_file_dtos_from_manifest(file_manifest: FileManifest) -> List[DataFile]:
     "Collects all txt and edf files"
     data_files = []
-    total_size = 0
-    files = collect_files(txt_file_path)
-    for file in files:
-        file_size = get_file_size(file)
+    for file in file_manifest.files:
         datafile = DataFile(
-            path=file.name,
-            size=file_size,
-            time=get_file_mod_time(file),
+            path=file.path,
+            size=file.size_bytes,
+            time=file.date_last_modified,
             type="RawDatasets",
         )
-        total_size += file_size
         data_files.append(datafile)
-    logger.info(f"Found {len(data_files)} data files")
-    return total_size, data_files
-
-
-def upload_data_block(
-    scicat_client: ScicatClient, txt_file_path: Path, dataset_id: str, ownable: Ownable
-) -> OrigDatablock:
-    "Creates a OrigDatablock of files"
-    total_size, datafiles = create_data_files(txt_file_path)
-
-    datablock = CreateDatasetOrigDatablockDto(
-        size=total_size,
-        dataFileList=datafiles,
-    )
-    result = scicat_client.datasets_origdatablock_create(dataset_id, datablock)
-    logger.info(
-        f"Created datablock for dataset id {dataset_id} for file {txt_file_path.name}"
-    )
-    return result
+    logger.info(f"Allocated {len(data_files)} data files")
+    return data_files
 
 
 # TODO: Move to common_ingester_code.py and use as a generalized function

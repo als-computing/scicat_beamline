@@ -2,19 +2,22 @@ import logging
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import encode_image_2_thumbnail
-from scicat_beamline.utils import (Issue, build_search_terms,
+from scicat_beamline.utils import (Issue, search_terms_from_name,
                                    get_file_mod_time, get_file_size)
 
 ingest_spec = "polyfts_dscft"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 global_keywords = [
@@ -25,11 +28,14 @@ global_keywords = [
 
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    folder: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
 
     scientific_metadata = OrderedDict()
 
@@ -96,7 +102,7 @@ def upload_raw_dataset(
 
     # sampleId = get_sample_id_oct_2022(file_name)
 
-    description = build_search_terms(folder_name)
+    description = search_terms_from_name(folder_name)
     # sample_keywords = find_sample_keywords_oct_2022(folder.name)
     dataset = RawDataset(
         owner=scicat_metadata.get("owner"),

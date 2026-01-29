@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import PyHyperScattering
@@ -11,6 +11,9 @@ from PIL import Image, ImageOps
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import build_RSoXS_thumb_SST1
 from scicat_beamline.utils import (Issue, create_data_files_list,
@@ -138,12 +141,16 @@ class ScatteringNsls2Sst1Reader:
 # def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
     "Ingest a folder of 11012 scattering folders"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         createdBy="dylan",

@@ -9,8 +9,11 @@ from PIL import Image, ImageOps
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, Dataset, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_bad_headers,
+from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
                                    create_data_files_list, get_file_mod_time,
                                    glob_non_hidden_in_folder)
 
@@ -121,7 +124,7 @@ class Scattering11012Reader:
         metadata = {}
         # Headers from AI file
         ai_file_name = next(glob_non_hidden_in_folder(self._folder, "*.txt"))
-        add_to_sci_metadata_from_bad_headers(
+        add_to_sci_metadata_from_key_value_text(
             metadata, ai_file_name, when_to_stop=lambda line: line.startswith("Time")
         )
         for fits_file in fits_files:
@@ -139,12 +142,16 @@ class Scattering11012Reader:
 
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
     "Ingest a folder of 11012 scattering folders"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         createdBy="dylan",

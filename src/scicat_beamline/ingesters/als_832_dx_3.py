@@ -2,17 +2,20 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import h5py
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import (build_thumbnail,
                                         encode_image_2_thumbnail)
 from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
-                                   build_search_terms,
+                                   search_terms_from_name,
                                    calculate_access_controls,
                                    get_file_mod_time, get_file_size)
 
@@ -20,16 +23,20 @@ from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
 
 ingest_spec = "als832_dx_3"
 
-logger = logging.getLogger("scicat_ingest")
+logger = logging.getLogger("scicat_operation")
 
 
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
+
     with h5py.File(file_path, "r") as file:
         scicat_metadata = _extract_fields(file, scicat_metadata_keys, issues)
         scientific_metadata = _extract_fields(file, scientific_metadata_keys, issues)
@@ -77,7 +84,7 @@ def upload_raw_dataset(
     "Creates a dataset object"
     file_mod_time = get_file_mod_time(file_path)
     file_name = scicat_metadata.get("/measurement/sample/file_name")
-    description = build_search_terms(file_name)
+    description = search_terms_from_name(file_name)
     appended_keywords = description.split()
 
     dataset = RawDataset(

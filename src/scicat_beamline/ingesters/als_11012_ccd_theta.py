@@ -1,10 +1,13 @@
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from pyscicat.client import ScicatClient
 from pyscicat.model import (DataFile, Dataset, DatasetType, OrigDatablock,
                             Ownable)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.utils import Issue, get_file_mod_time, get_file_size
 
@@ -56,12 +59,16 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
 
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: str,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
     "Ingest a folder of 11012 CCD Theta scan files"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         owner="MWET",

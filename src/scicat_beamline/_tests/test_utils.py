@@ -1,7 +1,7 @@
 import json
 import numpy as np
 
-from scicat_beamline.utils import NPArrayEncoder, clean_email, UNKNOWN_EMAIL, build_search_terms, calculate_access_controls, Issue
+from scicat_beamline.utils import NPArrayEncoder, clean_email, UNKNOWN_EMAIL, search_terms_from_name, calculate_access_controls, Issue
 
 
 def test_clean_email_valid():
@@ -48,8 +48,8 @@ def test_np_encoder():
     assert json.dumps(encoded_np, allow_nan=False)
 
 
-def test_build_search_terms():
-    terms = build_search_terms("Time-is_an illusion. Lunchtime/2x\\so.")
+def test_search_terms_from_name():
+    terms = search_terms_from_name("Time-is_an illusion. Lunchtime/2x\\so.")
     assert "time" in terms
     assert "is" in terms
     assert "an" in terms

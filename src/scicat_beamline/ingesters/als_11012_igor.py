@@ -1,11 +1,14 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, OrderedDict
+from typing import Dict, List, OrderedDict, Optional
 
 import pandas
 from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, Dataset, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable)
+from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.utilities import (get_nested)
+from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.utils import (Issue, create_data_files_list,
                                    glob_non_hidden_in_folder)
@@ -182,12 +185,16 @@ def create_scientific_metadata(folder: Path) -> Dict:
 # def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
-    owner_username: str,
-    file_path: Path,
-    thumbnail_dir: Path,
-    issues: List[Issue],
-) -> str:
+    temp_dir: Path,
+    datasettracker_client: Optional[DatasettrackerClient] = None,
+    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+    owner_username: Optional[str] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_files: Optional[list[Path]] = None,
+    issues: Optional[List[Issue]] = None,
+) -> DatasetMetadataContainer:
     "Ingest a folder of 11012 Igor analysis"
+
     now_str = datetime.isoformat(datetime.utcnow()) + "Z"
     ownable = Ownable(
         owner="MWET",
