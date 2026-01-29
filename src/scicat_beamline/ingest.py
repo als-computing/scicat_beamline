@@ -408,8 +408,8 @@ def ingest(
             logger.error("No file manifest present in ALS Dataset metadata. Cannot proceed with Dataset Tracker records updates.")
             return results
 
-        # The metadata file should use an id as the User Office defines it, e.g. "bl8.3.2",
-        # not a Dataset Tracker slug, e.g. "bl8-3-2".
+        # The metadata file should use an id as the User Office defines it, e.g. "8.3.2",
+        # not a Dataset Tracker slug, e.g. "8-3-2".
 
         beamline_name = get_nested(als_dataset_metadata, "als.beamline_id")
         beamline_exists = datasettracker_client.beamline_get_many(
