@@ -59,12 +59,11 @@ def build_scientific_metadata(app_metadata_doc: Dict, spot_fields: Dict) -> Dict
 # This will need to be adapted.
 def ingest(
     scicat_client: ScicatClient,
+    dataset_path: Path,
+    file_manifest: DatasetMetadataContainer.FileManifest,
     temp_dir: Path,
-    datasettracker_client: Optional[DatasettrackerClient] = None,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
-    dataset_path: Optional[Path] = None,
-    dataset_files: Optional[list[Path]] = None,
     issues: Optional[List[Issue]] = None,
 ) -> DatasetMetadataContainer:
 

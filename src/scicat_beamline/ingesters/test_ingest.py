@@ -16,7 +16,7 @@ from dataset_tracker_client.client import DatasettrackerClient
 from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
 from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
-                                   build_search_terms, create_data_files_list,
+                                   search_terms_from_name, create_data_files_list,
                                    get_file_mod_time, get_file_size)
 
 ingest_spec = "als733_saxs"
@@ -35,12 +35,11 @@ global_keywords = [
 
 def ingest(
     scicat_client: ScicatClient,
+    dataset_path: Path,
+    file_manifest: DatasetMetadataContainer.FileManifest,
     temp_dir: Path,
-    datasettracker_client: Optional[DatasettrackerClient] = None,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
-    dataset_path: Optional[Path] = None,
-    dataset_files: Optional[list[Path]] = None,
     issues: Optional[List[Issue]] = None,
 ) -> DatasetMetadataContainer:
 
@@ -247,7 +246,7 @@ def upload_raw_dataset(
 
     sampleId = get_sample_id_oct_2022(file_name)
 
-    description = build_search_terms(file_path.parent.name + "_" + file_name)
+    description = search_terms_from_name(file_path.parent.name + "_" + file_name)
     sample_keywords = find_sample_keywords_oct_2022(file_path.name)
     dataset = RawDataset(
         owner=scicat_metadata.get("owner"),

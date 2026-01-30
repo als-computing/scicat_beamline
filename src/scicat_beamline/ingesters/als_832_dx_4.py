@@ -29,35 +29,12 @@ logger = logging.getLogger("scicat_operation")
 
 def ingest(
     scicat_client: ScicatClient,
+    dataset_path: Path,
+    file_manifest: FileManifest,
     temp_dir: Path,
-    datasettracker_client: Optional[DatasettrackerClient] = None,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
-    dataset_path: Optional[Path] = None,
-    dataset_files: Optional[list[Path]] = None,
-    issues: Optional[List[Issue]] = None,
 ) -> DatasetMetadataContainer:
-    """Ingests a file into scicat
-
-    Ingestion to takes a "best effort" stance to ingestion. Along the way,
-    many things can go wrong. Rather than failing the entire ingestion, we
-    collect issues and return them to the caller. These issues are updated
-    in the input issues list.
-
-    Parameters
-    ----------
-    scicat_client : ScicatClient
-        client to talk to the scicat server
-    file_path : str
-        Path to find the file(s) to ingest
-    issues : List[Issue]
-        Issues where problems are recorded
-
-    Returns
-    -------
-    str
-        Dataset id of the new
-    """
 
     with h5py.File(file_path, "r") as file:
         scicat_metadata = _extract_fields(file, scicat_metadata_keys, issues)

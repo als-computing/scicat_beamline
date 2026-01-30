@@ -20,12 +20,11 @@ ingest_spec = "als_11012_nexafs"
 
 def ingest(
     scicat_client: ScicatClient,
+    dataset_path: Path,
+    file_manifest: DatasetMetadataContainer.FileManifest,
     temp_dir: Path,
-    datasettracker_client: Optional[DatasettrackerClient] = None,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
-    dataset_path: Optional[Path] = None,
-    dataset_files: Optional[list[Path]] = None,
     issues: Optional[List[Issue]] = None,
 ) -> DatasetMetadataContainer:
     "Ingest a nexafs folder"
