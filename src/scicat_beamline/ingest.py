@@ -9,7 +9,7 @@ from xmlrpc import client
 import typer
 
 from dataset_metadata_schemas.utilities import (read_als_metadata_file, write_als_metadata_file, get_nested)
-from dataset_metadata_schemas.dataset_metadata import SciCat, DatasetTracker, Container as DatasetMetadataContainer
+from dataset_metadata_schemas.dataset_metadata import FileManifestEntry, SciCat, DatasetTracker, Container as DatasetMetadataContainer
 from dataset_tracker_client.client import DatasettrackerClient
 from dataset_tracker_client.model import (DatasetCreateDto,
                                           DatasetInstanceCreateDto,
@@ -37,6 +37,27 @@ def standard_iterator(pattern: str):
     return glob.iglob(pattern)
 
 
+class ListLogHandler(logging.Handler):
+    """
+    A custom logging handler that appends log messages to an internal list.
+    """
+    def __init__(self):
+        super().__init__()
+        self.log_list = []
+        formatter = logging.Formatter(
+            fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
+        )
+        self.setFormatter(formatter)
+
+    def emit(self, record):
+        # Use the handler's formatter to format the LogRecord into a string
+        msg = self.format(record)
+        self.log_list.append(msg)
+
+    def get_list(self):
+        return self.log_list
+
+
 def ingest(
     dataset_path: Path = typer.Argument(
         ...,
@@ -54,6 +75,7 @@ def ingest(
         help=(
             "Files to ingest, as paths relative to dataset_path. "
             "Everything listed here will be considered part of the Dataset."
+            "If no files are given, all files found under dataset_path will be used."
         ),
     ),
     ingester_spec: str | None = typer.Option(
@@ -160,6 +182,11 @@ def ingest(
         if not datasettracker_share_identifier:
             logger.info("Dataset Tracker share identifier not set. Using a default of 'als-beegfs'.")
 
+    # We'll log to a list, then retreive it later to embed in the metadata file.
+
+    list_log_handler = ListLogHandler()
+    logger.addHandler(list_log_handler)
+
     # Attempte to resolve the ingester spec, and fail immediately otherwise.
 
     ingestion_function = None
@@ -208,18 +235,18 @@ def ingest(
     else:
         full_dataset_path = Path(dataset_path).resolve()
 
-    # Now that we know the full path, we can start a logfile
+    # If no files are given, we will crawl the dataset path.
 
-    logger.info("Setting up ingester logfile.")
-    logfile = Path(full_dataset_path, "scicat_ingest_log.log")
-    formatter = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
-    )
-    fileHandler = logging.FileHandler(
-        logfile, mode="a", encoding=None, delay=False, errors=None
-    )
-    fileHandler.setFormatter(formatter)
-    logger.addHandler(fileHandler)
+    if dataset_files is None or len(dataset_files) == 0:
+        logger.info("No input files given. Using all files under dataset path.")
+        dataset_files = []
+        for dirpath, _, filenames in os.walk(full_dataset_path):
+            for filename in filenames:
+                file_path = Path(dirpath, filename)
+                if file_path.is_symlink():
+                    continue
+                relative_path = file_path.relative_to(full_dataset_path)
+                dataset_files.append(relative_path)
 
     # Validate that all the given files exist and are not symlinks.
 
@@ -242,46 +269,142 @@ def ingest(
         logger.error("No valid files or folders to ingest.")
         return results
 
-    # Since we have a folder, we'll check for an existing als-dataset-metadata.json file.
+    # Check the given files for an ALS Dataset metadata file.
+    # This would be any JSON file with the prefix "als-dataset-metadata".
+    # (Sometimes the file will have a Data Tracker ID appended to the name.)
+
+    existing_metadata_files:List[Path] = []
+    non_metadata_files:List[Path] = []
+    for one_file in valid_files:
+        if one_file.name.startswith("als-dataset-metadata") and one_file.suffix == ".json":
+            existing_metadata_files.append(one_file)
+            logger.info(f"Found existing ALS Dataset metadata file: {one_file}")
+        else:
+            non_metadata_files.append(one_file)
 
     als_dataset_metadata:Optional[DatasetMetadataContainer] = None
-    try:
-        als_dataset_metadata = read_als_metadata_file(file_path=Path(full_dataset_path, "als-dataset-metadata.json"))
-    except Exception as e:
+    if len(existing_metadata_files) == 0:
         # This only warrants an "info" because we don't require Datasets arriving from
         # beamline stations to have a metadata file already. ... We just encourage it. :D
-        logger.info("Did not find a als-dataset-metadata.json file.")
+        logger.info("Did not find an existing als-dataset-metadata.json file.")
+    elif len(existing_metadata_files) > 1:
+        logger.error("Found multiple ALS Dataset metadata files. Stopping.")
+        return results
+    else:
+        try:
+            als_dataset_metadata = read_als_metadata_file(file_path=Path(full_dataset_path, existing_metadata_files[0]))
+        except Exception as e:
+            # It's debatable whether this should halt ingestion, because we could
+            # successfully ingest and write a new metadata file afterward.  But this could potentially
+            # result in two SciCat Datasets and two Data Tracker records for the same data.
+            logger.exception(f"File list contains an ALS Dataset metadata file but it could not be written. {e}")
+            return results
 
     # If we did find a file, there are some things we need to validate.
 
     if als_dataset_metadata is not None:
         # Ensure that there is no SciCat dataset ID already present in the metadata.
-        # In the future we may allow this to be overridden, to force a re-ingestion.
+        # (In the future we may allow this to be overridden, to force re-ingestion.)
         if get_nested(als_dataset_metadata, "als.scicat.scicat_dataset_id") is not None:
             logger.error(
                 "The als-dataset-metadata.json file already has a SciCat dataset ID. Stopping."
             )
             return results
-        # If there is a file_manifest, ensure that it contains all the files in our given ingest list.
+
+    # Now we're going to turn our incoming file list into FileManifestEntry objects.
+    # If we have an existing file manifest, we'll recreate that and merge the incoming list with it.
+    manifest_file_dict: Dict[str, FileManifestEntry] = {}
+    manifest_file_list: List[FileManifestEntry] = []
+    total_size = 0
+
+    if als_dataset_metadata is not None:
         existing_manifest_files = get_nested(als_dataset_metadata, "als.file_manifest.files")
         if existing_manifest_files is not None:
-            seen_files = set()
-            for given_file in valid_files:
-                seen_files.add(given_file)
             for manifest_file in existing_manifest_files:
-                if manifest_file.path in seen_files:
-                    seen_files.remove(manifest_file.path)
-            # It is conceivable that we would want to re-ingest a Dataset with files removed, or with files
-            # ignored due to their being supplemental.  But we should not allow an ingest with added files
-            # unless the manifest has been updated in advance to reflect the changes.
-            # Otherwise we risk allowing an ingestion on top of an entirely different SciCat Dataset.
-            if len(seen_files) > 0:
-                logger.error(
-                    "The given dataset_files list containes files that are not in the existing als-dataset-metadata file. Possible metadata mismatch. Stopping."
+                entry = FileManifestEntry(
+                    path=manifest_file.path,
+                    size_bytes=manifest_file.size_bytes,
+                    date_last_modified=manifest_file.date_last_modified,
+                    is_supplemental=manifest_file.is_supplemental,
                 )
-                for missing_file in seen_files:
-                    logger.error(f" - {missing_file}")
-                return results
+                manifest_file_dict[manifest_file.path] = entry
+                manifest_file_list.append(entry)
+                total_size += manifest_file.size_bytes
+
+    for one_file in non_metadata_files:
+        if one_file.as_posix() in manifest_file_dict:
+            continue
+        # (We verified these exist above already.)
+        file_path = Path(full_dataset_path, one_file)
+        ls = file_path.lstat()
+        entry = FileManifestEntry(
+            path=str(one_file),
+            size_bytes=ls.st_size,
+            date_last_modified=datetime.fromtimestamp(ls.st_mtime).isoformat() + "Z",
+            is_supplemental=False,
+        )
+        manifest_file_dict[one_file.as_posix()] = entry
+        manifest_file_list.append(entry)
+        total_size += ls.st_size
+
+    # At this point we have dealt with two scenarios:
+    # 1. We were give 1 or more input files.
+    # 2. We were not given any input files, so we crawled the dataset_path and made a list from that.
+
+    # With a list of input files, we then dealt with three scenarios:
+    # 1. We were given one metadata file as an input file, and we read a manifest from that.
+    #    This could be a fresh ingest, or a re-ingest.
+    # 2. We were given files that did not include a metadata file, so we turned that into a manifest.
+    #    This could only be a fresh ingest.
+    # 3. We were given input files including a metadata file, and we merged the input files with the manifest.
+    #    This could be a fresh ingest, or a re-ingest with additional files added (which is a bit odd).
+
+    file_manifest = DatasetMetadataContainer.FileManifest(files=manifest_file_list, total_size_bytes=total_size)
+
+    # This appears all sorted out, but there is a complicated wrinkle:
+    # If we were given a manifest as an input file, is the file already listed _in_its_own_ manifest?
+    # Or do we need to add it?
+    # We'll deal with this later.
+
+    # Each ingester is given a connection to SciCat, and optionally to the Dataset Tracker.
+    # They are also given any existing ALS Dataset metadata file.
+
+    try:
+        pyscicat_client = from_credentials(scicat_url, scicat_username, scicat_password)
+    except Exception:
+        logger.exception(f"Error logging in to SciCat. Cannot proceed.")
+        return results
+
+    # When the specific ingester's work is done we use the content of the ALS Dataset metadata
+    # file it returns to create the relevant Dataset Tracker records.
+    # It is not generally expected that the ingesters will need the Dataset Tracker directly,
+    # but we pass it anyway for now.
+
+    datasettracker_client = None
+    # We should look for this as soon as we connect,
+    # otherwise we won't know it's wrong until after an ingestion.
+    share_sublocation_record = None
+    if datasettracker_username and datasettracker_password and datasettracker_url:
+        try:
+            datasettracker_client = DatasettrackerClient(
+                base_url=datasettracker_url,
+                username=datasettracker_username,
+                password=datasettracker_password,
+            )
+        except Exception as e:
+            logger.exception(
+                f"Credentials were given, but cannot connect to Dataset Tracker client. Error: {e}"
+            )
+            return results
+
+        # Make sure the share sublocation we intend to use exists.
+
+        share_sublocation_record = datasettracker_client.sharesublocation_get_one(datasettracker_share_identifier)
+        if share_sublocation_record is None:
+            logger.error(
+                f"Dataset Tracker share sublocation with slug identifier {datasettracker_share_identifier} does not exist."
+            )
+            return results
 
     # The following commented-out code was used to crawl a given folder and look for
     # the correct files for each ingester spec, with the assumption that one file
@@ -328,58 +451,18 @@ def ingest(
     #     logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
     #     return results
 
-    # Each ingester is given a connection to SciCat, and optionally to the Dataset Tracker.
-    # They are also given any existing ALS Dataset metadata file.
-
-    try:
-        pyscicat_client = from_credentials(scicat_url, scicat_username, scicat_password)
-    except Exception:
-        logger.exception(f"Error logging in to SciCat. Cannot proceed.")
-        return results
-
-    # When the specific ingester's work is done we use the content of the ALS Dataset metadata
-    # file it returns to create the relevant Dataset Tracker records.
-    # It is not generally expected that the ingesters will need the Dataset Tracker directly,
-    # but we pass it anyway for now.
-
-    datasettracker_client = None
-    # We should look for this as soon as we connect,
-    # otherwise we won't know it's wrong until after an ingestion.
-    share_sublocation_record = None
-    if datasettracker_username and datasettracker_password and datasettracker_url:
-        try:
-            datasettracker_client = DatasettrackerClient(
-                base_url=datasettracker_url,
-                username=datasettracker_username,
-                password=datasettracker_password,
-            )
-        except Exception as e:
-            logger.exception(
-                f"Credentials were given, but cannot connect to Dataset Tracker client. Error: {e}"
-            )
-            return results
-
-        # Make sure the share sublocation we intend to use exists.
-
-        share_sublocation_record = datasettracker_client.sharesublocation_get_one(datasettracker_share_identifier)
-        if share_sublocation_record is None:
-            logger.error(
-                f"Dataset Tracker share sublocation with slug identifier {datasettracker_share_identifier} does not exist."
-            )
-            return results
-
     issues: List[Issue] = []
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             als_dataset_metadata = ingestion_function(
                 scicat_client=pyscicat_client,
+                dataset_path=full_dataset_path,
+                file_manifest=file_manifest,
                 temp_dir=temp_path,
                 datasettracker_client=datasettracker_client,
                 als_dataset_metadata=als_dataset_metadata,
                 owner_username=owner_username,
-                dataset_path=full_dataset_path,
-                dataset_files=valid_files,
                 issues=issues,
             )
 
@@ -409,7 +492,7 @@ def ingest(
         scicat_instance = scicat_url,
         date_ingested = datetime.now(timezone.utc).isoformat(),
         ingester_used = ingester_spec,
-        ingestion_logfile = str(logfile.relative_to(full_dataset_path))
+        ingestion_log = list_log_handler.get_list()
     )
 
     if datasettracker_client is None:
