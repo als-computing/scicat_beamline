@@ -9,15 +9,15 @@ from pyscicat.client import ScicatClient, encode_thumbnail
 from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
                             DataFile, DatasetType, DerivedDataset,
                             OrigDatablock, Ownable, RawDataset)
-from dataset_metadata_schemas.dataset_metadata import Als, SciCat, FileManifest, Container as DatasetMetadataContainer
+from dataset_metadata_schemas.dataset_metadata import Als, SciCat, FileManifest, FileManifestEntry, Container as DatasetMetadataContainer
 from dataset_metadata_schemas.utilities import get_nested
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
-                                   search_terms_from_name, create_data_files_list, file_manifest_from_folder, file_manifest_from_files,
-                                   get_file_mod_time, get_file_size)
+from scicat_beamline.utils import (add_to_sci_metadata_from_key_value_text,
+                                   search_terms_from_name, create_data_files_list,
+                                   get_file_mod_time)
 
 ingest_spec = "als733_saxs"
 
@@ -42,26 +42,20 @@ def ingest(
     owner_username: Optional[str] = None,
 ) -> DatasetMetadataContainer:
 
-    if dataset_path is None:
-        raise ValueError("Must provide a dataset_path for this ingester")
-    # If we got no list of files, we grab a listing from dataset_path
-    if dataset_files is None:
-        file_manifest = file_manifest_from_folder(dataset_path, recursive=True)
-    else:
-        file_manifest = file_manifest_from_files(dataset_path, dataset_files)
-
     # Easier to work directly with the full Path objects in the code below.
     dataset_files = [Path(dataset_path, f.path) for f in file_manifest.files]
 
     # We expect to encounter one .txt file.
     # If we don't find exactly one, we raise an error.
-    txt_files: List[Path] = []
-    for file_path in dataset_files:
+    found_files: List[FileManifestEntry] = []
+    for manifest_file in file_manifest.files:
+        file_path = Path(dataset_path, manifest_file.path)
         if file_path.suffix.lower() == ".txt":
-            txt_files.append(file_path)    
-    if len(txt_files) != 1:
-        raise ValueError(f"Expected one .txt file, found {len(txt_files)}")
-    txt_file = txt_files[0]
+            found_files.append(manifest_file)    
+    if len(found_files) != 1:
+        raise ValueError(f"Expected one .txt file, found {len(found_files)}")
+    txt_manifest_file = found_files[0]
+    txt_file = Path(dataset_path, txt_manifest_file.path)
 
     # We look through dataset_files for an .edf file with the same base name as the .txt file
     edf_file = None
@@ -116,7 +110,6 @@ def ingest(
     ]
     sci_md_keywords = [x for x in sci_md_keywords if x is not None]
 
-    file_mod_time = get_file_mod_time(txt_file)
     file_name = txt_file.stem
 
     sampleId = get_sample_id_oct_2022(file_name)
@@ -124,22 +117,22 @@ def ingest(
     description = search_terms_from_name(txt_file.parent.name + "_" + file_name)
     sample_keywords = find_sample_keywords_oct_2022(txt_file.name)
     dataset = RawDataset(
-        owner=scicat_metadata.get("owner"),
-        contactEmail=scicat_metadata.get("email"),
-        creationLocation=scicat_metadata.get("instrument_name"),
-        datasetName=file_name,
-        type=DatasetType.raw,
-        instrumentId=scicat_metadata.get("instrument_name"),
-        proposalId=scicat_metadata.get("proposal"),
-        dataFormat="733",
-        principalInvestigator=scicat_metadata.get("pi"),
-        sourceFolder=str(txt_file.parent),
-        scientificMetadata=scientific_metadata,
-        sampleId=sampleId,
-        isPublished=False,
-        description=description,
-        keywords=global_keywords + sci_md_keywords + sample_keywords,
-        creationTime=file_mod_time,
+        owner = scicat_metadata.get("owner"),
+        contactEmail = scicat_metadata.get("email"),
+        creationLocation = scicat_metadata.get("instrument_name"),
+        datasetName = file_name,
+        type = DatasetType.raw,
+        instrumentId = scicat_metadata.get("instrument_name"),
+        proposalId = scicat_metadata.get("proposal"),
+        dataFormat = "733",
+        principalInvestigator = scicat_metadata.get("pi"),
+        sourceFolder = str(txt_file.parent),
+        scientificMetadata = scientific_metadata,
+        sampleId = sampleId,
+        isPublished = False,
+        description = description,
+        keywords = global_keywords + sci_md_keywords + sample_keywords,
+        creationTime = txt_manifest_file.date_last_modified,
         **ownable.model_dump(),
     )
     scicat_dataset_id = scicat_client.datasets_create(dataset)
@@ -185,6 +178,7 @@ def ingest(
     als_dataset_metadata.als.beamline_id = "7.3.3"
     als_dataset_metadata.als.proposal_id = proposal_name
     als_dataset_metadata.als.principal_investigator = principal_investigator
+    als_dataset_metadata.als.date_of_acquisition = txt_manifest_file.date_last_modified
     als_dataset_metadata.als.file_manifest = file_manifest
 
     if get_nested(als_dataset_metadata, "als.scicat") is None:
