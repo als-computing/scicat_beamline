@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
@@ -64,6 +65,7 @@ def ingest(
     temp_dir: Path,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
+    logger: logging.Logger = logging.getLogger("scicat_operation")
 ) -> DatasetMetadataContainer:
 
     # TODO: Needs updated error handling

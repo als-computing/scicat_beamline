@@ -465,6 +465,7 @@ def ingest(
                 temp_dir=temp_path,
                 als_dataset_metadata=als_dataset_metadata,
                 owner_username=owner_username,
+                logger=logger
             )
 
     except Exception as e:

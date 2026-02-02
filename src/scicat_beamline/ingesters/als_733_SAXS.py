@@ -21,8 +21,6 @@ from scicat_beamline.utils import (add_to_sci_metadata_from_key_value_text,
 
 ingest_spec = "als733_saxs"
 
-logger = logging.getLogger("scicat_operation")
-
 
 global_keywords = [
     "SAXS",
@@ -40,6 +38,7 @@ def ingest(
     temp_dir: Path,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
+    logger: logging.Logger = logging.getLogger("scicat_operation")
 ) -> DatasetMetadataContainer:
 
     # Easier to work directly with the full Path objects in the code below.

@@ -33,6 +33,7 @@ def ingest(
     temp_dir: Path,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
+    logger: logging.Logger = logging.getLogger("scicat_operation")
 ) -> DatasetMetadataContainer:
 
     scientific_metadata = OrderedDict()

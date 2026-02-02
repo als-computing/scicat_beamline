@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Optional
@@ -102,6 +103,7 @@ def ingest(
     temp_dir: Path,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
+    logger: logging.Logger = logging.getLogger("scicat_operation")
 ) -> DatasetMetadataContainer:
     "Ingest a TREXS folder"
 
