@@ -10,11 +10,16 @@ from scicat_beamline import ingest
 @flow(name="scicat-ingest-flow")
 def scicat_ingest_flow(
     dataset_path: Path,
+    dataset_files: list[Path],
     ingester_spec: str | None = None,
     owner_username: str | None = None,
     scicat_url: str | None = None,
     scicat_username: str | None = None,
-    scicat_password: str | None = None
+    scicat_password: str | None = None,
+    datasettracker_url: str | None = None,
+    datasettracker_username: str | None = None,
+    datasettracker_password: str | None = None,
+    datasettracker_share_identifier: str | None = None
 ) -> Dict[str, Any]:
     """
     Runs the SciCat ingestion process implemented for the given spec identifier,
@@ -34,14 +39,22 @@ def scicat_ingest_flow(
     """
     # Get the Prefect logger for the current flow run
     prefect_adapter = get_run_logger()
+    # TODO: Get this from environment?
+    prefect_flow_run_id = None
 
     return ingest(
         dataset_path=dataset_path,
+        dataset_files=dataset_files,
         ingester_spec=ingester_spec,
         owner_username=owner_username,
         scicat_url=scicat_url,
         scicat_username=scicat_username,
         scicat_password=scicat_password,
+        datasettracker_url=datasettracker_url,
+        datasettracker_username=datasettracker_username,
+        datasettracker_password=datasettracker_password,
+        datasettracker_share_identifier=datasettracker_share_identifier,
+        prefect_flow_run_id=prefect_flow_run_id,
         logger=prefect_adapter.logger
     )
 

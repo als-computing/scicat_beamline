@@ -179,8 +179,9 @@ def create_deployment():
         )
 
     parameters = {
-        "ingester_spec": "bltest",
+        "ingester_spec": "als733_saxs",
         "dataset_path": "bltest", # Base folder will come from the environment
+        "dataset_files": ["agb_tiled_0p3s__2_lo_2m.edf", "agb_tiled_0p3s__2_lo_2m.txt"]
     }
 
     tags = ["scicat", "beamline", "ingest"]
