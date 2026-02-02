@@ -9,7 +9,7 @@ from xmlrpc import client
 import typer
 
 from dataset_metadata_schemas.utilities import (read_als_metadata_file, write_als_metadata_file, get_nested)
-from dataset_metadata_schemas.dataset_metadata import FileManifestEntry, SciCat, DatasetTracker, Container as DatasetMetadataContainer
+from dataset_metadata_schemas.dataset_metadata import FileManifest, FileManifestEntry, SciCat, DatasetTracker, Container as DatasetMetadataContainer
 from dataset_tracker_client.client import DatasettrackerClient
 from dataset_tracker_client.model import (DatasetCreateDto,
                                           DatasetInstanceCreateDto,
@@ -363,7 +363,7 @@ def ingest(
         logger.error("No files found in manifest after processing. Cannot proceed.")
         return results
 
-    file_manifest = DatasetMetadataContainer.FileManifest(files=manifest_file_list, total_size_bytes=total_size)
+    file_manifest = FileManifest(files=manifest_file_list, total_size_bytes=total_size)
 
     # This appears all sorted out, but there is a complicated wrinkle:
     # If we were given a manifest as an input file, is the file already listed _in_its_own_ manifest?
