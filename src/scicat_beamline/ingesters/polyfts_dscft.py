@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 from pyscicat.client import ScicatClient
 from pyscicat.model import (Attachment, DataFile, DatasetType, OrigDatablock,
                             Ownable, RawDataset)
-from dataset_metadata_schemas.dataset_metadata import Container as DatasetMetadataContainer
+from dataset_metadata_schemas.dataset_metadata import FileManifest, Container as DatasetMetadataContainer
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
@@ -29,11 +29,10 @@ global_keywords = [
 def ingest(
     scicat_client: ScicatClient,
     dataset_path: Path,
-    file_manifest: DatasetMetadataContainer.FileManifest,
+    file_manifest: FileManifest,
     temp_dir: Path,
     als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
     owner_username: Optional[str] = None,
-    issues: Optional[List[Issue]] = None,
 ) -> DatasetMetadataContainer:
 
     scientific_metadata = OrderedDict()
