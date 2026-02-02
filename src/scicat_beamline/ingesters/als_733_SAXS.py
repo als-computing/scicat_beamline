@@ -114,6 +114,10 @@ def ingest(
 
     sampleId = get_sample_id_oct_2022(file_name)
 
+    logger.info(f"Using proposal name {proposal_name}")
+    logger.info(f"Using creation time {txt_manifest_file.date_last_modified}")
+    logger.info(f"Using principal investigator {principal_investigator}")
+
     description = search_terms_from_name(txt_file.parent.name + "_" + file_name)
     sample_keywords = find_sample_keywords_oct_2022(txt_file.name)
     dataset = RawDataset(
