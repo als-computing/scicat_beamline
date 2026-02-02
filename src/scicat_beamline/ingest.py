@@ -359,6 +359,10 @@ def ingest(
     # 3. We were given input files including a metadata file, and we merged the input files with the manifest.
     #    This could be a fresh ingest, or a re-ingest with additional files added (which is a bit odd).
 
+    if len(manifest_file_list) == 0:
+        logger.error("No files found in manifest after processing. Cannot proceed.")
+        return results
+
     file_manifest = DatasetMetadataContainer.FileManifest(files=manifest_file_list, total_size_bytes=total_size)
 
     # This appears all sorted out, but there is a complicated wrinkle:
@@ -451,7 +455,6 @@ def ingest(
     #     logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
     #     return results
 
-    issues: List[Issue] = []
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -460,23 +463,13 @@ def ingest(
                 dataset_path=full_dataset_path,
                 file_manifest=file_manifest,
                 temp_dir=temp_path,
-                datasettracker_client=datasettracker_client,
                 als_dataset_metadata=als_dataset_metadata,
                 owner_username=owner_username,
-                issues=issues,
             )
 
     except Exception as e:
         logger.exception(f"Error running ingester function. Partial import may have occurred: {e}")
         return results
-
-    if len(issues) > 0:
-        logger.info("The following issues were encountered during ingestion:")
-        for issue in issues:
-            if issue.severity == "error":
-                logger.error(f"{issue.msg}")
-            else:
-                logger.warning(f"{issue.msg}")
 
     if als_dataset_metadata is None:
         logger.error("Ingestion did not return ALS Dataset metadata. Cannot proceed.")
