@@ -151,7 +151,7 @@ def ingest(
 ) -> DatasetMetadataContainer:
     "Ingest a folder of 11012 scattering folders"
 
-    now_str = datetime.now().astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    now_str = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     ownable = Ownable(
         createdBy="dylan",
         updatedBy="dylan",

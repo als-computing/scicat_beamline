@@ -122,7 +122,7 @@ def create_derived(
     # TODO: change job parameters depending on the parameters given to the script which creates the derived data
     jobParams = {"method": "pyFAI integrate1d", "npt": 2000}
 
-    now_str = datetime.now().astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    now_str = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     ownable = Ownable(
         createdBy="dylan",
         updatedBy="dylan",

@@ -340,7 +340,7 @@ def ingest(
         entry = FileManifestEntry(
             path=str(one_file),
             size_bytes=ls.st_size,
-            date_last_modified=datetime.fromtimestamp(ls.st_mtime).astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
+            date_last_modified=datetime.fromtimestamp(ls.st_mtime).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             is_supplemental=False,
         )
         manifest_file_dict[one_file.as_posix()] = entry
@@ -484,7 +484,7 @@ def ingest(
     als_dataset_metadata.als.scicat = SciCat(
         scicat_dataset_id = scicat_dataset_id,
         scicat_instance = scicat_url,
-        date_ingested = datetime.now().astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
+        date_ingested = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         ingester_used = ingester_spec,
         ingestion_log = list_log_handler.get_list()
     )

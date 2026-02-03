@@ -30,7 +30,7 @@ def ingest(
 ) -> DatasetMetadataContainer:
     "Ingest a nexafs folder"
 
-    now_str = datetime.now().astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    now_str = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     ownable = Ownable(
         createdBy="dylan",
         updatedBy="dylan",
