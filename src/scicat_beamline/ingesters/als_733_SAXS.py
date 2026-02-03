@@ -114,7 +114,8 @@ def ingest(
     sampleId = get_sample_id_oct_2022(file_name)
 
     logger.info(f"Using proposal name {proposal_name}")
-    logger.info(f"Using creation time {txt_manifest_file.date_last_modified}")
+    date_of_acquisition = txt_manifest_file.date_last_modified.isoformat() + "Z"
+    logger.info(f"Using creation time {date_of_acquisition}")
     logger.info(f"Using principal investigator {principal_investigator}")
 
     description = search_terms_from_name(txt_file.parent.name + "_" + file_name)
@@ -135,7 +136,7 @@ def ingest(
         isPublished = False,
         description = description,
         keywords = global_keywords + sci_md_keywords + sample_keywords,
-        creationTime = txt_manifest_file.date_last_modified,
+        creationTime = date_of_acquisition,
         **ownable.model_dump(),
     )
     scicat_dataset_id = scicat_client.datasets_create(dataset)
@@ -181,7 +182,7 @@ def ingest(
     als_dataset_metadata.als.beamline_id = "7.3.3"
     als_dataset_metadata.als.proposal_id = proposal_name
     als_dataset_metadata.als.principal_investigator = principal_investigator
-    als_dataset_metadata.als.date_of_acquisition = txt_manifest_file.date_last_modified
+    als_dataset_metadata.als.date_of_acquisition = date_of_acquisition
     als_dataset_metadata.als.file_manifest = file_manifest
 
     if get_nested(als_dataset_metadata, "als.scicat") is None:
