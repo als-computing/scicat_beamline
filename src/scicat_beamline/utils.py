@@ -46,7 +46,7 @@ def get_file_size(file_path: Path) -> int:
     return file_path.lstat().st_size
 
 
-def get_file_mod_time(file_path: Path) -> str:
+def get_file_mod_time_as_iso_str(file_path: Path) -> str:
     return datetime.fromtimestamp(file_path.lstat().st_mtime).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
@@ -168,7 +168,7 @@ def create_data_file(file: Path, relativePath=None) -> Tuple[DataFile, int]:
     datafile = DataFile(
         path=str(relativePath),
         size=get_file_size(file),
-        time=get_file_mod_time(file),
+        time=get_file_mod_time_as_iso_str(file),
     )
     return datafile, get_file_size(file)
 

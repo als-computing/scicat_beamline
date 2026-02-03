@@ -13,7 +13,7 @@ from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
-                                   create_data_file, get_file_mod_time,
+                                   create_data_file, get_file_mod_time_as_iso_str,
                                    get_file_size)
 
 ingest_spec = "als_11012_nexafs"
@@ -80,7 +80,7 @@ def ingest(
         isPublished=False,
         description=description,
         keywords=["NEXAFS", "11.0.1.2", "ALS", "absorption", "11.0.1.2 NEXAFS"],
-        creationTime=get_file_mod_time(file_path),
+        creationTime=get_file_mod_time_as_iso_str(file_path),
         **ownable.model_dump(),
     )
 

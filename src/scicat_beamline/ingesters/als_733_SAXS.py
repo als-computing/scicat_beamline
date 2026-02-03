@@ -17,7 +17,7 @@ from scicat_beamline.thumbnails import (build_waxs_saxs_thumb_733,
                                         encode_image_2_thumbnail)
 from scicat_beamline.utils import (add_to_sci_metadata_from_key_value_text,
                                    search_terms_from_name, create_data_files_list,
-                                   get_file_mod_time)
+                                   get_file_mod_time_as_iso_str)
 
 ingest_spec = "als733_saxs"
 
@@ -236,7 +236,7 @@ def create_derived(
     datasetName = derived_name + "_" + ANALYSIS.upper().replace(" ", "_")
     description = datasetName.replace("_", " ")
 
-    creationTime = get_file_mod_time(
+    creationTime = get_file_mod_time_as_iso_str(
         Path(derived_parent_folder / derived_files[0].path)
     )
 
@@ -318,7 +318,7 @@ def data_file_dtos_from_manifest(file_manifest: FileManifest) -> List[DataFile]:
         datafile = DataFile(
             path=file.path,
             size=file.size_bytes,
-            time=file.date_last_modified,
+            time=file.date_last_modified.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             type="RawDatasets",
         )
         data_files.append(datafile)

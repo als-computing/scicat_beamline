@@ -14,7 +14,7 @@ from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
-                                   get_file_mod_time, get_file_size)
+                                   get_file_mod_time_as_iso_str, get_file_size)
 
 ingest_spec = "nsls2_nexafs_sst1"
 
@@ -151,7 +151,7 @@ def ingest(
                 "sample_description"
             ],  # + ". " + metadata_row["sample_description.1"],
             keywords=["NEXAFS", "NSLS-II", "SST-1", "SST-1 NEXAFS"] + appended_keywords,
-            creationTime=get_file_mod_time(file_path),
+            creationTime=get_file_mod_time_as_iso_str(file_path),
             **ownable.model_dump(),
         )
     else:
@@ -166,7 +166,7 @@ def ingest(
             DataFile(
                 path=log_path_obj.name,
                 size=get_file_size(log_path_obj),
-                time=get_file_mod_time(log_path_obj),
+                time=get_file_mod_time_as_iso_str(log_path_obj),
             )
         )
 
@@ -174,7 +174,7 @@ def ingest(
         DataFile(
             path=file_path.name,
             size=get_file_size(file_path),
-            time=get_file_mod_time(file_path),
+            time=get_file_mod_time_as_iso_str(file_path),
         ),
         *log_datafiles,
     ]

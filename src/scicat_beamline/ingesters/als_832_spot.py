@@ -18,7 +18,7 @@ from dataset_tracker_client.client import DatasettrackerClient
 from scicat_beamline.thumbnails import build_thumbnail
 from scicat_beamline.utils import (Issue, search_terms_from_name,
                                    calculate_access_controls,
-                                   get_file_mod_time)
+                                   get_file_mod_time_as_iso_str)
 
 
 @dataclass
@@ -158,7 +158,7 @@ def upload_raw_dataset(
     file_mod_time = "0"
     file_name = file.stem
     if file.exists():
-        file_mod_time = get_file_mod_time(file)
+        file_mod_time = get_file_mod_time_as_iso_str(file)
 
     description = search_terms_from_name(file_name)
     appended_keywords = description.split()

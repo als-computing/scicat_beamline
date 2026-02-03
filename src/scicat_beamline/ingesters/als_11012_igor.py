@@ -34,7 +34,7 @@ associated dat headers
 #         datafile = DataFile(
 #             path=file.name,
 #             size=get_file_size(file),
-#             time=get_file_mod_time(file),
+#             time=get_file_mod_time_as_iso_str(file),
 #             type="DerivedDatasets",
 #         )
 #         datafiles.append(datafile)

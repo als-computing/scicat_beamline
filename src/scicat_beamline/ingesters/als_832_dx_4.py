@@ -19,7 +19,7 @@ from scicat_beamline.thumbnails import (build_thumbnail_as_filebuffer,
 from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
                                    search_terms_from_name,
                                    calculate_access_controls, clean_email,
-                                   get_file_mod_time, get_file_size)
+                                   get_file_mod_time_as_iso_str, get_file_size)
 
 DEFAULT_USER = "8.3.2"  # In case there's not proposal number
 ingest_spec = "als832_dx_4"  # "als832_dx_3"

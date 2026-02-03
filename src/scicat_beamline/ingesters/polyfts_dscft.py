@@ -13,7 +13,7 @@ from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import encode_image_2_thumbnail
 from scicat_beamline.utils import (Issue, search_terms_from_name,
-                                   get_file_mod_time, get_file_size)
+                                   get_file_mod_time_as_iso_str, get_file_size)
 
 ingest_spec = "polyfts_dscft"
 
@@ -96,7 +96,7 @@ def upload_raw_dataset(
 
     params_file = folder / "params.in"
 
-    file_mod_time = get_file_mod_time(params_file)
+    file_mod_time = get_file_mod_time_as_iso_str(params_file)
     folder_name = folder.name
 
     # sampleId = get_sample_id_oct_2022(file_name)
@@ -143,19 +143,19 @@ def upload_data_block(
         DataFile(
             path=file_params.name,
             size=get_file_size(file_params),
-            time=get_file_mod_time(file_params),
+            time=get_file_mod_time_as_iso_str(file_params),
             type="RawDatasets",
         ),
         DataFile(
             path=file_w_initial.name,
             size=get_file_size(file_w_initial),
-            time=get_file_mod_time(file_w_initial),
+            time=get_file_mod_time_as_iso_str(file_w_initial),
             type="RawDatasets",
         ),
         DataFile(
             path=file_rho_initial.name,
             size=get_file_size(file_rho_initial),
-            time=get_file_mod_time(file_rho_initial),
+            time=get_file_mod_time_as_iso_str(file_rho_initial),
             type="RawDatasets",
         ),
     ]

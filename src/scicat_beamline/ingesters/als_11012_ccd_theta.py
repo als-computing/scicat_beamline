@@ -11,7 +11,7 @@ from dataset_metadata_schemas.dataset_metadata import FileManifest, Container as
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import Issue, get_file_mod_time, get_file_size
+from scicat_beamline.utils import Issue, get_file_mod_time_as_iso_str, get_file_size
 
 ingest_spec = "als_11012_ccd_theta"
 
@@ -53,7 +53,7 @@ def create_dataset(file, ownable: Ownable) -> Dataset:
         isPublished=False,
         description="",
         keywords=["ccd", "theta", "rsoxs", "als", "11.0.1.2"],
-        creationTime=get_file_mod_time(file),
+        creationTime=get_file_mod_time_as_iso_str(file),
         **ownable.model_dump(),
     )
     return dataset

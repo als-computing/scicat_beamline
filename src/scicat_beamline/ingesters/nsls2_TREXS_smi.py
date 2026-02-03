@@ -13,7 +13,7 @@ from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.utils import (Issue, create_data_files_list,
-                                   get_file_mod_time,
+                                   get_file_mod_time_as_iso_str,
                                    glob_non_hidden_in_folder)
 
 ingest_spec = "nsls2_trexs_smi"
@@ -39,7 +39,7 @@ class TREXSNsls2SMIReader:
     #         datafile = DataFile(
     #             path=file.name,
     #             size=get_file_size(file),
-    #             time=get_file_mod_time(file),
+    #             time=get_file_mod_time_as_iso_str(file),
     #             type="RawDatasets",
     #         )
     #         datafiles.append(datafile)
@@ -133,7 +133,7 @@ def ingest(
         png_files = list(glob_non_hidden_in_folder(file_path, "*/**.png"))
 
     datafiles, size = create_data_files_list(file_path, recursive=True)
-    creationTime = get_file_mod_time(Path(str(file_path) + "/" + datafiles[0].path))
+    creationTime = get_file_mod_time_as_iso_str(Path(str(file_path) + "/" + datafiles[0].path))
     dataset = reader.create_dataset(creationTime)
     dataset_id = scicat_client.datasets_create(dataset)
     reader.dataset_id = dataset_id

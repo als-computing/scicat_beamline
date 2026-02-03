@@ -15,7 +15,7 @@ from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
-                                   create_data_files_list, get_file_mod_time,
+                                   create_data_files_list, get_file_mod_time_as_iso_str,
                                    glob_non_hidden_in_folder)
 
 ingest_spec = "als_11012_scattering"
@@ -50,7 +50,7 @@ class Scattering11012Reader:
     #         datafile = DataFile(
     #             path=file.name,
     #             size=get_file_size(file),
-    #             time=get_file_mod_time(file),
+    #             time=get_file_mod_time_as_iso_str(file),
     #             type="RawDatasets",
     #         )
     #         datafiles.append(datafile)
@@ -77,7 +77,7 @@ class Scattering11012Reader:
         sample_name = self._folder.name
 
         ai_file_path = next(glob_non_hidden_in_folder(self._folder, "*.txt"))
-        creationTime = get_file_mod_time(ai_file_path)
+        creationTime = get_file_mod_time_as_iso_str(ai_file_path)
         ai_file_name = ai_file_path.name[:-7]
         description = ai_file_name.replace("_", " ")
         description = description.replace("-", " ")
