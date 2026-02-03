@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -30,7 +30,7 @@ def ingest(
 ) -> DatasetMetadataContainer:
     "Ingest a nexafs folder"
 
-    now_str = datetime.isoformat(datetime.utcnow()) + "Z"
+    now_str = datetime.now().astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     ownable = Ownable(
         createdBy="dylan",
         updatedBy="dylan",

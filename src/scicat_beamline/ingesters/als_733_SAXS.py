@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -114,7 +114,7 @@ def ingest(
     sampleId = get_sample_id_oct_2022(file_name)
 
     logger.info(f"Using proposal name {proposal_name}")
-    date_of_acquisition = txt_manifest_file.date_last_modified.isoformat() + "Z"
+    date_of_acquisition = txt_manifest_file.date_last_modified.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     logger.info(f"Using creation time {date_of_acquisition}")
     logger.info(f"Using principal investigator {principal_investigator}")
 
@@ -205,7 +205,7 @@ def create_derived(
     # TODO: change job parameters depending on the parameters given to the script which creates the derived data
     jobParams = {"method": "pyFAI integrate1d", "npt": 2000}
 
-    now_str = datetime.isoformat(datetime.utcnow()) + "Z"
+    now_str = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     ownable = Ownable(
         owner="MWET",
         contactEmail="dmcreynolds@lbl.gov",

@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from pathlib import Path
+from datetime import timezone
 from typing import List, Optional
 
 from pyscicat.client import ScicatClient
@@ -69,7 +70,7 @@ def ingest(
 ) -> DatasetMetadataContainer:
     "Ingest a folder of 11012 CCD Theta scan files"
 
-    now_str = datetime.isoformat(datetime.utcnow()) + "Z"
+    now_str = datetime.now().astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     ownable = Ownable(
         owner="MWET",
         contactEmail="dmcreynolds@lbl.gov",

@@ -3,7 +3,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -47,7 +47,7 @@ def get_file_size(file_path: Path) -> int:
 
 
 def get_file_mod_time(file_path: Path) -> str:
-    return datetime.fromtimestamp(file_path.lstat().st_mtime).isoformat() + "Z"
+    return datetime.fromtimestamp(file_path.lstat().st_mtime).astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 def calculate_access_controls(username, beamline, proposal) -> Dict:
@@ -124,7 +124,7 @@ def file_manifest_from_files(
         entry = FileManifestEntry(
             path=str(relative_path),
             size_bytes=ls.st_size,
-            date_last_modified=datetime.fromtimestamp(ls.st_mtime).isoformat() + "Z",
+            date_last_modified=datetime.fromtimestamp(ls.st_mtime).astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
             is_supplemental=False,
         )
         entries.append(entry)
