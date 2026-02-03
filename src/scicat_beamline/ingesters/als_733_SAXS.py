@@ -150,7 +150,7 @@ def ingest(
     )
     _ = scicat_client.datasets_origdatablock_create(scicat_dataset_id, datablock)
     logger.info(
-        f"Created datablock for dataset id {scicat_dataset_id} for file {txt_file.name}"
+        f"Created datablock for dataset id {scicat_dataset_id} for file {txt_file.name} with {len(datafiles)} data files"
     )
 
     if edf_file:
@@ -322,7 +322,6 @@ def data_file_dtos_from_manifest(file_manifest: FileManifest) -> List[DataFile]:
             type="RawDatasets",
         )
         data_files.append(datafile)
-    logger.info(f"Allocated {len(data_files)} data files")
     return data_files
 
 
