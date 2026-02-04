@@ -7,7 +7,7 @@ import h5py
 from pyscicat.model import (DatasetType, OrigDatablock, Ownable, RawDataset)
 from dataset_metadata_schemas.dataset_metadata import FileManifest, FileManifestEntry, Container as DatasetMetadataContainer
 
-from ingester_base_class import SciCatIngesterBase
+from scicat_beamline.ingesters.ingester_base_class import SciCatIngesterBase
 from scicat_beamline.thumbnails import (build_thumbnail,
                                         encode_image_2_thumbnail)
 from scicat_beamline.utils import (NPArrayEncoder,

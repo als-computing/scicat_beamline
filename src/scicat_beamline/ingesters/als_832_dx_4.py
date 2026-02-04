@@ -6,14 +6,14 @@ from typing import Any, Dict, List, Optional
 
 import h5py
 from pyscicat.model import (CreateDatasetOrigDatablockDto,
-                            DataFile, DatasetType, Ownable,
+                            DatasetType, Ownable,
                             RawDataset)
-from dataset_metadata_schemas.dataset_metadata import Als, FileManifest, FileManifestEntry, Container as DatasetMetadataContainer
+from dataset_metadata_schemas.dataset_metadata import FileManifest, FileManifestEntry, Container as DatasetMetadataContainer
 
-from ingester_base_class import SciCatIngesterBase
+from scicat_beamline.ingesters.ingester_base_class import SciCatIngesterBase
 from scicat_beamline.thumbnails import (build_thumbnail_as_filebuffer,
                                         encode_filebuffer_image_2_thumbnail)
-from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
+from scicat_beamline.utils import (NPArrayEncoder,
                                    search_terms_from_name,
                                    calculate_access_controls, clean_email)
 
