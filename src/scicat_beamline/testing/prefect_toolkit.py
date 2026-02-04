@@ -178,10 +178,16 @@ def create_deployment():
             branch=source_branch,
         )
 
+    #parameters = {
+    #    "ingester_spec": "als733_saxs",
+    #    "dataset_path": "bltest", # Base folder will come from the environment
+    #    "dataset_files": ["agb_tiled_0p3s__2_lo_2m.edf", "agb_tiled_0p3s__2_lo_2m.txt"]
+    #}
+
     parameters = {
-        "ingester_spec": "als733_saxs",
+        "ingester_spec": "als_832_dx_4",
         "dataset_path": "bltest", # Base folder will come from the environment
-        "dataset_files": ["agb_tiled_0p3s__2_lo_2m.edf", "agb_tiled_0p3s__2_lo_2m.txt"]
+        "dataset_files": ["20241216_153047_ddd.h5"]
     }
 
     tags = ["scicat", "beamline", "ingest"]

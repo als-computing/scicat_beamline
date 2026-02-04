@@ -51,7 +51,8 @@ class SciCatIngesterBase:
         "Uses the provided ALS metadata or creates a new one, and ensures it has a basic structure."
 
         if not als_dataset_metadata:
-            als_dataset_metadata = DatasetMetadataContainer(als=Als())
+            # Currently the ingesters are designed to use version 0.0.2 of the schema.
+            als_dataset_metadata = DatasetMetadataContainer(als=Als(), version="0.0.2")
 
         # We created it above for a new one, but it may not exist in the provided one.
         if get_nested(als_dataset_metadata, "als") is None:
