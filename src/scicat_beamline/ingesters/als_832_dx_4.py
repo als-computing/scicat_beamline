@@ -72,16 +72,19 @@ class Als_832_Dx_4_Ingester(SciCatIngesterBase):
             proposal_name = scicat_metadata.get("/measurement/sample/experiment/proposal") or "Unknown"
             principal_investigator = scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown"
             date_of_acquisition = h5_manifest_file.date_last_modified.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
             file_name = scicat_metadata.get("/measurement/sample/file_name")
             description = search_terms_from_name(file_name)
             appended_keywords = description.split()
-            self._logger.info(
-                f"email: {scicat_metadata.get('/measurement/sample/experimenter/email')}"
-            )
+            contact_email = clean_email(scicat_metadata.get("/measurement/sample/experimenter/email")) or "unknown@example.com"
+
+            self._logger.info(f"Using proposal name: {proposal_name}")
+            self._logger.info(f"Using acquisition date: {date_of_acquisition}")
+            self._logger.info(f"Using contact email: {contact_email}")
+            self._logger.info(f"Using principal investigator: {principal_investigator}")
+
             dataset = RawDataset(
                 owner = scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
-                contactEmail = clean_email(scicat_metadata.get("/measurement/sample/experimenter/email")) or "unknown@example.com",
+                contactEmail = contact_email,
                 creationLocation = scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
                 datasetName = file_name,
                 type = DatasetType.raw,

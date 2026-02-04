@@ -211,7 +211,7 @@ def search_terms_from_name(sample_name):
     return " ".join(description)
 
 
-def clean_email(email: Any) -> str:
+def clean_email(email: Any, default=UNKNOWN_EMAIL) -> str:
     """
     Clean the provided email address.
 
@@ -243,8 +243,8 @@ def clean_email(email: Any) -> str:
     """
     # Check that the email is a string
     if not isinstance(email, str):
-        logger.info(f"Input email is not a string. Returning {UNKNOWN_EMAIL}")
-        return UNKNOWN_EMAIL
+        logger.info(f"Input email is not a string. Returning {default}")
+        return default
 
     # Remove surrounding whitespace
     cleaned = email.strip()
@@ -254,15 +254,15 @@ def clean_email(email: Any) -> str:
 
     # Fallback if the email is empty, equals "NONE", or lacks an "@" symbol
     if not cleaned or cleaned.upper() == "NONE" or "@" not in cleaned:
-        logger.info(f"Invalid email address. Returning {UNKNOWN_EMAIL}")
-        return UNKNOWN_EMAIL
+        logger.info(f"Invalid email address. Returning {default}")
+        return default
 
     # Optionally, remove spaces from inside the email (typically invalid in an email address)
     cleaned = cleaned.replace(" ", "")
 
     # Final verification: ensure that the cleaned email contains "@".
     if "@" not in cleaned:
-        logger.info(f"Invalid email address: {cleaned}. Returning {UNKNOWN_EMAIL}")
-        return UNKNOWN_EMAIL
+        logger.info(f"Invalid email address: {cleaned}. Returning {default}")
+        return default
 
     return cleaned

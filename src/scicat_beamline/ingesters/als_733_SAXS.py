@@ -90,6 +90,7 @@ class Als_733_Saxs_Ingester(SciCatIngesterBase):
         # TODO: Very sus. Just matching lines in the text file.
         proposal_name = scientific_metadata.get("ALS Proposal #", "UNKNOWN")
         principal_investigator = scientific_metadata.get("PI", "UNKNOWN")
+        date_of_acquisition = txt_manifest_file.date_last_modified.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         scicat_metadata = {
             "owner": "Garrett Birkel",      # TODO: Definitely not correct!
@@ -116,10 +117,9 @@ class Als_733_Saxs_Ingester(SciCatIngesterBase):
 
         sampleId = self.get_sample_id_oct_2022(file_name)
 
-        self._logger.info(f"Using proposal name {proposal_name}")
-        date_of_acquisition = txt_manifest_file.date_last_modified.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        self._logger.info(f"Using creation time {date_of_acquisition}")
-        self._logger.info(f"Using principal investigator {principal_investigator}")
+        self._logger.info(f"Using proposal name: {proposal_name}")
+        self._logger.info(f"Using acquisition date: {date_of_acquisition}")
+        self._logger.info(f"Using principal investigator: {principal_investigator}")
 
         description = search_terms_from_name(txt_file.parent.name + "_" + file_name)
         sample_keywords = self.find_sample_keywords_oct_2022(txt_file.name)
