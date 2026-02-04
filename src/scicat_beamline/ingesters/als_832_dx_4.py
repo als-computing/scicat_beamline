@@ -1,200 +1,140 @@
 import json
-import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import h5py
-from pyscicat.client import ScicatClient
-from pyscicat.model import (Attachment, CreateDatasetOrigDatablockDto,
-                            DataFile, DatasetType, OrigDatablock, Ownable,
+from pyscicat.model import (CreateDatasetOrigDatablockDto,
+                            DataFile, DatasetType, Ownable,
                             RawDataset)
 from dataset_metadata_schemas.dataset_metadata import Als, FileManifest, FileManifestEntry, Container as DatasetMetadataContainer
-from dataset_metadata_schemas.utilities import (get_nested)
-from dataset_tracker_client.client import DatasettrackerClient
 
+from ingester_base_class import SciCatIngesterBase
 from scicat_beamline.thumbnails import (build_thumbnail_as_filebuffer,
                                         encode_filebuffer_image_2_thumbnail)
 from scicat_beamline.utils import (Issue, NPArrayEncoder, Severity,
                                    search_terms_from_name,
-                                   calculate_access_controls, clean_email,
-                                   get_file_mod_time_as_iso_str, get_file_size)
+                                   calculate_access_controls, clean_email)
 
 DEFAULT_USER = "8.3.2"  # In case there's not proposal number
 ingest_spec = "als832_dx_4"  # "als832_dx_3"
 
-logger = logging.getLogger("scicat_operation")
 
+class Als_832_Dx_4_Ingester(SciCatIngesterBase):
+    """SciCat ingester for ALS 8.3.2 DX 4 data."""
 
-def ingest(
-    scicat_client: ScicatClient,
-    dataset_path: Path,
-    file_manifest: FileManifest,
-    temp_dir: Path,
-    als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
-    owner_username: Optional[str] = None,
-    logger: logging.Logger = logging.getLogger("scicat_operation")
-) -> DatasetMetadataContainer:
+    def ingest(
+            self,
+            dataset_path: Path,
+            file_manifest: FileManifest,
+            als_dataset_metadata: Optional[DatasetMetadataContainer] = None,
+            owner_username: Optional[str] = None
+        ) -> DatasetMetadataContainer:
 
-    # We expect to encounter one .h5 file.
-    # If we don't find exactly one, we raise an error.
-    found_files: List[FileManifestEntry] = []
-    for manifest_file in file_manifest.files:
-        file_path = Path(dataset_path, manifest_file.path)
-        if file_path.suffix.lower() == ".h5":
-            found_files.append(manifest_file)    
-    if len(found_files) != 1:
-        raise ValueError(f"Expected one .h5 file, found {len(found_files)}")
-    h5_manifest_file = found_files[0]
-    h5_file = Path(dataset_path, h5_manifest_file.path)
+        # Ensure we have ALS metadata structure
+        self.use_or_create_als_metadata(als_dataset_metadata)
 
-    with h5py.File(h5_file, "r") as file:
-        scicat_metadata = _extract_fields(file, scicat_metadata_keys)
-        scientific_metadata = _extract_fields(file, scientific_metadata_keys)
-        scientific_metadata["data_sample"] = _get_data_sample(file)
-        encoded_scientific_metadata = json.loads(
-            json.dumps(scientific_metadata, cls=NPArrayEncoder)
-        )
-        access_controls = calculate_access_controls(
-            DEFAULT_USER,
-            scicat_metadata.get("/measurement/sample/experiment/beamline"),
-            scicat_metadata.get("/measurement/sample/experiment/proposal"),
-        )
-        logger.info(
-            f"Access controls for {h5_file} access_groups: {access_controls.get('access_groups')} "
-            f"owner_group: {access_controls.get('owner_group')}"
-        )
+        # We expect to encounter one .h5 file.
+        # If we don't find exactly one, we raise an error.
+        found_files: List[FileManifestEntry] = []
+        for manifest_file in file_manifest.files:
+            file_path = Path(dataset_path, manifest_file.path)
+            if file_path.suffix.lower() == ".h5":
+                found_files.append(manifest_file)    
+        if len(found_files) != 1:
+            raise ValueError(f"Expected one .h5 file, found {len(found_files)}")
+        h5_manifest_file = found_files[0]
+        h5_file = Path(dataset_path, h5_manifest_file.path)
 
-        ownable = Ownable(
-            ownerGroup=access_controls["owner_group"],
-            accessGroups=access_controls["access_groups"],
-        )
+        with h5py.File(h5_file, "r") as file:
+            scicat_metadata = self.extract_h5_file_fields(file, scicat_metadata_keys)
+            scientific_metadata = self.extract_h5_file_fields(file, scientific_metadata_keys)
+            scientific_metadata["data_sample"] = self.get_h5_file_data_sample(file, data_sample_keys)
+            encoded_scientific_metadata = json.loads(
+                json.dumps(scientific_metadata, cls=NPArrayEncoder)
+            )
+            access_controls = calculate_access_controls(
+                DEFAULT_USER,
+                scicat_metadata.get("/measurement/sample/experiment/beamline"),
+                scicat_metadata.get("/measurement/sample/experiment/proposal"),
+            )
+            self._logger.info(
+                f"Access controls for {h5_file} access_groups: {access_controls.get('access_groups')} "
+                f"owner_group: {access_controls.get('owner_group')}"
+            )
 
-        proposal_name = scicat_metadata.get("/measurement/sample/experiment/proposal") or "Unknown"
-        principal_investigator = scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown"
-        file_name = scicat_metadata.get("/measurement/sample/file_name")
-        description = search_terms_from_name(file_name)
-        appended_keywords = description.split()
-        logger.info(
-            f"email: {scicat_metadata.get('/measurement/sample/experimenter/email')}"
-        )
-        dataset = RawDataset(
-            owner = scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
-            contactEmail = clean_email(scicat_metadata.get("/measurement/sample/experimenter/email")) or "unknown@example.com",
-            creationLocation = scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
-            datasetName = file_name,
-            type = DatasetType.raw,
-            instrumentId = scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
-            proposalId = proposal_name,
-            dataFormat = "DX",
-            principalInvestigator = principal_investigator,
-            sourceFolder = str(h5_file.parent),
-            size = h5_manifest_file.size_bytes,
-            scientificMetadata = encoded_scientific_metadata,
-            sampleId = description,
-            isPublished = False,
-            description = description,
-            keywords = appended_keywords,
-            creationTime = h5_manifest_file.date_last_modified,
-            **ownable.model_dump(),
-        )
-        logger.debug(f"dataset: {dataset}")
-        dataset_id = scicat_client.upload_new_dataset(dataset)
+            ownable = Ownable(
+                ownerGroup=access_controls["owner_group"],
+                accessGroups=access_controls["access_groups"],
+            )
 
-        # Create a data block with the h5 file as its data file
+            proposal_name = scicat_metadata.get("/measurement/sample/experiment/proposal") or "Unknown"
+            principal_investigator = scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown"
+            date_of_acquisition = h5_manifest_file.date_last_modified.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        datafile = DataFile(
-            path = h5_file.name,
-            size = h5_manifest_file.size_bytes,
-            time = h5_manifest_file.date_last_modified,
-        )
-        datafiles = [datafile]
+            file_name = scicat_metadata.get("/measurement/sample/file_name")
+            description = search_terms_from_name(file_name)
+            appended_keywords = description.split()
+            self._logger.info(
+                f"email: {scicat_metadata.get('/measurement/sample/experimenter/email')}"
+            )
+            dataset = RawDataset(
+                owner = scicat_metadata.get("/measurement/sample/experiment/pi") or "Unknown",
+                contactEmail = clean_email(scicat_metadata.get("/measurement/sample/experimenter/email")) or "unknown@example.com",
+                creationLocation = scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
+                datasetName = file_name,
+                type = DatasetType.raw,
+                instrumentId = scicat_metadata.get("/measurement/instrument/instrument_name") or "Unknown",
+                proposalId = proposal_name,
+                dataFormat = "DX",
+                principalInvestigator = principal_investigator,
+                sourceFolder = str(h5_file.parent),
+                size = h5_manifest_file.size_bytes,
+                scientificMetadata = encoded_scientific_metadata,
+                sampleId = description,
+                isPublished = False,
+                description = description,
+                keywords = appended_keywords,
+                creationTime = date_of_acquisition,
+                **ownable.model_dump(),
+            )
+            self._logger.debug(f"dataset: {dataset}")
+            scicat_dataset_id = self._scicat_client.upload_new_dataset(dataset)
+            self._logger.info(f"Created dataset with id {scicat_dataset_id} for file {h5_file.name}")
 
-        datablock = CreateDatasetOrigDatablockDto(
-            size = h5_manifest_file.size_bytes, dataFileList=datafiles
-        )
-        scicat_client.upload_dataset_origdatablock(dataset_id, datablock)
+            # Create a data block with the h5 file as its data file
 
-        # Create and upload a thumbnail attachment
+            datafiles = self.data_file_dtos_from_manifest(file_manifest)
 
-        thumbnail_file = build_thumbnail_as_filebuffer(file["/exchange/data"][0])
-        encoded_thumbnail = encode_filebuffer_image_2_thumbnail(thumbnail_file)
+            datablock = CreateDatasetOrigDatablockDto(
+                size = file_manifest.total_size_bytes,
+                dataFileList=datafiles
+            )
+            self._scicat_client.upload_dataset_origdatablock(scicat_dataset_id, datablock)
+            self._logger.info(
+                f"Created datablock for dataset id {scicat_dataset_id} for file {h5_file.name} with {len(datafiles)} data files"
+            )
 
-        attachment = Attachment(
-            datasetId = dataset_id,
-            thumbnail = encoded_thumbnail,
-            caption = "raw image",
-            **ownable.model_dump(),
-        )
-        scicat_client.upload_attachment(attachment)
+            # Create and upload a thumbnail attachment
 
-        if not als_dataset_metadata:
-            als_dataset_metadata = DatasetMetadataContainer(als=Als())
+            thumbnail_file = build_thumbnail_as_filebuffer(file["/exchange/data"][0])
+            encoded_thumbnail = encode_filebuffer_image_2_thumbnail(thumbnail_file)
 
-        als_dataset_metadata.als.bame = file_name
-        als_dataset_metadata.als.description = description
-        als_dataset_metadata.als.proposal_id = proposal_name
-        als_dataset_metadata.als.beamline_id = "8.3.2"
-        als_dataset_metadata.als.principal_investigator = principal_investigator
-        als_dataset_metadata.als.date_of_acquisition = h5_manifest_file.date_last_modified
+            self.upload_thumbnail_attachment(encoded_thumbnail, scicat_dataset_id, "raw image", ownable)
 
-        als_dataset_metadata.als.file_manifest = file_manifest
+            self._als_dataset_metadata.als.bame = file_name
+            self._als_dataset_metadata.als.description = description
+            self._als_dataset_metadata.als.proposal_id = proposal_name
+            self._als_dataset_metadata.als.beamline_id = "8.3.2"
+            self._als_dataset_metadata.als.principal_investigator = principal_investigator
+            self._als_dataset_metadata.als.date_of_acquisition = date_of_acquisition
 
-        if get_nested(als_dataset_metadata, "als.scicat") is None:
-            als_dataset_metadata.als.scicat = SciCat()
+            self._als_dataset_metadata.als.file_manifest = file_manifest
 
-        als_dataset_metadata.als.scicat.scicat_dataset_id = dataset_id
+            self._als_dataset_metadata.als.scicat.scicat_dataset_id = scicat_dataset_id
 
-        return dataset_id
-
-
-def _extract_fields(file, keys) -> Dict[str, Any]:
-    metadata = {}
-    for md_key in keys:
-        dataset = file.get(md_key)
-        if not dataset:
-            logger.warning(f"Metadata key not found: {md_key}")
-            continue
-        metadata[md_key] = _get_dataset_value(file[md_key])
-    return metadata
-
-
-def _get_dataset_value(data_set):
-    logger.debug(f"{data_set}  {data_set.dtype}")
-    try:
-        if "S" in data_set.dtype.str:
-            if data_set.shape == (1,):
-                return data_set.asstr()[0]
-            elif data_set.shape == ():
-                return data_set[()].decode("utf-8")
-            else:
-                return list(data_set.asstr())
-        else:
-            if data_set.maxshape == (1,):
-                logger.debug(f"{data_set}  {data_set[()][0]}")
-                return data_set[()][0]
-            else:
-                logger.debug(f"{data_set}  {data_set[()]}")
-                return data_set[()]
-    except Exception:
-        logger.exception("Exception extracting dataset value")
-        return None
-
-
-def _get_data_sample(file, sample_size=10):
-    data_sample = {}
-    for key in data_sample_keys:
-        data_array = file.get(key)
-        if not data_array:
-            continue
-        step_size = int(len(data_array) / sample_size)
-        if step_size == 0:
-            step_size = 1
-        sample = data_array[0::step_size]
-        data_sample[key] = sample
-
-    return data_sample
+            return self._als_dataset_metadata
 
 
 scicat_metadata_keys = [
@@ -275,17 +215,4 @@ data_sample_keys = [
 
 
 if __name__ == "__main__":
-    # ingest(
-    #     ScicatClient(
-    #         # "http://localhost:3000/api/v3",
-    #         os.environ.get("SCICAT_API_URL"),
-    #         None,
-    #         os.environ.get("SCICAT_INGEST_OWNER_USERNAME"),
-    #         os.environ.get("SCICAT_INGEST_PASSWORD"),
-    #     ),
-    #     "/Users/dylanmcreynolds/data/beamlines/8.3.2/raw/"
-    #     "20231013_065251_MSB_Book1_Proj77_Cell3_Gen2_Li_R2G_FastCharge_DuringCharge0.h5",
-    #     [],
-    #     log_level="DEBUG",
-    # )
     pass

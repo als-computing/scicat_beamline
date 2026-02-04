@@ -20,16 +20,18 @@ from dataset_tracker_client.model import (DatasetCreateDto,
 
 from pyscicat.client import from_credentials
 
-from scicat_beamline.ingesters import (als_733_saxs_ingest,
-                                       als_832_dx_4_ingest,
-                                       #    als_11012_ccd_theta_ingest,
-                                       #    als_11012_igor_ingest,
-                                       als_11012_scattering_ingest,
-                                       als_test_ingest, nexafs_ingest,
-                                       nsls2_nexafs_sst1_ingest,
-                                       nsls2_rsoxs_sst1_ingest,
-                                       nsls2_TREXS_smi_ingest,
-                                       polyfts_dscft_ingest)
+from scicat_beamline.ingesters import (SciCatIngesterBase,
+                                       Als_733_Saxs_Ingester,
+                                       Als_832_Dx_4_Ingester,
+                                       # #    als_11012_ccd_theta_ingest,
+                                       # #    als_11012_igor_ingest,
+                                       #als_11012_scattering_ingest,
+                                       #als_test_ingest, nexafs_ingest,
+                                       #nsls2_nexafs_sst1_ingest,
+                                       #nsls2_rsoxs_sst1_ingest,
+                                       #nsls2_TREXS_smi_ingest,
+                                       #polyfts_dscft_ingest
+                                       )
 from scicat_beamline.utils import Issue
 
 
@@ -189,27 +191,27 @@ def ingest(
 
     # Attempte to resolve the ingester spec, and fail immediately otherwise.
 
-    ingestion_function = None
-    if ingester_spec == "bltest":
-        ingestion_function = als_test_ingest
-    elif ingester_spec == "als_11012_igor":
-        ingestion_function = als_733_saxs_ingest
-    elif ingester_spec == "als_832_dx_4":
-        ingestion_function = als_832_dx_4_ingest
-    elif ingester_spec == "als_11012_scattering":
-        ingestion_function = als_11012_scattering_ingest
-    elif ingester_spec == "als_11012_nexafs":
-        ingestion_function = nexafs_ingest
-    elif ingester_spec == "nsls2_rsoxs_sst1":
-        ingestion_function = nsls2_rsoxs_sst1_ingest
-    elif ingester_spec == "nsls2_nexafs_sst1":
-        ingestion_function = nsls2_nexafs_sst1_ingest
+    ingester_class = None
+    if ingester_spec == "test":
+        ingester_class = SciCatIngesterBase
     elif ingester_spec == "als733_saxs":
-        ingestion_function = als_733_saxs_ingest
-    elif ingester_spec == "nsls2_trexs_smi":
-        ingestion_function = nsls2_TREXS_smi_ingest
-    elif ingester_spec == "polyfts_dscft":
-        ingestion_function = polyfts_dscft_ingest
+        ingester_class = Als_733_Saxs_Ingester
+    elif ingester_spec == "als_832_dx_4":
+        ingester_class = Als_832_Dx_4_Ingester
+    #elif ingester_spec == "als_11012_scattering":
+    #    ingester_class = als_11012_scattering_ingest
+    #elif ingester_spec == "als_11012_nexafs":
+    #    ingester_class = nexafs_ingest
+    #elif ingester_spec == "als_11012_igor":
+    #    ingester_class = als_11012_igor
+    #elif ingester_spec == "nsls2_rsoxs_sst1":
+    #    ingester_class = nsls2_rsoxs_sst1_ingest
+    #elif ingester_spec == "nsls2_nexafs_sst1":
+    #    ingester_class = nsls2_nexafs_sst1_ingest
+    #elif ingester_spec == "nsls2_trexs_smi":
+    #    ingester_class = nsls2_TREXS_smi_ingest
+    #elif ingester_spec == "polyfts_dscft":
+    #    ingester_class = polyfts_dscft_ingest
     else:
         logger.exception(f"Cannot resolve ingester spec {ingester_spec}")
         return results
@@ -458,14 +460,18 @@ def ingest(
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            als_dataset_metadata = ingestion_function(
+
+            ingester_instance = ingester_class(
                 scicat_client=pyscicat_client,
+                temp_dir=temp_path,
+                logger=logger
+            )
+
+            als_dataset_metadata = ingester_instance.ingest(
                 dataset_path=full_dataset_path,
                 file_manifest=file_manifest,
-                temp_dir=temp_path,
                 als_dataset_metadata=als_dataset_metadata,
                 owner_username=owner_username,
-                logger=logger
             )
 
     except Exception as e:
