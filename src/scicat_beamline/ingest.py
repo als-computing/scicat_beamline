@@ -490,7 +490,7 @@ def ingest(
     als_dataset_metadata.als.scicat = SciCat(
         scicat_dataset_id = scicat_dataset_id,
         scicat_instance = scicat_url,
-        date_ingested = datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        date_ingested = datetime.now().astimezone(timezone.utc),
         ingester_used = ingester_spec,
         ingestion_log = list_log_handler.get_list()
     )
@@ -541,6 +541,10 @@ def ingest(
 
         # Now we finally have what we need to create a new Dataset.
 
+        scicat_date_ingested = get_nested(als_dataset_metadata, "als.scicat.date_ingested")
+        # We expect this to be set to a meaningful value by the ingester subclass above.
+        date_of_acquisition = get_nested(als_dataset_metadata, "als.date_of_acquisition")
+
         existing_dataset_id = get_nested(als_dataset_metadata, "als.dataset_tracker.dataset_tracker_id")
         if existing_dataset_id is not None:
             logger.info("Dataset Tracker ID already present in metadata. Using existing record.")
@@ -553,7 +557,7 @@ def ingest(
             else:
                 # Since we found an existing record, assume we're updating it.
                 dataset_record.scicat_dataset_id = scicat_dataset_id
-                dataset_record.scicat_date_ingested = get_nested(als_dataset_metadata, "als.scicat.date_ingested")
+                dataset_record.scicat_date_ingested = scicat_date_ingested.strftime("%Y-%m-%dT%H:%M:%SZ")
                 dataset_record.scicat_ingestion_flow_run_id = prefect_flow_run_id
                 dataset_record = datasettracker_client.dataset_update(dataset_record)
         else:
@@ -563,9 +567,10 @@ def ingest(
                     description=get_nested(als_dataset_metadata, "als.description"),
                     slug_beamline=get_nested(als_dataset_metadata, "als.beamline_id"),
                     slug_proposal=get_nested(als_dataset_metadata, "als.proposal_id"),
-                    date_of_acquisition=get_nested(als_dataset_metadata, "als.date_of_acquisition"),
+                    # This DTO, like most, expects this to be a string, not a datetime object
+                    date_of_acquisition=date_of_acquisition.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     scicat_dataset_id=scicat_dataset_id,
-                    scicat_date_ingested=get_nested(als_dataset_metadata, "als.scicat.date_ingested"),
+                    scicat_date_ingested=scicat_date_ingested.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     scicat_ingestion_flow_run_id=prefect_flow_run_id
                 )
             )
@@ -656,7 +661,7 @@ def ingest(
                     id_dataset_instance=instance_record.id,
                     file_path=new_file_path,
                     file_size_bytes=manifest_file.size_bytes,
-                    date_file_last_modified=manifest_file.date_last_modified,
+                    date_file_last_modified=manifest_file.date_last_modified.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     is_supplemental=manifest_file.is_supplemental,
                 )
             )
@@ -666,7 +671,7 @@ def ingest(
             manifest_file = manifest_files_by_path[existing_file_path]
             record_file = record_files_by_path[existing_file_path]
             record_file.file_size_bytes = manifest_file.size_bytes
-            record_file.date_file_last_modified = manifest_file.date_last_modified
+            record_file.date_file_last_modified = manifest_file.date_last_modified.strftime("%Y-%m-%dT%H:%M:%SZ")
             record_file.is_supplemental = manifest_file.is_supplemental
             datasettracker_client.dataset_instance_file_update(
                 record_file
