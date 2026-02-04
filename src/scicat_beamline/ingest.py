@@ -623,7 +623,7 @@ def ingest(
         file_records:List[DatasetInstanceFile] = datasettracker_client.dataset_instance_files_get_many(
             filter_fields={"id_dataset_instance": instance_record.id}
         )
-        record_files_by_path = {f.path: f for f in file_records}
+        record_files_by_path = {f.file_path: f for f in file_records}
 
         # How we handle files is a bit tricky, because if we're using an existing Dataset Instance
         # record then old File records may exist.  Should we delete them, or update them?
