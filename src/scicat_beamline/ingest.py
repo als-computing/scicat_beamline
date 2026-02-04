@@ -507,15 +507,15 @@ def ingest(
         # not a Dataset Tracker slug, e.g. "8-3-2".
 
         beamline_name = get_nested(als_dataset_metadata, "als.beamline_id")
-        beamline_exists = datasettracker_client.beamline_get_many(
+        beamline_record = datasettracker_client.beamline_get_many(
             filter_fields={"name": beamline_name}
         )
         # If it doesn't exist, we'll create it and use it as-is,
         # relying on an admin to make a downstream correction if needed.
-        if len(beamline_exists) > 0:
-            beamline_exists = beamline_exists[0]
+        if len(beamline_record) > 0:
+            beamline_record = beamline_record[0]
         else:
-            beamline_exists = datasettracker_client.beamline_create(
+            beamline_record = datasettracker_client.beamline_create(
                 BeamlineCreateDto(
                     name=beamline_name,
                     description=f"Auto-created while ingesting Dataset {scicat_dataset_id}"
@@ -526,13 +526,13 @@ def ingest(
         # If we haven't seen it before, we assume it's valid and create it.
 
         proposal_name = get_nested(als_dataset_metadata, "als.proposal_id")
-        proposal_exists = datasettracker_client.proposal_get_many(
+        proposal_record = datasettracker_client.proposal_get_many(
             filter_fields={"name": proposal_name}
         )
-        if len(proposal_exists) > 0:
-            proposal_exists = proposal_exists[0]
+        if len(proposal_record) > 0:
+            proposal_record = proposal_record[0]
         else:
-            proposal_exists = datasettracker_client.proposal_create(
+            proposal_record = datasettracker_client.proposal_create(
                 ProposalCreateDto(
                     name=proposal_name,
                     description=f"Auto-created while ingesting Dataset {scicat_dataset_id}"
@@ -565,9 +565,9 @@ def ingest(
                 DatasetCreateDto(
                     name=get_nested(als_dataset_metadata, "als.name"),
                     description=get_nested(als_dataset_metadata, "als.description"),
-                    slug_beamline=get_nested(als_dataset_metadata, "als.beamline_id"),
-                    slug_proposal=get_nested(als_dataset_metadata, "als.proposal_id"),
-                    # This DTO, like most, expects this to be a string, not a datetime object
+                    slug_beamline=beamline_record.slug,
+                    slug_proposal=proposal_record.slug,
+                    # Data Tracker DTOs expect dates to be strings, not datetime objects
                     date_of_acquisition=date_of_acquisition.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     scicat_dataset_id=scicat_dataset_id,
                     scicat_date_ingested=scicat_date_ingested.strftime("%Y-%m-%dT%H:%M:%SZ"),
