@@ -513,6 +513,7 @@ def ingest(
         # If it doesn't exist, we'll create it and use it as-is,
         # relying on an admin to make a downstream correction if needed.
         if len(beamline_record) > 0:
+            logger.info("Found existing Beamline record.")
             beamline_record = beamline_record[0]
         else:
             beamline_record = datasettracker_client.beamline_create(
@@ -530,6 +531,7 @@ def ingest(
             filter_fields={"name": proposal_name}
         )
         if len(proposal_record) > 0:
+            logger.info("Found existing Proposal record.")
             proposal_record = proposal_record[0]
         else:
             proposal_record = datasettracker_client.proposal_create(
