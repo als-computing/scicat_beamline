@@ -14,7 +14,7 @@ from dataset_metadata_schemas.dataset_metadata import FileManifest, Container as
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
+from scicat_beamline.utils import (add_to_sci_metadata_from_key_value_text,
                                    create_data_files_list, get_file_mod_time_as_iso_str,
                                    glob_non_hidden_in_folder)
 
@@ -32,7 +32,6 @@ class Scattering11012Reader:
     """
 
     dataset_id: Optional[str] = None
-    _issues = []
 
     def __init__(self, folder: Path, ownable: Ownable) -> None:
         self._folder = folder
@@ -199,28 +198,3 @@ def build_thumbnail(fits_data, name, directory):
     auto_contrast_image.save(file, format="PNG")
     return file
 
-
-# if __name__ == "__main__":
-#     from pprint import pprint
-
-#     folder = Path("/home/j/programming/work/Oct_2021_scattering/CCD")
-#     for path in folder.iterdir():
-#         print(path)
-#         if not path.is_dir():
-#             continue
-#         try:
-#             png_files = list(path.glob("*.png"))
-#             if len(png_files) == 0:
-#                 fits_filenames = sorted(path.glob("*.fits"))
-#                 fits_filename = fits_filenames[len(fits_filenames) // 2]
-#                 image_data = fits.getdata(fits_filename, ext=2)
-#                 build_thumbnail(image_data, fits_filename.name[:-5], path)
-
-#             dataset_id, issues = ingest(path)
-#             print(f"Ingested {path} as {dataset_id}. Issues:")
-#             pprint(issues)
-#         except Exception as e:
-#             print("ERROR:")
-#             print(e)
-#             print(f"Error ingesting {path} with {e}")
-#             raise e

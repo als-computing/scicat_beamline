@@ -12,7 +12,7 @@ from dataset_metadata_schemas.dataset_metadata import FileManifest, Container as
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, create_data_files_list,
+from scicat_beamline.utils import (create_data_files_list,
                                    get_file_mod_time_as_iso_str,
                                    glob_non_hidden_in_folder)
 
@@ -25,7 +25,6 @@ class TREXSNsls2SMIReader:
     with tiff files."""
 
     dataset_id: str = None
-    _issues = []
 
     def __init__(self, folder: Path, ownable: Ownable) -> None:
         self._folder = folder
@@ -95,7 +94,6 @@ class TREXSNsls2SMIReader:
         )
 
 
-# def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
     dataset_path: Path,
@@ -117,7 +115,6 @@ def ingest(
         accessGroups=["MWET", "ingestor"],
     )
     reader = TREXSNsls2SMIReader(file_path, ownable)
-    issues: List[Issue] = []
 
     png_files = list(glob_non_hidden_in_folder(file_path, "*/**.png"))
     if len(list(png_files)) == 0:
@@ -143,7 +140,7 @@ def ingest(
 
     data_block = reader.create_data_block(datafiles, size)
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
-    return dataset_id, issues
+    return dataset_id
 
 
 def build_thumbnail(fits_data, name, directory):
@@ -160,28 +157,3 @@ def build_thumbnail(fits_data, name, directory):
     auto_contrast_image.save(file, format="PNG")
     return file
 
-
-# if __name__ == "__main__":
-#     from pprint import pprint
-
-#     folder = Path("/home/j/programming/work/Oct_2021_scattering/CCD")
-#     for path in folder.iterdir():
-#         print(path)
-#         if not path.is_dir():
-#             continue
-#         try:
-#             png_files = list(path.glob("*.png"))
-#             if len(png_files) == 0:
-#                 fits_filenames = sorted(path.glob("*.fits"))
-#                 fits_filename = fits_filenames[len(fits_filenames) // 2]
-#                 image_data = fits.getdata(fits_filename, ext=2)
-#                 build_thumbnail(image_data, fits_filename.name[:-5], path)
-
-#             dataset_id, issues = ingest(path)
-#             print(f"Ingested {path} as {dataset_id}. Issues:")
-#             pprint(issues)
-#         except Exception as e:
-#             print("ERROR:")
-#             print(e)
-#             print(f"Error ingesting {path} with {e}")
-#             raise e

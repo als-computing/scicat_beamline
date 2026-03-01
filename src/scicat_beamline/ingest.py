@@ -32,7 +32,6 @@ from scicat_beamline.ingesters import (SciCatIngesterBase,
                                        #nsls2_TREXS_smi_ingest,
                                        #polyfts_dscft_ingest
                                        )
-from scicat_beamline.utils import Issue
 
 
 def standard_iterator(pattern: str):

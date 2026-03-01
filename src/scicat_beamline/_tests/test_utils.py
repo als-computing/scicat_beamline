@@ -1,7 +1,7 @@
 import json
 import numpy as np
 
-from scicat_beamline.utils import NPArrayEncoder, clean_email, UNKNOWN_EMAIL, search_terms_from_name, calculate_access_controls, Issue
+from scicat_beamline.utils import NPArrayEncoder, clean_email, UNKNOWN_EMAIL, search_terms_from_name, calculate_access_controls
 
 
 def test_clean_email_valid():

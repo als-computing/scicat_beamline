@@ -17,7 +17,7 @@ from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import build_RSoXS_thumb_SST1
-from scicat_beamline.utils import (Issue, create_data_files_list,
+from scicat_beamline.utils import (create_data_files_list,
                                    glob_non_hidden_in_folder)
 
 ingest_spec = "nsls2_rsoxs_sst1"
@@ -38,7 +38,6 @@ class ScatteringNsls2Sst1Reader:
     """
 
     dataset_id: str = None
-    _issues = []
     scan_id = ""
 
     def __init__(self, folder: Path, ownable: Ownable) -> None:
@@ -139,7 +138,6 @@ class ScatteringNsls2Sst1Reader:
         )
 
 
-# def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
     dataset_path: Path,
@@ -230,29 +228,3 @@ def build_thumbnail(image_data, name, directory):
     file = dir / Path(filename)
     auto_contrast_image.save(file, format="PNG")
     return file
-
-
-# if __name__ == "__main__":
-#     from pprint import pprint
-
-#     folder = Path("/home/j/programming/work/Oct_2021_scattering/CCD")
-#     for path in folder.iterdir():
-#         print(path)
-#         if not path.is_dir():
-#             continue
-#         try:
-#             png_files = list(path.glob("*.png"))
-#             if len(png_files) == 0:
-#                 fits_filenames = sorted(path.glob("*.fits"))
-#                 fits_filename = fits_filenames[len(fits_filenames) // 2]
-#                 image_data = fits.getdata(fits_filename, ext=2)
-#                 build_thumbnail(image_data, fits_filename.name[:-5], path)
-
-#             dataset_id, issues = ingest(path)
-#             print(f"Ingested {path} as {dataset_id}. Issues:")
-#             pprint(issues)
-#         except Exception as e:
-#             print("ERROR:")
-#             print(e)
-#             print(f"Error ingesting {path} with {e}")
-#             raise e

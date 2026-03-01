@@ -13,7 +13,7 @@ from dataset_metadata_schemas.dataset_metadata import FileManifest, Container as
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, add_to_sci_metadata_from_key_value_text,
+from scicat_beamline.utils import (add_to_sci_metadata_from_key_value_text,
                                    get_file_mod_time_as_iso_str, get_file_size)
 
 ingest_spec = "nsls2_nexafs_sst1"
@@ -189,21 +189,3 @@ def ingest(
     scicat_client.datasets_origdatablock_create(dataset_id, data_block)
     return dataset_id
 
-
-# if __name__ == "__main__":
-#     from pprint import pprint
-
-#     folder = Path("/home/j/programming/work/Oct_2021_scattering/Nexafs")
-#     for path in folder.iterdir():
-#         print(path)
-#         if not path.is_file():
-#             continue
-#         try:
-#             dataset_id, issues = ingest(path)
-#             print(f"Ingested {path} as {dataset_id}. Issues:")
-#             pprint(issues)
-#         except Exception as e:
-#             print("ERROR:")
-#             print(e)
-#             print(f"Error ingesting {path} with {e}")
-#             raise e

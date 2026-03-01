@@ -11,7 +11,7 @@ from dataset_metadata_schemas.dataset_metadata import FileManifest, Container as
 from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
-from scicat_beamline.utils import (Issue, create_data_files_list,
+from scicat_beamline.utils import (create_data_files_list,
                                    glob_non_hidden_in_folder)
 
 ingest_spec = "als_11012_igor"
@@ -183,7 +183,6 @@ def create_scientific_metadata(folder: Path) -> Dict:
     return sci_metadata
 
 
-# def ingest(folder: Path) -> Tuple[str, List[Issue]]:
 def ingest(
     scicat_client: ScicatClient,
     dataset_path: Path,
@@ -224,16 +223,3 @@ def ingest(
 
     return dataset_id
 
-
-# if __name__ == "__main__":
-#     from pprint import pprint
-#     folder = Path('/home/j/programming/work/Oct_2021_scattering/CCD')
-#     for path_obj in folder.iterdir():
-#         print(f"Folder: {path_obj}")
-#         if not path_obj.is_dir():
-#             continue
-#         dat_folder = path_obj / "dat"
-#         if dat_folder.exists() and dat_folder.is_dir() and len(os.listdir(dat_folder)) > 0:
-#             dataset_id, issues = ingest(dat_folder)
-#             print(f"Ingested {path_obj} as {dataset_id}. Issues:")
-#             pprint(issues)

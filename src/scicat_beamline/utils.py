@@ -16,18 +16,6 @@ from pyscicat.model import DataFile
 UNKNOWN_EMAIL = "unknown@example.com"
 
 
-class Severity(str, Enum):
-    warning = "warning"
-    error = "error"
-
-
-@dataclass
-class Issue:
-    severity: Severity
-    msg: str
-    exception: Optional[Union[str, None]] = None
-
-
 logger = logging.getLogger("scicat_operation")
 
 

@@ -12,7 +12,7 @@ from dataset_metadata_schemas.utilities import (get_nested)
 from dataset_tracker_client.client import DatasettrackerClient
 
 from scicat_beamline.thumbnails import encode_image_2_thumbnail
-from scicat_beamline.utils import (Issue, search_terms_from_name,
+from scicat_beamline.utils import (search_terms_from_name,
                                    get_file_mod_time_as_iso_str, get_file_size)
 
 ingest_spec = "polyfts_dscft"
